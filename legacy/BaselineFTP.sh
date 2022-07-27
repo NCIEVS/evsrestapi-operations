@@ -9,8 +9,8 @@ dataDir="/local/content/ProcessingData"
 echo Data Directory $dataDir
 uploadHost="ncicbftp2.nci.nih.gov"
 uploadDir="evs/nci/Vocabularies/Baselines/$currentYear"
-ftpUser2='evsmgr'
-ftpPassword2='Nr2013!!'
+ftpUser2=
+ftpPassword2=
 assertedFilename=$1
 
 echo "The current year is $currentYear"

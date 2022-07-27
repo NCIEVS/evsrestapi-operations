@@ -10,8 +10,8 @@ extractDir="/local/content/vocab_processing_OWL2/ExtractBranches/"
 uploadDir="/cacore/EVS/NCI_Thesaurus/Branches"
 neoplasmDir="/cacore/EVS/NCI_Thesaurus/Neoplasm"
 uploadHost="ncicbftp2.nci.nih.gov"
-ftpUser1='cacore'
-ftpPassword1='Boop'
+ftpUser1=
+ftpPassword1=
 prefix="file://"
 suffix="-formattedBranch-kept.owl"
 

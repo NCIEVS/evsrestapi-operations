@@ -1,5 +1,5 @@
-USER=tripleroot
-PASSWORD=ArofThe4ewR
+USER=
+PASSWORD=
 
 ./stardog data remove --all  CTRP -u $USER -p $PASSWORD
 #./stardog data add CTRP -g http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl /LexBIG/rawdata/TripleStore/ThesaurusInferred_forTS.owl -u $USER -p $PASSWORD

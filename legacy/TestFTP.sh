@@ -1,8 +1,8 @@
 
 uploadHost="ncicbftp2.nci.nih.gov"
 uploadDir="cacore/EVS/NCI_Thesaurus/upload"
-ftpUser1='cacore'
-ftpPassword1='Nr2013!!'
+ftpUser1=
+ftpPassword1=
 
 cd ../ProcessingData
 ftp -n $uploadHost <<ENDSCRIPT1

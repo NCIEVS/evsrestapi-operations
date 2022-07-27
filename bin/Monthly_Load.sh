@@ -1,5 +1,5 @@
-USER=tripleroot
-PASSWORD=Twodb0tlemints
+USER=
+PASSWORD=
 
 version=`unzip -p /local/content/downloads/ThesaurusInferred_forTS.zip "*ThesaurusInferred_forTS.owl" |\
    grep '<owl:versionInfo>' | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
