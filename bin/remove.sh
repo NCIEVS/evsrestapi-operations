@@ -6,24 +6,25 @@ help=0
 config=1
 ncflag=""
 while [[ "$#" -gt 0 ]]; do case $1 in
-  --help) help=1;;
-  # use environment variable config (dev env)
-  --noconfig) config=0; ncflag="--noconfig";;
-  *) arr=( "${arr[@]}" "$1" );;
+    --help) help=1;;
+    # use environment variable config (dev env)
+    --noconfig) config=0; ncflag="--noconfig";;
+    *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
 # Set directory of this script so we can call relative scripts
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 if [ ${#arr[@]} -ne 2 ] || [ $help -eq 1 ]; then
-  echo "Usage: $0 [--noconfig] [--help] <terminology> <version>"
-  echo "  e.g. $0 ncit 20.09d"
-  echo "  e.g. $0 ncim 202102"
+    echo "Usage: $0 [--noconfig] [--help] <terminology> <version>"
+    echo "  e.g. $0 ncit 20.09d"
+    echo "  e.g. $0 ncim 202102"
 
-  # List versions and bail
-  echo "List of terminology version:"
-  $DIR/list.sh $ncflag --quiet --es | perl -pe 's/es/    /; s/\|/ /g;'
-  exit 1
+    # List versions and bail
+    echo ""
+    echo "List of terminology versions:"
+    $DIR/list.sh $ncflag --quiet --es | perl -pe 's/es/    /; s/\|/ /g;'
+    exit 1
 fi
 
 terminology=${arr[0]}

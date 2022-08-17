@@ -10,9 +10,11 @@ replace=0
 config=1
 help=0
 while [[ "$#" -gt 0 ]]; do case $1 in
-    --noconfig) config=0;;
-    --replace) config=1;;
     --help) help=1;;
+    # use environment variable config (dev env)
+    --noconfig) config=0; ncflag="--noconfig";;
+    # replace the specified terminology/verison/graph
+    --replace) replace=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
@@ -42,7 +44,7 @@ echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"
 echo "--------------------------------------------------"
 echo "data = $data"
-echo "noconfig = $noconfig"
+echo "config = $config"
 echo "replace = $replace"
 
 # Setup configuration
@@ -87,15 +89,18 @@ if [[ -e $data ]]; then
 
 # Otherwise, download it
 else
-    curl -v -o ./$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
+    echo "    download = $data"
+    curl -o ./$datafile.$$.$dataext $data
+    # curl -v -o ./$datafile.$$.$dataext $data
+    # > /tmp/x.$$.log 2>&1
     if [[ $? -ne 1 ]]; then
-        cat /tmp/x.$$.log | sed 's/^/    /;'
+        #cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
         exit 1
     fi
 fi
-
 file=./$datafile.$$.$dataext
+echo "    file = $file"
 
 # determine graph/version
 echo "  Determine graph and version ...`/bin/date`"
@@ -128,8 +133,15 @@ echo "    version = $version"
 echo "    graph = $graph"
 
 # determine what's loaded in stardog already
+echo "xxx"
+$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep $version
+echo "xxx2"
+
 
 # determine if there's a problem (duplicate graph/version)
+
+
+exit 0
 
 # Remove data if $replace is set
 if [[ $replace -eq 1 ]]; then

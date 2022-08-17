@@ -4,18 +4,28 @@
 # and overrides the evs_metadata entry for the specified terminology/version.
 #
 config=1
+ncflag=""
 help=0
 while [[ "$#" -gt 0 ]]; do case $1 in
-    --noconfig) config=0;;
     --help) help=1;;
+    # use environment variable config (dev env)
+    --noconfig) config=0; ncflag="--noconfig";;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
+# Set directory of this script so we can call relative scripts
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 if [ ${#arr[@]} -ne 3 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 <terminology> <version> <config>"
+    echo "Usage: $0 [--noconfig] [--help] <terminology> <version> <config>"
     echo "  e.g. $0 ncit 2106e ../path/to/ncit.json"
     echo "  e.g. $0 ncit 2106e https://example.com/path/to/ncit.json"
     echo "  e.g. $0 ncim 202102 ../path/to/ncim.json"
+
+    # List versions and bail
+    echo ""
+    echo "List of stardog terminology versions:"
+    $DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;'
     exit 1
 fi
 
