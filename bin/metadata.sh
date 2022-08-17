@@ -31,6 +31,7 @@ fi
 
 terminology=${arr[0]}
 version=${arr[1]}
+version=`echo $version | perl -pe 's/[\.\-]//g;'`
 uri=${arr[2]}
 
 # Verify jq installed
@@ -47,6 +48,7 @@ echo "--------------------------------------------------"
 echo "terminology = $terminology"
 echo "version = $version"
 echo "uri = $uri"
+
 
 # Setup configuration
 echo "  Setup configuration"
