@@ -9,18 +9,21 @@
 replace=0
 config=1
 help=0
+weekly=0
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     # use environment variable config (dev env)
     --noconfig) config=0; ncflag="--noconfig";;
     # replace the specified terminology/verison/graph
     --replace) replace=1;;
+    # weekly not monthly
+    --weekly) weekly=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
 if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
     echo "Usage: $0 [--noconfig] [--replace] [--help] <data>"
-    echo "  e.g. $0 /local/content/downloads/Thesaurus.owl"
+    echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly"
     echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
     echo "  e.g. $0 https://evs.nci.nih.gov/ftp1/upload/ThesaurusInferred_forTS.zip"
     echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
@@ -44,8 +47,8 @@ echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"
 echo "--------------------------------------------------"
 echo "data = $data"
-echo "config = $config"
 echo "replace = $replace"
+echo "weekly = $weekly"
 
 # Setup configuration
 echo "  Setup configuration"
@@ -53,11 +56,11 @@ if [[ $config -eq 1 ]]; then
     APP_HOME=/local/content/evsrestapi-operations
     CONFIG_DIR=${APP_HOME}/${APP_NAME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    echo "    config = $CONFIG_ENV_FILE"
-    . $CONFIG_ENV_FILE
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: $CONFIG_ENV_FILE does not exist or has a problem"
-        echo "       consider using --noconfig (if working in dev environment)"
+    if [[ -e $CONFIG_ENV_FILE ]]; then
+        echo "    config = $CONFIG_ENV_FILE"
+        . $CONFIG_ENV_FILE
+	else
+        echo "ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
         exit 1
     fi
 elif [[ -z $STARDOG_HOME ]]; then
@@ -90,11 +93,10 @@ if [[ -e $data ]]; then
 # Otherwise, download it
 else
     echo "    download = $data"
-    curl -o ./$datafile.$$.$dataext $data
-    # curl -v -o ./$datafile.$$.$dataext $data
-    # > /tmp/x.$$.log 2>&1
-    if [[ $? -ne 1 ]]; then
-        #cat /tmp/x.$$.log | sed 's/^/    /;'
+    #curl -o ./$datafile.$$.$dataext $data
+    curl -v -o ./$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
+    if [[ $? -ne 0 ]]; then
+        cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
         exit 1
     fi
@@ -106,6 +108,7 @@ echo "    file = $file"
 echo "  Determine graph and version ...`/bin/date`"
 if [[ $datafile =~ "ThesaurusInferred" ]]; then
 
+    terminology=ncit
     if [[ $dataext == "zip" ]]; then
         version=`unzip -p $file "*ThesaurusInferred_forTS.owl" | grep '<owl:versionInfo>' | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
 
@@ -120,30 +123,27 @@ if [[ $datafile =~ "ThesaurusInferred" ]]; then
     graph=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus$version.owl
 
 elif [[ $datafile == "go" ]]; then
+    terminology=go
     version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
     graph=http://purl.obolibrary.org/obo/go${version}.owl
 
 else
-echo "3"
     echo "ERROR: Unsupported file type = $data"
     exit 1
 fi
 
+echo "    terminology = $terminology"
 echo "    version = $version"
 echo "    graph = $graph"
 
-# determine what's loaded in stardog already
-echo "xxx"
-$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep $version
-echo "xxx2"
-
-
 # determine if there's a problem (duplicate graph/version)
+ct=`$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep "$graph" | wc -l`
+if [[ $ct -ge 0 ]] && [[ $replace -eq 0 ]]; then
+    echo "ERROR: graph is already loaded, use --replace"
+    exit 1
+fi
 
-
-exit 0
-
-# Remove data if $replace is set
+# Remove data if $replace is set (remove from both DBs)
 if [[ $replace -eq 1 ]]; then
     echo "  Remove graph (replace mode) ...`/bin/date`"
     $STARDOG_HOME/stardog data remove -g $graph CTRP -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
@@ -159,17 +159,24 @@ if [[ $replace -eq 1 ]]; then
 fi
 
 # Load Data
-echo "  Load data ...`/bin/date`"
-$STARDOG_HOME/stardog data add CTRP -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
-if [[ $? -ne 0 ]]; then
-    echo "ERROR: Problem loading stardog (CTRP)"
-    exit 1
-fi
+if [[ $weekly -eq 1 ]]; then
 
-$STARDOG_HOME/stardog data add NCIT2 -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
-if [[ $? -ne 0 ]]; then
-    echo "ERROR: Problem loading stardog (NCIT2)"
-    exit 1
+    echo "  Load data (CTRP) ...`/bin/date`"
+    $STARDOG_HOME/stardog data add CTRP -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Problem loading stardog (CTRP)"
+        exit 1
+    fi
+
+else
+
+    echo "  Load data (NCIT2) ...`/bin/date`"
+    $STARDOG_HOME/stardog data add NCIT2 -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Problem loading stardog (NCIT2)"
+        exit 1
+    fi
+
 fi
 
 # Cleanup

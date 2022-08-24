@@ -12,26 +12,26 @@ quiet=0
 stardog=1
 es=1
 while [[ "$#" -gt 0 ]]; do case $1 in
-  --help) help=1;;
-  # use environment variable config (dev env)
-  --noconfig) config=0; ncflag="--noconfig";;
-  # avoid printing header/footer
-  --quiet) quiet=1;;
-  # show stardog data only
-  --stardog) es=0;;
-  # show es data only
-  --es) stardog=0;;
-  *) arr=( "${arr[@]}" "$1" );;
+    --help) help=1;;
+    # use environment variable config (dev env)
+    --noconfig) config=0; ncflag="--noconfig";;
+    # avoid printing header/footer
+    --quiet) quiet=1;;
+    # show stardog data only
+    --stardog) es=0;;
+    # show es data only
+    --es) stardog=0;;
+    *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
 if [ ${#arr[@]} -ne 0 ] || [ $help -eq 1 ]; then
-  echo "Usage: $0 [--noconfig] [--quiet] [--stardog] [--es] [--help]"
-  echo "  e.g. $0 --noconfig"
-  echo "  e.g. $0 --noconfig --stardog"
-  echo "  e.g. $0 --noconfig --quiet --stardog"
-  echo "  e.g. $0 --noconfig --es"
-  echo "  e.g. $0 --noconfig --quiet --es"
-  exit 1
+    echo "Usage: $0 [--noconfig] [--quiet] [--stardog] [--es] [--help]"
+    echo "  e.g. $0 --noconfig"
+    echo "  e.g. $0 --noconfig --stardog"
+    echo "  e.g. $0 --noconfig --quiet --stardog"
+    echo "  e.g. $0 --noconfig --es"
+    echo "  e.g. $0 --noconfig --quiet --es"
+    exit 1
 fi
 
 # Set up ability to format json
@@ -56,11 +56,11 @@ if [[ $config -eq 1 ]]; then
     APP_HOME=/local/content/evsrestapi-operations
     CONFIG_DIR=${APP_HOME}/${APP_NAME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    echo "    config = $CONFIG_ENV_FILE"
-    . $CONFIG_ENV_FILE
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: $CONFIG_ENV_FILE does not exist or has a problem"
-        echo "       consider using --noconfig (if working in dev environment)"
+    if [[ -e $CONFIG_ENV_FILE ]]; then
+        echo "    config = $CONFIG_ENV_FILE"
+        . $CONFIG_ENV_FILE
+    else
+        echo "ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
         exit 1
     fi
 elif [[ -z $STARDOG_HOST ]]; then
