@@ -22,7 +22,7 @@ while [[ "$#" -gt 0 ]]; do case $1 in
 esac; shift; done
 
 if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 [--noconfig] [--replace] [--help] <data>"
+    echo "Usage: $0 [--noconfig] [--replace] [--weekly] [--help] <data>"
     echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly"
     echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
     echo "  e.g. $0 https://evs.nci.nih.gov/ftp1/upload/ThesaurusInferred_forTS.zip"
@@ -167,6 +167,7 @@ if [[ $weekly -eq 1 ]]; then
         echo "ERROR: Problem loading stardog (CTRP)"
         exit 1
     fi
+    # TODO: run optimize also
 
 else
 
@@ -176,8 +177,10 @@ else
         echo "ERROR: Problem loading stardog (NCIT2)"
         exit 1
     fi
+    # TODO: run optimize also
 
 fi
+
 
 # Cleanup
 echo "  Cleanup...`/bin/date`"

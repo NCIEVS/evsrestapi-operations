@@ -25,7 +25,7 @@ if [ ${#arr[@]} -ne 3 ] || [ $help -eq 1 ]; then
     # List versions and bail
     echo ""
     echo "List of stardog terminology versions:"
-    $DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;'
+    $DIR/list.sh $ncflag --quiet --es | perl -pe 's/stardog/    /; s/\|/ /g;'
     exit 1
 fi
 
