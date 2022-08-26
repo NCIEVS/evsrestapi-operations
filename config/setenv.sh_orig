@@ -9,7 +9,7 @@ export DATA_HOME=/local/content/downloads
 #
 
 # Path to stardog installation
-export STARDOG_HOME=/local/content/stardog
+export STARDOG_HOME=/local/content/stardog/current
 export STARDOG_USERNAME=admin
 export STARDOG_PASSWORD=admin
 export STARDOG_SCHEME=http

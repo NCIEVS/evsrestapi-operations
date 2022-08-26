@@ -159,28 +159,22 @@ if [[ $replace -eq 1 ]]; then
 fi
 
 # Load Data
+db=NCIT2
 if [[ $weekly -eq 1 ]]; then
+    db=CTRP
+fi 
 
-    echo "  Load data (CTRP) ...`/bin/date`"
-    $STARDOG_HOME/stardog data add CTRP -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: Problem loading stardog (CTRP)"
-        exit 1
-    fi
-    # TODO: run optimize also
-
-else
-
-    echo "  Load data (NCIT2) ...`/bin/date`"
-    $STARDOG_HOME/stardog data add NCIT2 -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: Problem loading stardog (NCIT2)"
-        exit 1
-    fi
-    # TODO: run optimize also
-
+echo "  Load data ($db) ...`/bin/date`"
+$STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+if [[ $? -ne 0 ]]; then
+    echo "ERROR: Problem loading stardog ($db)"
+    exit 1
 fi
-
+$STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+if [[ $? -ne 0 ]]; then
+    echo "ERROR: Problem optimizing stardog ($db)"
+    exit 1
+fi
 
 # Cleanup
 echo "  Cleanup...`/bin/date`"
