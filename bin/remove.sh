@@ -80,11 +80,11 @@ echo ""
 
 echo "  Lookup stardog info ...`/bin/date`"
 
-if [[ $stardog -eq 1 ]; then
+if [[ $stardog -eq 1 ]]; then
 
-    $DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; | grep "$terminology\|$version" > /tmp/x.$$
+    $DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /;' | grep "$terminology\|$version" > /tmp/x.$$
 	ct=`cat /tmp/x.$$ | wc -l`
-	if [[ $ct -eq 1]]; then
+	if [[ $ct -eq 1 ]]; then
 
         db=`cat /tmp/x.$$ | cut -d\| -f 2`
         graph=`cat /tmp/x.$$ | cut -d\| -f 5`
@@ -98,15 +98,16 @@ if [[ $stardog -eq 1 ]; then
         cat /tmp/x.$$ | sed 's/^/    /'
         echo "ERROR: unexpected number of matching graphs = $ct"
     fi
+
 fi
 
-if [[ $es -eq 1 ]; then
+if [[ $es -eq 1 ]]; then
+
     # Strip dot and dash chars from version
     version=`echo $version | perl -pe 's/[\.\-]//g;'`
 
     echo "  Remove indexes for $terminology $version"
-    curl -s $ES_SCHEME://$ES_HOST:$ES_PORT/_cat/indices | perl -pe 's/^.* open ([^ ]+).*/$1/; s/\r//;' |\
-      grep $version | grep ${terminology}_ | cat > /tmp/x.$$
+    curl -s $ES_SCHEME://$ES_HOST:$ES_PORT/_cat/indices | perl -pe 's/^.* open ([^ ]+).*/$1/; s/\r//;' | grep $version | grep ${terminology}_ | cat > /tmp/x.$$
     if [[ $? -ne 0 ]]; then
         echo "ERROR: unexpected error looking up indices for $terminology $version"
         exit 1
@@ -139,6 +140,7 @@ if [[ $es -eq 1 ]; then
     fi
 
 fi
+
 # cleanup
 /bin/rm -f /tmp/x.$$
 
