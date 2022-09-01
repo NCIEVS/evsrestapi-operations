@@ -1,0 +1,26 @@
+
+#
+# Path to data
+#
+export DATA_HOME=/local/content/downloads
+
+#
+# Stardog config
+#
+
+# Path to stardog installation
+export STARDOG_HOME=/local/content/stardog/current
+export STARDOG_USERNAME=admin
+export STARDOG_PASSWORD=admin
+export STARDOG_SCHEME=http
+export STARDOG_HOST=localhost
+export STARDOG_PORT=5820
+export STARDOG_URL=${STARDOG_SCHEME}://${STARDOG_HOST}:${STARDOG_PORT}
+
+#
+# Elasticsearch config
+#
+export ES_SCHEME=http
+export ES_HOST=localhost
+export ES_PORT=9200
+export ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
