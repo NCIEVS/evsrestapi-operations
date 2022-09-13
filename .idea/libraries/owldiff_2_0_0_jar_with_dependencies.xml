@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="owldiff-2.0.0-jar-with-dependencies">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/legacy/OWLDiff/owldiff-2.0.0-jar-with-dependencies.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
