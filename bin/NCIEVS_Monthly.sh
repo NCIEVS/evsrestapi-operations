@@ -1,5 +1,5 @@
-USER=tripleroot
-PASSWORD=ArofThe4ewR
+USER=****
+PASSWORD=****
 
 export JAVA_HOME=/usr/local/jdk1.8
 
