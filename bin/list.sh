@@ -142,9 +142,6 @@ touch /tmp/y.$$.txt
 for db in `cat /tmp/db.$$.txt`; do
     curl -s -g -u "${STARDOG_USERNAME}:$STARDOG_PASSWORD" \
         http://${STARDOG_HOST}:${STARDOG_PORT}/$db/query \
-        --data-urlencode "$query" -H "Accept: application/sparql-results+json" --output "/home/evsuser/$db.txt"
-    curl -s -g -u "${STARDOG_USERNAME}:$STARDOG_PASSWORD" \
-        http://${STARDOG_HOST}:${STARDOG_PORT}/$db/query \
         --data-urlencode "$query" -H "Accept: application/sparql-results+json" |\
         $jq | perl -ne '
             chop; $x="version" if /"version"/; 
