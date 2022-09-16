@@ -53,7 +53,7 @@ if [[ $quiet -eq 0 ]]; then
     echo "  Setup configuration"
 fi
 if [[ $config -eq 1 ]]; then
-    APP_HOME=/local/content/evsrestapi-operations
+    APP_HOME="${APP_HOME:-/local/content/evsrestapi-operations}"
     CONFIG_DIR=${APP_HOME}/${APP_NAME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
     if [[ -e $CONFIG_ENV_FILE ]]; then
@@ -84,11 +84,13 @@ elif [[ -z $ES_HOST ]]; then
 elif [[ -z $ES_PORT ]]; then
     echo "ERROR: ES_PORT is not set"
     exit 1
+else
+    ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 fi
 
 if [[ $quiet -eq 0 ]]; then
     echo "    stardog = http://${STARDOG_HOST}:${STARDOG_PORT}"
-    echo "    elasticsearch = ${ES_SCHEME}://${ES_HOST}:${ES_PORT}"
+    echo "    elasticsearch = ${ES}"
     echo ""
 fi
 
@@ -143,12 +145,13 @@ for db in `cat /tmp/db.$$.txt`; do
         --data-urlencode "$query" -H "Accept: application/sparql-results+json" |\
         $jq | perl -ne '
             chop; $x="version" if /"version"/; 
-            $x="source" if /"source"/; 
+            $x="source" if /"source"/;
+            $x="graphName" if /"graphName"/; 
             $x=0 if /\}/; 
             if ($x && /"value"/) { 
                 s/.* "//; s/".*//;
                 ${$x} = $_;                
-                print "$version|'$db'|$source\n" if $x eq "version"; 
+                print "$version|'$db'|$source|$graphName\n" if $x eq "version"; 
             } ' >> /tmp/y.$$.txt
     if [[ $? -ne 0 ]]; then
         echo "ERROR: unexpected problem obtaining $db versions from stardog"
@@ -169,11 +172,12 @@ for x in `cat /tmp/y.$$.txt`; do
     cv=`echo $version | perl -pe 's/\.//;'`
     db=`echo $x | cut -d\| -f 2`
     uri=`echo $x | cut -d\| -f 3`
+    graph_uri=`echo $x | cut -d\| -f 4`
     term=`echo $uri | perl -pe 's/.*Thesaurus.owl/ncit/; s/.*obo\/go.owl/go/;'`
     if [[ $quiet -eq 1 ]]; then
-        echo "stardog|$db|$term|$version|$uri"
+        echo "stardog|$db|$term|$version|$graph_uri"
     else
-        echo "    $db $term $version $uri"
+        echo "    $db $term $version $graph_uri"
     fi
 done
 
@@ -186,11 +190,11 @@ if [[ $quiet -eq 0 ]]; then
 fi
 if [[ $quiet -eq 0 ]]; then
 # TODO: this doesn't work without "jq" installed
-curl -s "$ES_SCHEME://$ES_HOST:$ES_PORT/evs_metadata/_search?size=10000"  |\
+curl -s "$ES/evs_metadata/_search?size=10000"  |\
    $jq | grep terminologyVersion | perl -pe 's/_/ /; s/.*"\: ?"//; s/".*//' |\
    sort | sed 's/^/    /'
 else
-curl -s "$ES_SCHEME://$ES_HOST:$ES_PORT/evs_metadata/_search?size=10000"  |\
+curl -s "$ES/evs_metadata/_search?size=10000"  |\
    $jq | grep terminologyVersion | perl -pe 's/_/|/; s/.*"\: ?"//; s/".*//' |\
    sort | sed 's/^/es|/'
 fi
