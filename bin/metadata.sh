@@ -53,7 +53,7 @@ echo "uri = $uri"
 # Setup configuration
 echo "  Setup configuration"
 if [[ $config -eq 1 ]]; then
-    APP_HOME=/local/content/evsrestapi
+    APP_HOME="${APP_HOME:-/local/content/evsrestapi-operations}"
     CONFIG_DIR=${APP_HOME}/${APP_NAME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
     echo "    config = $CONFIG_ENV_FILE"
@@ -72,14 +72,16 @@ elif [[ -z $ES_HOST ]]; then
 elif [[ -z $ES_PORT ]]; then
     echo "ERROR: ES_PORT is not set"
     exit 1
+else
+    ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 fi
 
-echo "    elasticsearch = $ES_SCHEME://$ES_HOST:$ES_PORT"
+echo "    elasticsearch = $ES"
 echo ""
 
 # Verify that terminology/version is valid
 echo "  Verify $terminology $version exists"
-curl -s $ES_SCHEME://$ES_HOST:$ES_PORT/evs_metadata/_doc/concept_${terminology}_${version} > /tmp/x.$$ 2>&1
+curl -s $ES/evs_metadata/_doc/concept_${terminology}_${version} > /tmp/x.$$ 2>&1
 if [[ $? -ne 0 ]]; then
     echo "ERROR: unexpected error looking up index in elasticsearch, check config"
     exit 1
@@ -116,7 +118,7 @@ fi
 
 # All checks passed, proceed with updating
 data=`cat $file`
-curl -X POST "$ES_SCHEME://$ES_HOST:$ES_PORT/evs_metadata/_doc/concept_${terminology}_${version}/_update" \
+curl -X POST "$ES/evs_metadata/_doc/concept_${terminology}_${version}/_update" \
   -H 'Content-type: application/json' \
   -d '{"doc": {"terminology": {"metadata": '"$data"'}}}' > /tmp/x.$$ 2>&1
 if [ $? -ne 0 ]; then

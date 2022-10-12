@@ -53,7 +53,7 @@ echo "weekly = $weekly"
 # Setup configuration
 echo "  Setup configuration"
 if [[ $config -eq 1 ]]; then
-    APP_HOME=/local/content/evsrestapi-operations
+    APP_HOME="${APP_HOME:-/local/content/evsrestapi-operations}"
     CONFIG_DIR=${APP_HOME}/${APP_NAME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
     if [[ -e $CONFIG_ENV_FILE ]]; then
@@ -136,9 +136,14 @@ echo "    terminology = $terminology"
 echo "    version = $version"
 echo "    graph = $graph"
 
+db=NCIT2
+if [[ $weekly -eq 1 ]]; then
+    db=CTRP
+fi
+
 # determine if there's a problem (duplicate graph/version)
-ct=`$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep "$graph" | wc -l`
-if [[ $ct -ge 0 ]] && [[ $replace -eq 0 ]]; then
+ct=`$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep "$db.*$graph" | wc -l`
+if [[ $ct -gt 0 ]] && [[ $replace -eq 0 ]]; then
     echo "ERROR: graph is already loaded, use --replace"
     exit 1
 fi
@@ -146,12 +151,12 @@ fi
 # Remove data if $replace is set (remove from both DBs)
 if [[ $replace -eq 1 ]]; then
     echo "  Remove graph (replace mode) ...`/bin/date`"
-    $STARDOG_HOME/stardog data remove -g $graph CTRP -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+    $STARDOG_HOME/bin/stardog data remove -g $graph CTRP -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
     if [[ $? -ne 0 ]]; then
         echo "ERROR: Problem running stardog to remove graph (CTRP)"
         exit 1
     fi
-    $STARDOG_HOME/stardog data remove -g $graph NCIT2 -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+    $STARDOG_HOME/bin/stardog data remove -g $graph NCIT2 -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
     if [[ $? -ne 0 ]]; then
         echo "ERROR: Problem running stardog to remove graph (NCIT2)"
         exit 1
@@ -159,18 +164,14 @@ if [[ $replace -eq 1 ]]; then
 fi
 
 # Load Data
-db=NCIT2
-if [[ $weekly -eq 1 ]]; then
-    db=CTRP
-fi 
 
 echo "  Load data ($db) ...`/bin/date`"
-$STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+$STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem loading stardog ($db)"
     exit 1
 fi
-$STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USER -p $STARDOG_PASSWORD | sed 's/^/    /'
+$STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem optimizing stardog ($db)"
     exit 1
