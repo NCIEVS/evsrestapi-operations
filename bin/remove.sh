@@ -78,10 +78,10 @@ echo "    stardog = http://${STARDOG_HOST}:${STARDOG_PORT}"
 echo "    elasticsearch = ${ES_SCHEME}://${ES_HOST}:${ES_PORT}"
 echo ""
 
-echo "  Lookup stardog info ...`/bin/date`"
 
 if [[ $stardog -eq 1 ]]; then
 
+    echo "  Lookup stardog info ...`/bin/date`"
     $DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /;' | grep "$terminology\|$version" > /tmp/x.$$
 	ct=`cat /tmp/x.$$ | wc -l`
 	if [[ $ct -eq 1 ]]; then
