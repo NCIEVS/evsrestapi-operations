@@ -25,7 +25,8 @@
     </li>
     <li>
         Extensive content integrated from NCI and other partners, much available as separate
-        NCIt <a href="/subsets/ncit" target="_top" class="regular-link">subsets</a>
+        NCIt <a [routerLink]="['/subsets', getTerminology()]" target="_top"
+            class="regular-link">subsets</a>
     </li>
     <li>
         Updated frequently by a team of subject matter experts.
