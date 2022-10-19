@@ -79,7 +79,6 @@ fi
 echo "STARDOG_HOME = $STARDOG_HOME"
 echo ""
 
-
 echo "  Put data in standard location - /tmp ...`/bin/date`"
 dataext=`echo $data | perl -pe 's/.*\.//;'`
 if [[ "x$dataext" == "" ]]; then
@@ -139,7 +138,8 @@ elif [[ $datafile =~ "chebi_" ]]; then
     terminology=chebi
     # version is in the filename
     version=`echo $datafile | perl -pe 's/chebi_//;'`
-    graph=http://purl.obolibrary.org/obo/chebi${version}.owl
+    # This is from "owl:versionIRI"
+    graph=http://purl.obolibrary.org/obo/chebi/${version}/chebi.owl
 
 else
     echo "ERROR: Unsupported file type = $data"

@@ -31,7 +31,7 @@ fi
 
 terminology=${arr[0]}
 version=${arr[1]}
-version=`echo $version | perl -pe 's/[\.\-]//g;'`
+indexVersion=`echo $version | perl -pe 's/[\.\-]//g;'`
 uri=${arr[2]}
 
 # Verify jq installed
@@ -47,6 +47,7 @@ echo "Starting ...`/bin/date`"
 echo "--------------------------------------------------"
 echo "terminology = $terminology"
 echo "version = $version"
+echo "indexVersion = $indexVersion"
 echo "uri = $uri"
 
 
@@ -80,8 +81,8 @@ echo "    elasticsearch = $ES"
 echo ""
 
 # Verify that terminology/version is valid
-echo "  Verify $terminology $version exists"
-curl -s $ES/evs_metadata/_doc/concept_${terminology}_${version} > /tmp/x.$$ 2>&1
+echo "  Verify $terminology $indexVersion exists"
+curl -s $ES/evs_metadata/_doc/concept_${terminology}_${indexVersion} > /tmp/x.$$ 2>&1
 if [[ $? -ne 0 ]]; then
     echo "ERROR: unexpected error looking up index in elasticsearch, check config"
     exit 1
@@ -89,7 +90,7 @@ fi
 
 ct=`grep '"found":false' /tmp/x.$$ | wc -l`
 if [ $ct -ne 0 ]; then
-   echo "ERROR: $terminology $version not found in evs_metadata index"
+   echo "ERROR: $terminology $indexVersion not found in evs_metadata index"
    exit 1
 fi
 
@@ -118,11 +119,11 @@ fi
 
 # All checks passed, proceed with updating
 data=`cat $file`
-curl -X POST "$ES/evs_metadata/_doc/concept_${terminology}_${version}/_update" \
+curl -X POST "$ES/evs_metadata/_doc/concept_${terminology}_${indexVersion}/_update" \
   -H 'Content-type: application/json' \
   -d '{"doc": {"terminology": {"metadata": '"$data"'}}}' > /tmp/x.$$ 2>&1
 if [ $? -ne 0 ]; then
-   echo "ERROR: Problem posting update payload for $terminology $version"
+   echo "ERROR: Problem posting update payload for $terminology $indexVersion"
    exit 1
 fi
 

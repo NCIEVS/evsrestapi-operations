@@ -27,6 +27,9 @@ fi
 
 terminology=${arr[0]}
 version=${arr[1]}
+# Strip dot and dash chars from version
+indexVersion=`echo $version | perl -pe 's/[\.\-]//g;'`
+
 
 # Set directory of this script so we can call relative scripts
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -36,6 +39,7 @@ echo "Starting ...`/bin/date`"
 echo "--------------------------------------------------"
 echo "terminology = $terminology"
 echo "version = $version"
+echo "indexVersion = $indexVersion"
 echo ""
 
 # Setup configuration
@@ -105,13 +109,10 @@ fi
 
 if [[ $es -eq 1 ]]; then
 
-    # Strip dot and dash chars from version
-    version=`echo $version | perl -pe 's/[\.\-]//g;'`
-
-    echo "  Remove indexes for $terminology $version"
-    curl -s $ES_SCHEME://$ES_HOST:$ES_PORT/_cat/indices | perl -pe 's/^.* open ([^ ]+).*/$1/; s/\r//;' | grep $version | grep ${terminology}_ | cat > /tmp/x.$$
+    echo "  Remove indexes for $terminology $indexVersion"
+    curl -s $ES_SCHEME://$ES_HOST:$ES_PORT/_cat/indices | perl -pe 's/^.* open ([^ ]+).*/$1/; s/\r//;' | grep $indexVersion | grep ${terminology}_ | cat > /tmp/x.$$
     if [[ $? -ne 0 ]]; then
-        echo "ERROR: unexpected error looking up indices for $terminology $version"
+        echo "ERROR: unexpected error looking up indices for $terminology $indexVersion"
         exit 1
     fi
 
@@ -129,11 +130,11 @@ if [[ $es -eq 1 ]]; then
         fi
     done
 
-    echo "  Remove ${terminology}_$version from evs_metadata"
-    curl -s -X DELETE $ES_SCHEME://$ES_HOST:$ES_PORT/evs_metadata/_doc/concept_${terminology}_$version > /tmp/x.$$
+    echo "  Remove ${terminology}_$indexVersion from evs_metadata"
+    curl -s -X DELETE $ES_SCHEME://$ES_HOST:$ES_PORT/evs_metadata/_doc/concept_${terminology}_$indexVersion > /tmp/x.$$
     if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$ | sed 's/^/    /'
-        echo "ERROR: unexpected error removing concept_${terminology}_$version from evs_metadata index"
+        echo "ERROR: unexpected error removing concept_${terminology}_$indexVersion from evs_metadata index"
         exit 1
     fi
     ct=`grep 'not_found' /tmp/x.$$ | wc -l`
