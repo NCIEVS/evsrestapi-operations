@@ -28,6 +28,7 @@ if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
     echo "  e.g. $0 https://evs.nci.nih.gov/ftp1/upload/ThesaurusInferred_forTS.zip"
     echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
     echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
+    echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
     exit 1
 fi
 
@@ -133,6 +134,12 @@ elif [[ $datafile =~ "HGNC_" ]]; then
     # version is in the filename
     version=`echo $datafile | perl -pe 's/HGNC_//;'`
     graph=http://ncicb.nci.nih.gov/genenames.org/HGNC${version}.owl
+
+elif [[ $datafile =~ "chebi_" ]]; then
+    terminology=chebi
+    # version is in the filename
+    version=`echo $datafile | perl -pe 's/chebi_//;'`
+    graph=http://purl.obolibrary.org/obo/chebi${version}.owl
 
 else
     echo "ERROR: Unsupported file type = $data"
