@@ -181,6 +181,9 @@ put ThesaurusInferred_forTS.both.zip
 quit
 ENDSCRIPT1
 
+echo "Cleaning up old files"
+./cleanup.sh $downloadDir $dataDir
+
 #echo "Placing file on AWS"
 #login = $awsdevUser@awsdevServer
 #echo $login
