@@ -22,6 +22,7 @@ awsdevServer="ncias-d2175-c.nci.nih.gov"
 awsdevDir="/local/content/downloads"
 awsqaServer="ncidb-q294-c.nci.nih.gov"
 awsqaDir="/local/content/downloads"
+cleanBeforeDays=180
 
 # Start script
 echo MASTER SCRIPT START RUN
@@ -180,6 +181,9 @@ put ThesaurusInferred_forTS.zip
 put ThesaurusInferred_forTS.both.zip
 quit
 ENDSCRIPT1
+
+echo "Cleaning up old files"
+./cleanup.sh $downloadDir $dataDir $cleanBeforeDays
 
 #echo "Placing file on AWS"
 #login = $awsdevUser@awsdevServer
