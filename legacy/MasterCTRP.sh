@@ -22,11 +22,17 @@ awsdevServer="ncias-d2175-c.nci.nih.gov"
 awsdevDir="/local/content/downloads"
 awsqaServer="ncidb-q294-c.nci.nih.gov"
 awsqaDir="/local/content/downloads"
+cleanBeforeDays=180
 
 # Start script
 echo MASTER SCRIPT START RUN
 echo "***********************"
-echo 
+echo
+
+echo "Cleaning up old files"
+./cleanup.sh $downloadDir $dataDir $cleanBeforeDays
+echo
+ 
 echo FETCH FILE
 echo "***********************"
 echo 
