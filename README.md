@@ -23,3 +23,11 @@ Information on the operations processes for the EVSRESTAPI project
 * cd evsrestapi-operations
 * cp setenv.sh_orig setenv.sh
 * Edit setenv.sh for local environment
+
+### Building scripts
+
+* Use ```make clean build``` to create a zip of all the scripts in the bin directory
+* This command would create a build directory if it does not exist and creates the zip file in that directory
+
+### Versioning
+* The version of the scripts are maintained in the ```Makefile```
