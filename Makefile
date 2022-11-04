@@ -1,4 +1,4 @@
-VERSION="1.0.3"
+VERSION="1.0.0"
 BUILD_DIR="./build"
 SCRIPTS_HOME="bin"
 
