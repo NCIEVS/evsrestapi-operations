@@ -5,16 +5,16 @@
 help=0
 config=1
 ncflag=""
-stardog=1
-es=1
+stardog=0
+es=0
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     # use environment variable config (dev env)
     --noconfig) config=0; ncflag="--noconfig";;
-    # show stardog data only
-    --stardog) es=0;;
-    # show es data only
-    --es) stardog=0;;
+    # remove stardog data
+    --stardog) stardog=1;;
+    # remove es data
+    --es) es=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
@@ -84,6 +84,11 @@ echo "    stardog = http://${STARDOG_HOST}:${STARDOG_PORT}"
 echo "    elasticsearch = ${ES}"
 echo ""
 
+# Require specifying --es or --stardog so you don't accidentally delte from both
+if [[ $stardog -eq 0 ]] && [[ $es -eq 0 ]]; then
+    echo "Must specify --es and/or --stardog"
+    exit 1
+fi
 
 if [[ $stardog -eq 1 ]]; then
 
