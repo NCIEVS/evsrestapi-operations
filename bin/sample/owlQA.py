@@ -16,7 +16,7 @@ def checkParamsValid(argv):
         print("terminology json file path is invalid")
         print("Usage: owlQA.py <terminology owl file path> <terminology json file path>")
         return False
-    return
+    return True
 
 def checkForNewStuff(properties, propertiesCurrentClass, line, currentCode, currentURI):
     splitLine = re.split("[<>= \"]", line.strip()) # split by special characters
