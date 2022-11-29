@@ -1,0 +1,166 @@
+from datetime import datetime
+import os
+import re
+import sys
+
+inClass = False
+inAxiom = False
+inSubclass = False
+inEquivalentClass = False
+currentClassURI = ""
+currentClassCode = ""
+properties = {} # master list
+propertiesCurrentClass = {} # current class list
+propertiesParentChilden = {} # parent/child list
+parentStyle1 = [] # parent, child key value pair for subclass parent
+parentStyle2 = [] # parent, child key value pair for rdf:description parent
+uri2Code = {} # store ID codes for each URI when processed
+allParents = {} # all parent to children relationships
+allChildren = {} # all children to parent relationships
+parentCount = {} # list of parent count codes from 1 to n
+deprecated = {} # list of all deprecated concepts
+
+def checkParamsValid(argv):
+    if(len(argv) != 3):
+        print("Usage: owlQA.py <terminology owl file path> <terminology json file path>")
+        return False
+    elif(os.path.isfile(argv[1]) == False or argv[1][-4:] != ".owl"):
+        print(argv[1][-4:])
+        print("terminology owl file path is invalid")
+        print("Usage: owlQA.py <terminology owl file path> <terminology json file path>")
+        return False
+    elif(os.path.isfile(argv[2]) == False or argv[2][-5:] != ".json"):
+        print("terminology json file path is invalid")
+        print("Usage: owlQA.py <terminology owl file path> <terminology json file path>")
+        return False
+    return True
+
+def parentChildProcess(line):
+    uriToProcess = re.findall('"([^"]*)"', line)[0]
+    if(line.startswith("<rdfs:subClassOf rdf:resource=")):
+        if(parentStyle1 == []): # first example of rdf:subClassOf child
+            parentStyle1.append((currentClassURI, uriToProcess)) # hold in the parentStyle1 object as tuple
+    elif(line.startswith("<rdf:Description") and inEquivalentClass):
+        if(parentStyle2 == []): # first example of rdf:Description child
+            parentStyle2.append((currentClassURI, uriToProcess)) # hold in the parentStyle2 object as tuple
+            
+    if(currentClassURI in allParents and uriToProcess not in allParents[currentClassURI]): # process parent relationship
+        allParents[currentClassURI].append(uriToProcess)
+    else:
+        allParents[currentClassURI] = [uriToProcess]
+        
+    if(uriToProcess in allChildren and currentClassURI not in allChildren[uriToProcess]): # process child relationship
+        allChildren[uriToProcess].append(currentClassURI)
+    else:
+        allChildren[uriToProcess] = [currentClassURI]
+    return
+
+def checkForNewProperty(line):
+    splitLine = re.split("[<>= \"]", line.strip()) # split by special characters
+    splitLine = [x for x in splitLine if x != ''] # remove empty entries for consistency
+    if(splitLine[0] in properties or splitLine[0] in propertiesCurrentClass): # check duplicates
+        return ""
+    detail = ""
+    if("rdf:resource=\"" in line): # grab stuff in quotes
+        detail = re.findall('"([^"]*)"', line)[0]
+    else: # grab stuff in tag
+        detail = re.findall(">(.*?)<", line)[0]
+    return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n")
+
+
+if __name__ == "__main__":
+    print("--------------------------------------------------")
+    print("Starting..." + datetime.now().strftime("%d-%b-%Y %H:%M:%S"))
+    print("--------------------------------------------------")
+    
+    if(checkParamsValid(sys.argv) == False):
+        exit(1)
+    with open (sys.argv[1], "r", encoding='utf-8') as owlFile:
+        ontoLines = owlFile.readlines()
+    terminology = sys.argv[1].split("/")[-1].split(".")[0]
+    
+    with open(terminology + "_QA_OWL.txt", "w") as termFile:
+        for line in ontoLines:
+            line = line.strip()
+            if(len(line) < 1 or line[0] != '<'): # blank lines or random text
+                pass
+            elif(line.startswith("<owl:deprecated")): # ignore deprecated classes
+                inClass = False
+                propertiesCurrentClass = {}
+                deprecated[currentClassURI] = True
+                
+            elif(line.startswith("<owl:Class ") and not inEquivalentClass):
+                inClass = True
+                propertiesCurrentClass = {} # reset for new class
+                currentClassURI = re.findall('"([^"]*)"', line)[0] # set uri entry in line
+                currentClassCode = re.split("/|#", currentClassURI)[-1] # set initial class code
+                uri2Code[currentClassURI] = currentClassCode # set initial uri code value
+            elif(line.startswith("</owl:Class>") and not inEquivalentClass):
+                for key, value in propertiesCurrentClass.items(): # replace code entry and write to file
+                    properties[key] = value # add to master list
+                    splitLineTemp = value.split("\t") # split to get code isolated
+                    uri2Code[currentClassURI] = currentClassCode
+                    splitLineTemp[1] = currentClassCode
+                    termFile.write("\t".join(splitLineTemp)) # rejoin and write
+                inClass = False
+                
+            elif(line.startswith("<owl:Axiom>")):
+                inAxiom = True
+            elif(line.startswith("</owl:Axiom>")):
+                inAxiom = False
+
+            elif((line.startswith("<rdfs:subClassOf>") and not line.endswith("//>\n"))): #  find complex subclass            
+                inSubclass = True
+            elif(line.startswith("</rdfs:subClassOf>")) :
+                inSubclass = False
+ 
+            elif(line.startswith("<owl:equivalentClass>")): # find description parents in equivalentClass   
+                inEquivalentClass = True
+            elif(line.startswith("</owl:equivalentClass>")) :
+                inEquivalentClass = False
+            
+            
+            elif(line.startswith("<rdfs:subClassOf") or (line.startswith("<rdf:Description ") and inEquivalentClass)): # catch either example of parent/child relationship
+                parentChildProcess(line)
+            elif(inEquivalentClass): # skip rest of equivalent class
+                pass
+
+            elif(inClass and not inSubclass):
+                if(line.startswith("<oboInOwl:id")): # catch ID to return if it has properties
+                    currentClassCode = re.findall(">(.*?)<", line)[0]
+                    uri2Code[currentClassURI] = currentClassCode # store code for uri
+                    continue
+                newEntry = checkForNewProperty(line)
+                if(len(newEntry) > 1 and newEntry[0] not in properties): # returned new property
+                    propertiesCurrentClass[newEntry[0]] = newEntry[1] # add to current class property list
+        
+        if(parentStyle1 != []): # write out subclass parent/child
+            termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][0]] + "\t" + "parent-style1" + "\t" + parentStyle1[0][1].split("#")[-1] + "\n")
+            termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][1]] + "\t" + "child-style1" + "\t" + parentStyle1[0][0].split("#")[-1] + "\n")
+        if(parentStyle2 != []): # write out relationship parent/child
+            termFile.write(parentStyle2[0][0] + "\t" + uri2Code[parentStyle2[0][0]] + "\t" + "parent-style2" + "\t" + parentStyle2[0][1].split("#")[-1] + "\n")
+            termFile.write(parentStyle2[0][0] + "\t" + uri2Code[parentStyle2[0][1]] + "\t" + "child-style2" + "\t" + parentStyle2[0][0].split("#")[-1] + "\n")
+            
+        maxChildren = ("", 0)
+        for parent, children in allChildren.items(): # find maximum number of children
+            if len(children) > maxChildren[1]: # update whenever we find a bigger child list
+                maxChildren = (parent, len(children))
+        if(maxChildren[1] > 0): # write that property to the file
+            termFile.write(maxChildren[0] + "\t" + uri2Code[maxChildren[0]] + "\t" + "max-children" + "\t" + str(maxChildren[1]) + "\n")
+            
+        for child, parents in allParents.items(): # process parent counts
+            if(len(parents) not in parentCount):
+                parentCount[len(parents)] = child
+        for numParents in sorted(parentCount.keys()): # sort for writing to file
+            termFile.write(parentCount[numParents] + "\t" + uri2Code[parentCount[numParents]] + "\t" + "parent-count" + str(numParents) + "\n")
+            
+        for code in uri2Code: # write out roots (all codes with no parents)
+            if code not in allParents and code not in deprecated: # deprecated codes are fake roots
+                termFile.write(code + "\t" + uri2Code[code] + "\t" + "root" + "\n")
+            
+
+    print("")
+    print("--------------------------------------------------")
+    print("Ending..." + datetime.now().strftime("%d-%b-%Y %H:%M:%S"))
+    print("--------------------------------------------------")
+    
