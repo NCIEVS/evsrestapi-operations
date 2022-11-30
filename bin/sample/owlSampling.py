@@ -107,7 +107,7 @@ if __name__ == "__main__":
         ontoLines = owlFile.readlines()
     terminology = sys.argv[1].split("/")[-1].split(".")[0]
     
-    with open(terminology + "_QA_OWL.txt", "w") as termFile:
+    with open(terminology + "_Sampling_OWL.txt", "w") as termFile:
         for index, line in enumerate(ontoLines): # get index just in case
             lastSpaces = spaces # previous line's number of leading spaces (for comparison)
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
