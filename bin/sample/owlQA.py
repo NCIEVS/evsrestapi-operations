@@ -67,7 +67,7 @@ def checkForNewProperty(line):
         return ""
     detail = ""
     if("rdf:resource=\"" in line): # grab stuff in quotes
-        detail = re.findall('"([^"]*)"', line)[0].split("#")[-1]
+        detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
         detail = re.findall(">(.*?)<", line)[0]
     return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n")
@@ -77,7 +77,7 @@ def handleRestriction(line):
     detail = re.findall('"([^"]*)"', line)[0]
     pathCode = "/".join(currentClassPath) + "~" # prebuild tag stack for restriction
     if(line.startswith("<owl:onProperty")): # property code
-        propertyCode = detail.split("#")[-1] # extract code
+        propertyCode = re.split(r'[#/]', detail)[-1] # extract code
         if(pathCode + propertyCode in uriRestrictions2Code): # skip if already done
             return
         else:
@@ -85,7 +85,7 @@ def handleRestriction(line):
             newRestriction = propertyCode # hold new code for next lines value code
             
     elif(line.startswith("<owl:someValuesFrom")): # value code
-        valueCode = detail.split("#")[-1]
+        valueCode = re.split(r'[#/]', detail)[-1]
         if(detail in uriRestrictions2Code): # already found this code
             pass
         else:
@@ -113,7 +113,7 @@ if __name__ == "__main__":
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
             line = line.strip() # no need for leading spaces anymore
             if(len(line) < 1 or line[0] != '<'): # blank lines or random text
-                pass
+                continue
             elif(line.startswith("<owl:deprecated")): # ignore deprecated classes
                 inClass = False
                 propertiesCurrentClass = {}
@@ -176,14 +176,19 @@ if __name__ == "__main__":
         for key, value in properties.items(): # write normal properties
             splitLineTemp = value.split("\t") # split to get code isolated
             splitLineTemp[1] = uri2Code[splitLineTemp[0]]
+            if(len(splitLineTemp) > 3):
+                if(splitLineTemp[3] in uri2Code):
+                    splitLineTemp[3] = uriRestrictions2Code[splitLineTemp[3]]
+                elif(splitLineTemp[3] in uriRestrictions2Code):
+                    splitLineTemp[3] = uriRestrictions2Code[splitLineTemp[3]]
             termFile.write("\t".join(splitLineTemp)) # rejoin and write
         
         if(parentStyle1 != []): # write out subclass parent/child
-            termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][0]] + "\t" + "parent-style1" + "\t" + parentStyle1[0][1].split("#")[-1] + "\n")
-            termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][1]] + "\t" + "child-style1" + "\t" + parentStyle1[0][0].split("#")[-1] + "\n")
+            termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][0]] + "\t" + "parent-style1" + "\t" + uri2Code[parentStyle1[0][1]] + "\n")
+            termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][1]] + "\t" + "child-style1" + "\t" + uri2Code[parentStyle1[0][0]] + "\n")
         if(parentStyle2 != []): # write out relationship parent/child
-            termFile.write(parentStyle2[0][0] + "\t" + uri2Code[parentStyle2[0][0]] + "\t" + "parent-style2" + "\t" + parentStyle2[0][1].split("#")[-1] + "\n")
-            termFile.write(parentStyle2[0][0] + "\t" + uri2Code[parentStyle2[0][1]] + "\t" + "child-style2" + "\t" + parentStyle2[0][0].split("#")[-1] + "\n")
+            termFile.write(parentStyle2[0][0] + "\t" + uri2Code[parentStyle2[0][0]] + "\t" + "parent-style2" + "\t" + uri2Code[parentStyle2[0][1]] + "\n")
+            termFile.write(parentStyle2[0][0] + "\t" + uri2Code[parentStyle2[0][1]] + "\t" + "child-style2" + "\t" + uri2Code[parentStyle2[0][0]] + "\n")
             
         maxChildren = ("", 0)
         for parent, children in allChildren.items(): # find maximum number of children
