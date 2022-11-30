@@ -13,6 +13,8 @@ currentClassPath = []
 lastSpaces = 0
 spaces = 0
 properties = {} # master list
+propertiesMultipleSamples = {} # properties that should show multiple examples
+propertiesMultipleSampleCodes = ['P310'] # the codes that should work with multiple samples
 propertiesCurrentClass = {} # current class list
 propertiesParentChilden = {} # parent/child list
 parentStyle1 = [] # parent, child key value pair for subclass parent
@@ -170,13 +172,22 @@ if __name__ == "__main__":
                     uri2Code[currentClassURI] = currentClassCode # store code for uri
                     continue
                 newEntry = checkForNewProperty(line)
-                if(len(newEntry) > 1 and newEntry[0] not in properties): # returned new property
+                if(len(newEntry) > 1 and newEntry[0] in propertiesMultipleSampleCodes): # handle multiple example codes
+                    exampleCode = newEntry[1].split("\t")[-1][:-1] # extract code
+                    if(exampleCode not in propertiesMultipleSamples):
+                        propertiesMultipleSamples[exampleCode] = newEntry[1] # set value as key to avoid duplications
+                elif(len(newEntry) > 1 and newEntry[0] not in properties): # returned new property
                     propertiesCurrentClass[newEntry[0]] = newEntry[1] # add to current class property list
                     
         for key, value in properties.items(): # write normal properties
             splitLineTemp = value.split("\t") # split to get code isolated
             splitLineTemp[1] = uri2Code[splitLineTemp[0]]
             termFile.write("\t".join(splitLineTemp)) # rejoin and write
+            
+        for key, value in propertiesMultipleSamples.items(): # write properties with multiple examples
+            splitLineTemp = value.split()
+            splitLineTemp[1] = uri2Code[splitLineTemp[0]]
+            termFile.write("\t".join(splitLineTemp) + "\n") # rejoin and write
         
         if(parentStyle1 != []): # write out subclass parent/child
             termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][0]] + "\t" + "parent-style1" + "\t" + uri2Code[parentStyle1[0][1]] + "\n")
