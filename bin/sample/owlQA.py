@@ -4,21 +4,26 @@ import re
 import sys
 
 inClass = False
-inAxiom = False
+inRestriction = False
 inSubclass = False
 inEquivalentClass = False
 currentClassURI = ""
 currentClassCode = ""
+currentClassPath = []
+lastSpaces = 0
+spaces = 0
 properties = {} # master list
 propertiesCurrentClass = {} # current class list
 propertiesParentChilden = {} # parent/child list
 parentStyle1 = [] # parent, child key value pair for subclass parent
 parentStyle2 = [] # parent, child key value pair for rdf:description parent
 uri2Code = {} # store ID codes for each URI when processed
+restrictions2Code = {} # separately store restriction codes so they don't get processed as roots
 allParents = {} # all parent to children relationships
 allChildren = {} # all children to parent relationships
 parentCount = {} # list of parent count codes from 1 to n
 deprecated = {} # list of all deprecated concepts
+newRestriction = "" # restriction code
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -62,10 +67,33 @@ def checkForNewProperty(line):
         return ""
     detail = ""
     if("rdf:resource=\"" in line): # grab stuff in quotes
-        detail = re.findall('"([^"]*)"', line)[0]
+        detail = re.findall('"([^"]*)"', line)[0].split("#")[-1]
     else: # grab stuff in tag
         detail = re.findall(">(.*?)<", line)[0]
     return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n")
+
+def handleRestriction(line):
+    global newRestriction
+    detail = re.findall('"([^"]*)"', line)[0]
+    pathCode = "/".join(currentClassPath) + "~"
+    if(line.startswith("<owl:onProperty")):
+        propertyCode = detail.split("#")[-1]
+        if(pathCode + propertyCode in restrictions2Code):
+            return
+        else:
+            restrictions2Code[pathCode + propertyCode] = propertyCode
+            newRestriction = propertyCode
+            
+    elif(line.startswith("<owl:someValuesFrom")):
+        valueCode = detail.split("#")[-1]
+        if(detail in restrictions2Code): # already found this code
+            pass
+        else:
+            restrictions2Code[detail] = valueCode
+        if(newRestriction != ""): # there's a restrictionCode ready
+            pathCode += newRestriction
+            propertiesCurrentClass[pathCode] = currentClassURI + "\t" + currentClassCode + "\t" + pathCode + "\t" + valueCode + "\n" # add code/path to properties
+            newRestriction = "" # reset code to empty
 
 
 if __name__ == "__main__":
@@ -80,7 +108,9 @@ if __name__ == "__main__":
     terminology = sys.argv[1].split("/")[-1].split(".")[0]
     
     with open(terminology + "_QA_OWL.txt", "w") as termFile:
-        for line in ontoLines:
+        for index, line in enumerate(ontoLines):
+            lastSpaces = spaces
+            spaces = len(line) - len(line.lstrip())
             line = line.strip()
             if(len(line) < 1 or line[0] != '<'): # blank lines or random text
                 pass
@@ -95,37 +125,48 @@ if __name__ == "__main__":
                 currentClassURI = re.findall('"([^"]*)"', line)[0] # set uri entry in line
                 currentClassCode = re.split("/|#", currentClassURI)[-1] # set initial class code
                 uri2Code[currentClassURI] = currentClassCode # set initial uri code value
+                continue
             elif(line.startswith("</owl:Class>") and not inEquivalentClass):
                 for key, value in propertiesCurrentClass.items(): # replace code entry and write to file
                     properties[key] = value # add to master list
-                    splitLineTemp = value.split("\t") # split to get code isolated
-                    uri2Code[currentClassURI] = currentClassCode
-                    splitLineTemp[1] = currentClassCode
-                    termFile.write("\t".join(splitLineTemp)) # rejoin and write
                 inClass = False
+                currentClassPath = []
+                continue
                 
-            elif(line.startswith("<owl:Axiom>")):
-                inAxiom = True
-            elif(line.startswith("</owl:Axiom>")):
-                inAxiom = False
+            if(inClass and not inRestriction):
+                if(spaces > lastSpaces):
+                    currentClassPath.append(re.split(">| ", line)[0][1:])
+                elif(lastSpaces > spaces):
+                    currentClassPath.pop()
+                else:
+                    currentClassPath.pop()
+                    currentClassPath.append(re.split(">| ", line)[0][1:])
 
-            elif((line.startswith("<rdfs:subClassOf>") and not line.endswith("//>\n"))): #  find complex subclass            
+            if((line.startswith("<rdfs:subClassOf>") and not line.endswith("//>\n"))): #  find complex subclass            
                 inSubclass = True
+                continue
             elif(line.startswith("</rdfs:subClassOf>")) :
                 inSubclass = False
+                continue
  
             elif(line.startswith("<owl:equivalentClass>")): # find description parents in equivalentClass   
                 inEquivalentClass = True
+                continue
             elif(line.startswith("</owl:equivalentClass>")) :
                 inEquivalentClass = False
-            
+                continue
             
             elif(line.startswith("<rdfs:subClassOf") or (line.startswith("<rdf:Description ") and inEquivalentClass)): # catch either example of parent/child relationship
                 parentChildProcess(line)
-            elif(inEquivalentClass): # skip rest of equivalent class
-                pass
+                            
+            if(inClass and line.startswith("<owl:Restriction>")):
+                inRestriction = True
+            elif(inClass and line.startswith("</owl:Restriction>")):
+                inRestriction = False
+            elif(inClass and inRestriction):
+                handleRestriction(line)
 
-            elif(inClass and not inSubclass):
+            elif(inClass and not inSubclass and not inEquivalentClass):
                 if(line.startswith("<oboInOwl:id")): # catch ID to return if it has properties
                     currentClassCode = re.findall(">(.*?)<", line)[0]
                     uri2Code[currentClassURI] = currentClassCode # store code for uri
@@ -133,6 +174,11 @@ if __name__ == "__main__":
                 newEntry = checkForNewProperty(line)
                 if(len(newEntry) > 1 and newEntry[0] not in properties): # returned new property
                     propertiesCurrentClass[newEntry[0]] = newEntry[1] # add to current class property list
+                    
+        for key, value in properties.items(): # write properties
+            splitLineTemp = value.split("\t") # split to get code isolated
+            splitLineTemp[1] = uri2Code[splitLineTemp[0]]
+            termFile.write("\t".join(splitLineTemp)) # rejoin and write
         
         if(parentStyle1 != []): # write out subclass parent/child
             termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][0]] + "\t" + "parent-style1" + "\t" + parentStyle1[0][1].split("#")[-1] + "\n")
