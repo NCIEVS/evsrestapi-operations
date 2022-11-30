@@ -176,11 +176,6 @@ if __name__ == "__main__":
         for key, value in properties.items(): # write normal properties
             splitLineTemp = value.split("\t") # split to get code isolated
             splitLineTemp[1] = uri2Code[splitLineTemp[0]]
-            if(len(splitLineTemp) > 3):
-                if(splitLineTemp[3] in uri2Code):
-                    splitLineTemp[3] = uriRestrictions2Code[splitLineTemp[3]]
-                elif(splitLineTemp[3] in uriRestrictions2Code):
-                    splitLineTemp[3] = uriRestrictions2Code[splitLineTemp[3]]
             termFile.write("\t".join(splitLineTemp)) # rejoin and write
         
         if(parentStyle1 != []): # write out subclass parent/child
