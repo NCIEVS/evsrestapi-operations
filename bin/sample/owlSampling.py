@@ -111,9 +111,12 @@ def handleAxiom(line):
         axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
     elif(line.startswith("<owl:annotatedTarget")): # get target code
         axiomInfo.append(re.findall(">(.*?)<", line)[0] + "~")
-    elif(not line.startswith("<owl:annotated") and axiomInfo[0] + re.split(r'[<>]', line)[1] not in axiomProperties): # get connected properties
-        newProperty = re.split(r'[<>]', line)[1] # extract property from line
-        newCode = re.findall(">(.*?)<", line)[0] # extract code from line
+    elif(not line.startswith("<owl:annotated") and axiomInfo[0] + re.split(r'[< >]', line)[1] not in axiomProperties): # get connected properties
+        newProperty = re.split(r'[< >]', line)[1] # extract property from line
+        if(len(re.findall(">(.*?)<", line)) > 0):
+            newCode = re.findall(">(.*?)<", line)[0] # extract code from line
+        else:
+            newCode = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1]
         axiomProperties[axiomInfo[0] + newProperty] = currentClassURI + "\t" + currentClassCode + "\t" + axiomInfo[0] + newProperty + "\t" + axiomInfo[1] + newCode + "\n"
 
 
