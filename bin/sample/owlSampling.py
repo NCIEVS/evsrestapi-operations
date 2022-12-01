@@ -31,17 +31,13 @@ deprecated = {} # list of all deprecated concepts
 newRestriction = "" # restriction code
 
 def checkParamsValid(argv):
-    if(len(argv) != 3):
-        print("Usage: owlQA.py <terminology owl file path> <terminology json file path>")
+    if(len(argv) != 2):
+        print("Usage: owlQA.py <terminology owl file path>")
         return False
     elif(os.path.isfile(argv[1]) == False or argv[1][-4:] != ".owl"):
         print(argv[1][-4:])
         print("terminology owl file path is invalid")
-        print("Usage: owlQA.py <terminology owl file path> <terminology json file path>")
-        return False
-    elif(os.path.isfile(argv[2]) == False or argv[2][-5:] != ".json"):
-        print("terminology json file path is invalid")
-        print("Usage: owlQA.py <terminology owl file path> <terminology json file path>")
+        print("Usage: owlQA.py <terminology owl file path>")
         return False
     return True
 
@@ -101,7 +97,7 @@ def handleRestriction(line):
             newRestriction = "" # saved code now used, reset to empty
             
 def handleAxiom(line):
-    global currentClassURI
+    global currentClassURI # grab globals
     global currentClassCode
     if(line.startswith("<owl:annotatedSource")): # get source uri and code
         currentClassURI = re.findall('"([^"]*)"', line)[0]
@@ -118,7 +114,6 @@ def handleAxiom(line):
         else:
             newCode = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1]
         axiomProperties[axiomInfo[0] + newProperty] = currentClassURI + "\t" + currentClassCode + "\t" + axiomInfo[0] + newProperty + "\t" + axiomInfo[1] + newCode + "\n"
-
 
 if __name__ == "__main__":
     print("--------------------------------------------------")
@@ -140,7 +135,7 @@ if __name__ == "__main__":
                 continue
             elif(line.startswith("<owl:deprecated")): # ignore deprecated classes
                 inClass = False
-                propertiesCurrentClass = {}
+                propertiesCurrentClass = {} # ignore properties in deprecated class
                 deprecated[currentClassURI] = True
                 
             elif(line.startswith("<owl:Class ") and not inEquivalentClass):
