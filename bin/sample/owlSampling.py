@@ -3,6 +3,7 @@ import os
 import re
 import sys
 
+inAxiom = False
 inClass = False
 inRestriction = False
 inSubclass = False
@@ -12,7 +13,9 @@ currentClassCode = ""
 currentClassPath = []
 lastSpaces = 0
 spaces = 0
+axiomInfo = [] # key value pair storing info about current axiom
 properties = {} # master list
+axiomProperties = {} # lsit of axiom properties
 propertiesMultipleSamples = {} # properties that should show multiple examples
 propertiesMultipleSampleCodes = ['P310'] # the codes that should work with multiple samples
 propertiesCurrentClass = {} # current class list
@@ -96,6 +99,22 @@ def handleRestriction(line):
             pathCode += newRestriction
             propertiesCurrentClass[pathCode] = currentClassURI + "\t" + currentClassCode + "\t" + pathCode + "\t" + valueCode + "\n" # add code/path to properties
             newRestriction = "" # saved code now used, reset to empty
+            
+def handleAxiom(line):
+    global currentClassURI
+    global currentClassCode
+    if(line.startswith("<owl:annotatedSource")): # get source uri and code
+        currentClassURI = re.findall('"([^"]*)"', line)[0]
+        currentClassCode = re.split(r'[#/]', currentClassURI)[-1]
+    elif(line.startswith("<owl:annotatedProperty")): # get property code
+        sourceProperty = re.findall('"([^"]*)"', line)[0]
+        axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
+    elif(line.startswith("<owl:annotatedTarget")): # get target code
+        axiomInfo.append(re.findall(">(.*?)<", line)[0] + "~")
+    elif(not line.startswith("<owl:annotated") and axiomInfo[0] + re.split(r'[<>]', line)[1] not in axiomProperties): # get connected properties
+        newProperty = re.split(r'[<>]', line)[1] # extract property from line
+        newCode = re.findall(">(.*?)<", line)[0] # extract code from line
+        axiomProperties[axiomInfo[0] + newProperty] = currentClassURI + "\t" + currentClassCode + "\t" + axiomInfo[0] + newProperty + "\t" + axiomInfo[1] + newCode + "\n"
 
 
 if __name__ == "__main__":
@@ -148,7 +167,14 @@ if __name__ == "__main__":
                 inSubclass = True
             elif(line.startswith("</rdfs:subClassOf>")) :
                 inSubclass = False
-                continue
+            
+            elif line.startswith("<owl:Axiom>"): # find complex subclass            
+                inAxiom = True
+            elif line.startswith("</owl:Axiom>"):
+                inAxiom = False
+                axiomInfo = [] # empty the info list for the previous axiom
+            elif inAxiom:
+                handleAxiom(line)
  
             elif(line.startswith("<owl:equivalentClass>")): # tag equivalentClass (necessary for restrictions)
                 inEquivalentClass = True
@@ -159,7 +185,7 @@ if __name__ == "__main__":
             elif(line.startswith("<rdfs:subClassOf") or (line.startswith("<rdf:Description ") and inEquivalentClass)): # catch either example of parent/child relationship
                 parentChildProcess(line)
                             
-            if(inClass and line.startswith("<owl:Restriction>")):
+            elif(inClass and line.startswith("<owl:Restriction>")):
                 inRestriction = True
             elif(inClass and line.startswith("</owl:Restriction>")):
                 inRestriction = False
@@ -188,6 +214,9 @@ if __name__ == "__main__":
             splitLineTemp = value.split()
             splitLineTemp[1] = uri2Code[splitLineTemp[0]]
             termFile.write("\t".join(splitLineTemp) + "\n") # rejoin and write
+            
+        for key, value in axiomProperties.items(): # write properties with multiple examples
+            termFile.write(value) # rejoin and write
         
         if(parentStyle1 != []): # write out subclass parent/child
             termFile.write(parentStyle1[0][0] + "\t" + uri2Code[parentStyle1[0][0]] + "\t" + "parent-style1" + "\t" + uri2Code[parentStyle1[0][1]] + "\n")
