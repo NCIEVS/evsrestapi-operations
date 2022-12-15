@@ -29,6 +29,7 @@
 	"relationshipToTarget": null,
 	"hierarchy": true,
 	"detailsColumns": {
-		"synonyms-type":true
+		"synonyms-type": true,
+		"synonyms-termType": true
 	}
 }
