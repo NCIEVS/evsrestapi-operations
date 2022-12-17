@@ -2,6 +2,7 @@
 	"uiLabel": "NCI Metathesaurus",
 	"codeLabel": "CUI",
 	"detailsColumns": {
+		"definitions-source": true,
 		"synonyms-source": true,
 		"synonyms-termType": true,
 		"synonyms-code": true

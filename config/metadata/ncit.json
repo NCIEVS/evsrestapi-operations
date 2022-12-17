@@ -135,6 +135,7 @@
 		"caDSR"
 	],
 	"detailsColumns": {
+		"definitions-source": true,
 		"definitions-attribution": true,
 		"synonyms-source": true,
 		"synonyms-termType": true,
