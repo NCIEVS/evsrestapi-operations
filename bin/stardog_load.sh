@@ -6,7 +6,7 @@
 # and this script takes responsibility for determining the
 # "graph" and "version" needed for performing that load.
 #
-replace=0
+force=0
 config=1
 help=0
 weekly=0
@@ -14,16 +14,16 @@ while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     # use environment variable config (dev env)
     --noconfig) config=0; ncflag="--noconfig";;
-    # replace the specified terminology/verison/graph
-    --replace) replace=1;;
+    # ignore errors AND replace the specified terminology/verison/graph
+    --force) force=1;;
     # weekly not monthly
     --weekly) weekly=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
 if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 [--noconfig] [--replace] [--weekly] [--help] <data>"
-    echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly"
+    echo "Usage: $0 [--noconfig] [--force] [--weekly] [--help] <data>"
+    echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly --force"
     echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
     echo "  e.g. $0 https://evs.nci.nih.gov/ftp1/upload/ThesaurusInferred_forTS.zip"
     echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
@@ -48,8 +48,9 @@ DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"
 echo "--------------------------------------------------"
+echo "DIR = $DIR"
 echo "data = $data"
-echo "replace = $replace"
+echo "force = $force"
 echo "weekly = $weekly"
 
 # Setup configuration
@@ -153,19 +154,36 @@ echo "    graph = $graph"
 
 db=NCIT2
 if [[ $weekly -eq 1 ]]; then
+    if [[ $terminology != "ncit" ]]; then
+        echo "ERROR: --weekly only makes sense when loading NCI Thesaurus"
+		exit 1
+    fi
     db=CTRP
+fi
+
+# Run QA on $file
+if [[ $force -eq 1 ]]; then
+echo "  SKIP QA on $file ...`/bin/date`"
+else
+    echo "  Run QA on $file ...`/bin/date`"
+    $DIR/stardog_qa.sh $terminology $file > /tmp/x.$$.log  2>&1
+    if [[ $? -ne 0 ]]; then 
+	    cat /tmp/x.$$.log | sed 's/^/    /;'
+        echo "ERROR: QA errors, re-run with --force to bypass this"
+	    exit 1
+    fi
 fi
 
 # determine if there's a problem (duplicate graph/version)
 ct=`$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep "$db.*$graph" | wc -l`
-if [[ $ct -gt 0 ]] && [[ $replace -eq 0 ]]; then
-    echo "ERROR: graph is already loaded, use --replace"
+if [[ $ct -gt 0 ]] && [[ $force -eq 0 ]]; then
+    echo "ERROR: graph is already loaded, use --force"
     exit 1
 fi
 
-# Remove data if $replace is set (remove from both DBs)
-if [[ $replace -eq 1 ]]; then
-    echo "  Remove graph (replace mode) ...`/bin/date`"
+# Remove data if $force is set (remove from both DBs)
+if [[ $force -eq 1 ]]; then
+    echo "  Remove graph (force mode) ...`/bin/date`"
     $STARDOG_HOME/bin/stardog data remove -g $graph CTRP -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
     if [[ $? -ne 0 ]]; then
         echo "ERROR: Problem running stardog to remove graph (CTRP)"
