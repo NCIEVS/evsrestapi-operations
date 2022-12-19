@@ -55,8 +55,7 @@ echo "uri = $uri"
 echo "  Setup configuration"
 if [[ $config -eq 1 ]]; then
     APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    APP_NAME="${APP_NAME:-evsrestapi-operations}"
-    CONFIG_DIR=${APP_HOME}/${APP_NAME}/config
+    CONFIG_DIR=${APP_HOME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
     echo "    config = $CONFIG_ENV_FILE"
     . $CONFIG_ENV_FILE
