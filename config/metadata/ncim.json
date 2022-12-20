@@ -5,6 +5,7 @@
 		"definitions-source": true,
 		"synonyms-source": true,
 		"synonyms-termType": true,
-		"synonyms-code": true
+		"synonyms-code": true,
+		"properties-source": true
 	}
 }
