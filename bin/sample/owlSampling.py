@@ -102,7 +102,6 @@ def handleAxiom(line):
     global currentClassCode
     if(line.startswith("<owl:annotatedSource")): # get source uri and code
         currentClassURI = re.findall('"([^"]*)"', line)[0]
-        currentClassCode = re.split(r'[#/]', currentClassURI)[-1]
     elif(line.startswith("<owl:annotatedProperty")): # get property code
         sourceProperty = re.findall('"([^"]*)"', line)[0]
         axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
