@@ -196,7 +196,7 @@ if __name__ == "__main__":
                 handleRestriction(line)
 
             elif(inClass and not inSubclass and not inEquivalentClass): # default property not in complex part of class
-                if(line.startswith("<oboInOwl:id")): # catch ID to return if it has properties
+                if(line.startswith("<oboInOwl:id") or line.startswith("<agr rdf:datatype=")): # catch ID to return if it has properties
                     currentClassCode = re.findall(">(.*?)<", line)[0]
                     uri2Code[currentClassURI] = currentClassCode # store code for uri
                     continue
