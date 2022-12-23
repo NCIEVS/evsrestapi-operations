@@ -32,7 +32,7 @@ fi
 error=0
 
 # NCI Thesaurus checks
-if [[ $terminology -eq "ncit" ]]; then
+if [[ $terminology == "ncit" ]]; then
 
 	echo "    Verify each owl:Class has an NHC0 property"
     perl -ne 'if (/<owl:Class /) { $x = 0; $code=$_;}
