@@ -83,7 +83,7 @@ echo ""
 # cleanup log files
 cleanup() {
     local code=$1
-    /bin/rm ./$datafile.$$.$dataext /tmp/x.$$.log > /dev/null 2>&1
+    /bin/rm $DIR/$datafile.$$.$dataext /tmp/x.$$.log > /dev/null 2>&1
     if [ "$code" != "" ]; then
       exit $code
     fi
@@ -99,20 +99,20 @@ datafile=`echo $data |  perl -pe 's/^.*\///; s/([^\.]+)\..{3,5}$/$1/;'`
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
-    cp  $data ./$datafile.$$.$dataext
+    cp  $data $DIR/$datafile.$$.$dataext
 
 # Otherwise, download it
 else
     echo "    download = $data"
-    #curl -o ./$datafile.$$.$dataext $data
-    curl -v -o ./$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
+    #curl -o $DIR/$datafile.$$.$dataext $data
+    curl -v -o $DIR/$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
         cleanup 1
     fi
 fi
-file=./$datafile.$$.$dataext
+file=$DIR/$datafile.$$.$dataext
 echo "    file = $file"
 
 # determine graph/version
@@ -171,7 +171,7 @@ fi
 
 # Run QA on $file
 if [[ $force -eq 1 ]]; then
-echo "  SKIP QA on $file ...`/bin/date`"
+    echo "  SKIP QA on $file ...`/bin/date`"
 else
     echo "  Run QA on $file ...`/bin/date`"
     $DIR/stardog_qa.sh $terminology $file > /tmp/x.$$.log  2>&1
@@ -184,6 +184,11 @@ fi
 
 # determine if there's a problem (duplicate graph/version)
 ct=`$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep "$db.*$graph" | wc -l`
+if [[ $? -ne 0 ]]; then
+    echo "ERROR: problem running list.sh"
+    cleanup 1
+fi
+
 if [[ $ct -gt 0 ]] && [[ $force -eq 0 ]]; then
     echo "ERROR: graph is already loaded, use --force"
     cleanup 1

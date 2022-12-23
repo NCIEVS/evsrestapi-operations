@@ -1,15 +1,12 @@
 
 #
-# Path to data
-#
-export DATA_HOME=/local/content/downloads
-
-#
 # Stardog config
 #
 
 # Path to stardog installation
 export STARDOG_HOME=/local/content/stardog/current
+
+# Credentials with write permissions needed
 export STARDOG_USERNAME=admin
 export STARDOG_PASSWORD=admin
 export STARDOG_SCHEME=http
