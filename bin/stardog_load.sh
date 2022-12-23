@@ -80,6 +80,15 @@ fi
 echo "STARDOG_HOME = $STARDOG_HOME"
 echo ""
 
+# cleanup log files
+cleanup() {
+    local code=$1
+    /bin/rm ./$datafile.$$.$dataext /tmp/x.$$.log > /dev/null 2>&1
+    if [ "$code" != "" ]; then
+      exit $code
+    fi
+}
+
 echo "  Put data in standard location - /tmp ...`/bin/date`"
 dataext=`echo $data | perl -pe 's/.*\.//;'`
 if [[ "x$dataext" == "" ]]; then
@@ -100,7 +109,7 @@ else
     if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
-        exit 1
+        cleanup 1
     fi
 fi
 file=./$datafile.$$.$dataext
@@ -119,7 +128,7 @@ if [[ $datafile =~ "ThesaurusInferred" ]]; then
 
     else
         echo "ERROR: unable to handle extension - $data"
-        exit 1
+        cleanup 1
     fi
 
     graph=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus$version.owl
@@ -144,7 +153,7 @@ elif [[ $datafile =~ "chebi_" ]]; then
 
 else
     echo "ERROR: Unsupported file type = $data"
-    exit 1
+    cleanup 1
 fi
 
 echo "    terminology = $terminology"
@@ -155,7 +164,7 @@ db=NCIT2
 if [[ $weekly -eq 1 ]]; then
     if [[ $terminology != "ncit" ]]; then
         echo "ERROR: --weekly only makes sense when loading NCI Thesaurus"
-		exit 1
+        cleanup 1
     fi
     db=CTRP
 fi
@@ -169,7 +178,7 @@ else
     if [[ $? -ne 0 ]]; then 
 	    cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: QA errors, re-run with --force to bypass this"
-	    exit 1
+        cleanup 1
     fi
 fi
 
@@ -177,7 +186,7 @@ fi
 ct=`$DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /; s/\|/ /g;' | grep "$db.*$graph" | wc -l`
 if [[ $ct -gt 0 ]] && [[ $force -eq 0 ]]; then
     echo "ERROR: graph is already loaded, use --force"
-    exit 1
+    cleanup 1
 fi
 
 # Remove data if $force is set (remove from both DBs)
@@ -186,12 +195,12 @@ if [[ $force -eq 1 ]]; then
     $STARDOG_HOME/bin/stardog data remove -g $graph CTRP -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
     if [[ $? -ne 0 ]]; then
         echo "ERROR: Problem running stardog to remove graph (CTRP)"
-        exit 1
+        cleanup 1
     fi
     $STARDOG_HOME/bin/stardog data remove -g $graph NCIT2 -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
     if [[ $? -ne 0 ]]; then
         echo "ERROR: Problem running stardog to remove graph (NCIT2)"
-        exit 1
+        cleanup 1
     fi
 fi
 
@@ -201,21 +210,19 @@ echo "  Load data ($db) ...`/bin/date`"
 $STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem loading stardog ($db)"
-    exit 1
+    cleanup 1
 fi
 $STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem optimizing stardog ($db)"
-    exit 1
+    cleanup 1
 fi
 
 # Cleanup
 echo "  Cleanup...`/bin/date`"
-/bin/rm ./$datafile.$$.$dataext /tmp/x.$$.log > /dev/null 2>&1
+cleanup
 
 echo ""
 echo "--------------------------------------------------"
 echo "Finished ...`/bin/date`"
 echo "--------------------------------------------------"
-
-
