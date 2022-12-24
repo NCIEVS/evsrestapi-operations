@@ -120,6 +120,12 @@ fi
 file=$DIR/$datafile.$$.$dataext
 echo "    file = $file"
 
+# Verify that it is an owl file
+if [[ `head -100 $file | grep -c owl:Ontology` -eq 0 ]]; then
+    echo "ERROR: no owl:Ontology declaration in first 100 lines"
+    cleanup 1
+fi
+
 # determine graph/version
 echo "  Determine graph and version ...`/bin/date`"
 if [[ $datafile =~ "ThesaurusInferred" ]]; then
