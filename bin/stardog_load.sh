@@ -224,6 +224,24 @@ if [[ $? -ne 0 ]]; then
     cleanup 1
 fi
 
+# For monthly ncit, also load into CTRP db
+
+if [[ $terminology != "ncit" ]] && [[ $weekly -eq 0 ]]; then
+    db=CTRP
+    echo "  Load data ($db) ...`/bin/date`"
+    $STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Problem loading stardog ($db)"
+        cleanup 1
+    fi
+    echo "  Optimize database ($db) ...`/bin/date`"
+    $STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Problem optimizing stardog ($db)"
+        cleanup 1
+    fi
+fi
+
 # Cleanup
 echo "  Cleanup...`/bin/date`"
 cleanup
