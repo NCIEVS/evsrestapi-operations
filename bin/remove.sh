@@ -95,16 +95,18 @@ if [[ $stardog -eq 1 ]]; then
     echo "  Lookup stardog info ...`/bin/date`"
     $DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /;' | grep "$terminology|$version" > /tmp/x.$$
 	ct=`cat /tmp/x.$$ | wc -l`
-	if [[ $ct -eq 1 ]]; then
+	if [[ $ct -eq 1 ]] || [[ $ct -eq 2 ]]; then
 
-        db=`cat /tmp/x.$$ | cut -d\| -f 2`
-        graph=`cat /tmp/x.$$ | cut -d\| -f 5`
-        echo "  Remove $db graph $graph ...`/bin/date`"
-        $STARDOG_HOME/bin/stardog data remove -g $graph $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
-        if [[ $? -ne 0 ]]; then
-            echo "ERROR: Problem running stardog to remove graph ($db)"
-            exit 1
-        fi
+        for line in `cat /tmp/x.$$`; do
+            db=`echo $line | cut -d\| -f 2`
+            graph=`echo $line | cut -d\| -f 5`
+            echo "  Remove $db graph $graph ...`/bin/date`"
+            $STARDOG_HOME/bin/stardog data remove -g $graph $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+            if [[ $? -ne 0 ]]; then
+                echo "ERROR: Problem running stardog to remove graph ($db)"
+                exit 1
+            fi
+        done
     else
         cat /tmp/x.$$ | sed 's/^/    /'
         echo "ERROR: unexpected number of matching graphs = $ct"
