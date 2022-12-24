@@ -29,6 +29,16 @@ if [[ ! -e $file ]]; then
 	exit 1
 fi
 
+if [[ $file = *zip ]]; then
+    echo "    Unzip file"
+    unzip -p $file "*ThesaurusInferred_forTS.owl" > /tmp/fx.$$
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: unable to unzip $file"
+        exit 1
+    fi
+    file=/tmp/fx.$$
+fi
+
 error=0
 
 # NCI Thesaurus checks
@@ -64,7 +74,7 @@ fi
 
 # Cleanup
 echo "  Cleanup...`/bin/date`"
-/bin/rm -f /tmp/x.$$
+/bin/rm -f /tmp/x.$$ /tmp/fx.$$
 
 if [[ $error -ne 0 ]]; then 
     echo "Finished with errors"
