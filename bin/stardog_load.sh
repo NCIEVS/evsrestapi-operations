@@ -99,10 +99,10 @@ datafile=`echo $data |  perl -pe 's/^.*\///; s/([^\.]+)\..{3,5}$/$1/;'`
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
-    cp  $data $DIR/$datafile.$$.$dataext
+    cp $data $DIR/$datafile.$$.$dataext
 
 # Otherwise, download it
-else
+elif [[ $data = "http* ]] || [[ $data = "ftp* ]]; then
     echo "    download = $data"
     #curl -o $DIR/$datafile.$$.$dataext $data
     curl -v -o $DIR/$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
@@ -111,7 +111,12 @@ else
         echo "ERROR: problem downloading file"
         cleanup 1
     fi
+
+else
+    echo "ERROR: $data is not local or http/ftp"
+    cleanup 1
 fi
+
 file=$DIR/$datafile.$$.$dataext
 echo "    file = $file"
 
