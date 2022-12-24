@@ -253,8 +253,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # For monthly ncit, also load into CTRP db
-
-if [[ $terminology != "ncit" ]] && [[ $weekly -eq 0 ]]; then
+if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
     db=CTRP
     echo "  Load data ($db) ...`/bin/date`"
     $STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
