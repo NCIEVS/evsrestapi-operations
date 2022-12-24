@@ -160,7 +160,7 @@ if [[ $datafile =~ "ThesaurusInferred" ]]; then
 
 elif [[ $datafile == "go" ]]; then
     terminology=go
-    version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
+    version=`head -100 $file | grep '<owl:versionInfo>' | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
     graph=http://purl.obolibrary.org/obo/go${version}.owl
 
 elif [[ $datafile =~ "HGNC_" ]]; then
@@ -169,15 +169,14 @@ elif [[ $datafile =~ "HGNC_" ]]; then
     version=`echo $datafile | perl -pe 's/HGNC_//;'`
     graph=http://ncicb.nci.nih.gov/genenames.org/HGNC${version}.owl
 
-elif [[ $datafile =~ "chebi_" ]]; then
+elif [[ $datafile == "chebi" ]]; then
     terminology=chebi
-    # version is in the filename
-    version=`echo $datafile | perl -pe 's/chebi_//;'`
+    version=`head -100 $file | grep 'owl:versionIRI' | perl -pe 's/.*\/(\d+)\/chebi.*/$1/'`
     # This is from "owl:versionIRI"
     graph=http://purl.obolibrary.org/obo/chebi/${version}/chebi.owl
 
 else
-    echo "ERROR: Unsupported file type = $data"
+    echo "ERROR: Unsupported file type = $datafile"
     cleanup 1
 fi
 
