@@ -204,7 +204,7 @@ else
     echo "  Run QA on $file ...`/bin/date`"
     $DIR/stardog_qa.sh $terminology $file > /tmp/x.$$.log  2>&1
     if [[ $? -ne 0 ]]; then 
-	    cat /tmp/x.$$.log | sed 's/^/    /;'
+	cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: QA errors, re-run with --force to bypass this"
         cleanup 1
     fi
