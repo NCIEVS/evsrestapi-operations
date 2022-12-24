@@ -77,7 +77,7 @@ elif [[ -z $STARDOG_PASSWORD ]]; then
     exit 1
 fi
 
-echo "STARDOG_HOME = $STARDOG_HOME"
+echo "    STARDOG_HOME = $STARDOG_HOME"
 echo ""
 
 # cleanup log files
@@ -95,27 +95,14 @@ if [[ "x$dataext" == "" ]]; then
     echo "ERROR: unable to find file extension = $data"
     exit 1
 fi
-datafile=`echo $data |  perl -pe 's/^.*\///; s/([^\.]+)\..{3,5}$/$1/;'`
+datafile=`echo $data |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'`
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
     cp $data $DIR/f$$.$datafile.$dataext
 
-    if [[ $dataext == "gz" ]]; then
-        echo "    unpack gz file"
-        gunzip $DIR/f$$.$datafile.$dataext
-        
-        # look up file ext again
-        dataext=`echo $datafile | perl -pe 's/.*\.//;'`
-        if [[ "x$dataext" == "" ]]; then
-            echo "ERROR: unable to find file extension = $datafile"
-            exit 1
-        fi
-        datafile=`echo $datafile |  perl -pe 's/^.*\///; s/([^\.]+)\..{3,5}$/$1/;'`
-    fi
-
 # Otherwise, download it
-elif [[ $data = "http*" ]] || [[ $data = "ftp*" ]]; then
+elif [[ $data = http* ]] || [[ $data = ftp* ]]; then
     echo "    download = $data"
     curl --fail -v -o $DIR/f$$.$datafile.$dataext $data > /tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
@@ -132,6 +119,20 @@ fi
 file=$DIR/f$$.$datafile.$dataext
 echo "    file = $file"
 
+if [[ $dataext == "gz" ]]; then
+    echo "    unpack gz file"
+    gunzip $DIR/f$$.$datafile.$dataext
+    
+    # look up file ext again
+    dataext=`echo $datafile | perl -pe 's/.*\.//;'`
+    if [[ "x$dataext" == "" ]]; then
+        echo "ERROR: unable to find file extension = $datafile"
+        exit 1
+    fi
+    datafile=`echo $datafile |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'`
+    file=$DIR/f$$.$datafile.$dataext
+    echo "    file = $file"
+fi
 
 # Verify that owl file is an owl file
 if [[ $dataext == "owl" ]] && [[ `head -100 $file | grep -c owl:Ontology` -eq 0 ]]; then
