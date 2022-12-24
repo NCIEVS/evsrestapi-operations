@@ -122,7 +122,7 @@ echo "    file = $file"
 if [[ $dataext == "gz" ]]; then
     echo "    unpack gz file"
     gunzip $DIR/f$$.$datafile.$dataext
-    if [[ $? -ne 0]]; then
+    if [[ $? -ne 0 ]]; then
         echo "ERROR: failed to gunzip file"
 	cleanup 1
     fi
