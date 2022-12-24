@@ -104,8 +104,8 @@ if [[ -e $data ]]; then
 # Otherwise, download it
 elif [[ $data = "http* ]] || [[ $data = "ftp* ]]; then
     echo "    download = $data"
-    #curl -o $DIR/$datafile.$$.$dataext $data
-    curl -v -o $DIR/$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
+    #curl --fail -o $DIR/$datafile.$$.$dataext $data
+    curl --fail -v -o $DIR/$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
