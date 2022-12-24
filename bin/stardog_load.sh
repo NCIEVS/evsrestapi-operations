@@ -83,7 +83,7 @@ echo ""
 # cleanup log files
 cleanup() {
     local code=$1
-    /bin/rm $DIR/$datafile.$$.$dataext /tmp/x.$$.log > /dev/null 2>&1
+    /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log > /dev/null 2>&1
     if [ "$code" != "" ]; then
       exit $code
     fi
@@ -99,13 +99,25 @@ datafile=`echo $data |  perl -pe 's/^.*\///; s/([^\.]+)\..{3,5}$/$1/;'`
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
-    cp $data $DIR/$datafile.$$.$dataext
+    cp $data $DIR/f$$.$datafile.$dataext
+
+    if [[ $dataext == "gz" ]]; then
+        echo "    unpack gz file"
+        gunzip $DIR/f$$.$datafile.$dataext
+        
+        # look up file ext again
+        dataext=`echo $datafile | perl -pe 's/.*\.//;'`
+        if [[ "x$dataext" == "" ]]; then
+            echo "ERROR: unable to find file extension = $datafile"
+            exit 1
+        fi
+        datafile=`echo $datafile |  perl -pe 's/^.*\///; s/([^\.]+)\..{3,5}$/$1/;'`
+    fi
 
 # Otherwise, download it
 elif [[ $data = "http* ]] || [[ $data = "ftp* ]]; then
     echo "    download = $data"
-    #curl --fail -o $DIR/$datafile.$$.$dataext $data
-    curl --fail -v -o $DIR/$datafile.$$.$dataext $data > /tmp/x.$$.log 2>&1
+    curl --fail -v -o $DIR/f$$.$datafile.$dataext $data > /tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
@@ -117,11 +129,12 @@ else
     cleanup 1
 fi
 
-file=$DIR/$datafile.$$.$dataext
+file=$DIR/f$$.$datafile.$dataext
 echo "    file = $file"
 
-# Verify that it is an owl file
-if [[ `head -100 $file | grep -c owl:Ontology` -eq 0 ]]; then
+
+# Verify that owl file is an owl file
+if [[ $dataext == "owl" ]] && [[ `head -100 $file | grep -c owl:Ontology` -eq 0 ]]; then
     echo "ERROR: no owl:Ontology declaration in first 100 lines"
     cleanup 1
 fi
