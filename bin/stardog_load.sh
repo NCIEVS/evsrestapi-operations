@@ -115,7 +115,7 @@ if [[ -e $data ]]; then
     fi
 
 # Otherwise, download it
-elif [[ $data = "http* ]] || [[ $data = "ftp* ]]; then
+elif [[ $data = "http*" ]] || [[ $data = "ftp*" ]]; then
     echo "    download = $data"
     curl --fail -v -o $DIR/f$$.$datafile.$dataext $data > /tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
