@@ -159,7 +159,8 @@ if [[ $datafile =~ "ThesaurusInferred" ]]; then
         echo "ERROR: unable to handle extension - $data"
         cleanup 1
     fi
-
+    $STARDOG_HOME/bin/stardog data remove -g http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl CTRP -u $STARDOG_USERNAME -p $STARDOG_PASSWORD
+    $STARDOG_HOME/bin/stardog data remove -g http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl NCIT2 -u $STARDOG_USERNAME -p $STARDOG_PASSWORD
     graph=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus$version.owl
 
 elif [[ $datafile == "go" ]]; then
