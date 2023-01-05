@@ -271,7 +271,7 @@ fi
 
 # Remove older versions here
 maxVersions=1
-if [[ `grep -c maxVersions $DIR/../config/metadata/$terminology.json` > 0 ]]; then
+if [[ `grep -c maxVersions $DIR/../config/metadata/$terminology.json` -gt 0 ]]; then
     maxVersions=`grep maxVersions $DIR/../config/metadata/$terminology.json | perl -pe 's/.*\:\s*(\d+),.*/$1/;'`
 fi
 echo "  Remove old version (maxVersions=$maxVersions) ...`/bin/date`"
