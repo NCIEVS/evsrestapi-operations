@@ -1,5 +1,6 @@
 {
 	"uiLabel": "NCI Thesaurus",
+	"maxVersions": 3,
 	"code": "NHC0",
 	"codeLabel": "NCI Thesaurus Code",
 	"conceptStatus": "P310",

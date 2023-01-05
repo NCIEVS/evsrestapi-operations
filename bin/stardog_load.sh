@@ -269,6 +269,15 @@ if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
     fi
 fi
 
+# Remove older versions here
+maxVersions=1
+if [[ `grep -c maxVersions $DIR/../config/metadata/$terminology.json` > 0 ]]; then
+    maxVersions=`grep maxVersions $DIR/../config/metadata/$terminology.json | perl -pe 's/.*\:\s*(\d+),.*/$1/;'`
+fi
+echo "  Remove old version (maxVersions=$maxVersions) ...`/bin/date`"
+echo "     TODO"
+# TODO EVSRESTAPI-292: put code here to list versions available count/sort them and if there are more than $maxVersions, call remove on those graphs
+
 # Cleanup
 echo "  Cleanup...`/bin/date`"
 cleanup
