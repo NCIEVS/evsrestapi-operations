@@ -105,8 +105,10 @@ def handleAxiom(line):
         currentClassURI = re.findall('"([^"]*)"', line)[0]
     elif(line.startswith("<owl:annotatedProperty")): # get property code
         sourceProperty = re.findall('"([^"]*)"', line)[0]
-        if(sourceProperty.find("oboInOwl#")):
+        if(sourceProperty.find("oboInOwl#") != -1):
           axiomInfo.append("qualifier-" + re.split(r'[/]', sourceProperty)[-1].replace("#", ":") + "~")
+        elif(sourceProperty.find("rdf-schema#") != -1):
+          axiomInfo.append("qualifier-" + re.split(r'[/]', sourceProperty)[-1].replace("rdf-schema#", "rdfs:") + "~")
         else:
           axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
     elif(line.startswith("<owl:annotatedTarget")): # get target code
