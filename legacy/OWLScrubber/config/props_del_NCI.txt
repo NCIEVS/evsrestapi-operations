@@ -9,7 +9,6 @@ http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#NHC3
 http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P325	http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P378	SPL
 http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P370
 http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P373
-http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P374
 http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P365
 http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P205
 http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P325	http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P381	ICSR
