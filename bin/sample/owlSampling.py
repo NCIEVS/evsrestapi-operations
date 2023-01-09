@@ -57,12 +57,12 @@ def parentChildProcess(line):
         if(parentStyle2 == []): # first example of rdf:Description child
             parentStyle2.append((currentClassURI, uriToProcess)) # hold in the parentStyle2 object as tuple
             
-    if(currentClassURI in allParents and uriToProcess not in allParents[currentClassURI]): # process parent relationship
+    if(currentClassURI in allParents): # process parent relationship
         allParents[currentClassURI].append(uriToProcess)
     else:
         allParents[currentClassURI] = [uriToProcess]
         
-    if(uriToProcess in allChildren and currentClassURI not in allChildren[uriToProcess]): # process child relationship
+    if(uriToProcess in allChildren): # process child relationship
         allChildren[uriToProcess].append(currentClassURI)
     else:
         allChildren[uriToProcess] = [currentClassURI]
@@ -77,7 +77,7 @@ def checkForNewProperty(line):
     if("rdf:resource=\"" in line): # grab stuff in quotes
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
-        detail = re.findall(">(.*?)<", line)[0]
+        detail = re.findall(">(.+?)<", line)[0]
     return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n")
 
 def handleRestriction(line):
@@ -105,15 +105,22 @@ def handleAxiom(line):
         currentClassURI = re.findall('"([^"]*)"', line)[0]
     elif(line.startswith("<owl:annotatedProperty")): # get property code
         sourceProperty = re.findall('"([^"]*)"', line)[0]
-        axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
+        if(sourceProperty.find("oboInOwl#") != -1):
+          axiomInfo.append("qualifier-" + re.split(r'[/]', sourceProperty)[-1].replace("#", ":") + "~")
+        elif(sourceProperty.find("rdf-schema#") != -1):
+          axiomInfo.append("qualifier-" + re.split(r'[/]', sourceProperty)[-1].replace("rdf-schema#", "rdfs:") + "~")
+        else:
+          axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
     elif(line.startswith("<owl:annotatedTarget")): # get target code
-        axiomInfo.append(re.findall(">(.*?)<", line)[0] + "~")
+        axiomInfo.append(re.findall(">(.+?)<", line)[0] + "~")
     elif(not line.startswith("<owl:annotated") and axiomInfo[0] + re.split(r'[< >]', line)[1] not in axiomProperties): # get connected properties
         newProperty = re.split(r'[< >]', line)[1] # extract property from line
-        if(len(re.findall(">(.*?)<", line)) > 0):
-            newCode = re.findall(">(.*?)<", line)[0] # extract code from line
-        else:
-            newCode = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1]
+        if(len(re.findall(">(.+?)<", line)) > 0):
+          newCode = re.findall(">(.+?)<", line)[0] # extract code from line
+        elif(len(re.findall('"([^"]*)"', line)) > 0 and len(re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])) > 0): # check for quotes with a #
+          newCode = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1]
+        else: # couldn't find any property codes so we skip
+          return
         axiomProperties[axiomInfo[0] + newProperty] = currentClassURI + "\t" + currentClassCode + "\t" + axiomInfo[0] + newProperty + "\t" + axiomInfo[1] + newCode + "\n"
 
 if __name__ == "__main__":
@@ -125,7 +132,7 @@ if __name__ == "__main__":
         exit(1)
     with open (sys.argv[1], "r", encoding='utf-8') as owlFile:
         ontoLines = owlFile.readlines()
-    terminology = sys.argv[1].split("/")[-1].split(".")[0].split("_")[0]
+    terminology = sys.argv[2].split("/")[-1].split(".")[0]
     with open(sys.argv[2]) as termJSONFile: # import id identifier line for terminology
       termJSONObject = json.load(termJSONFile)
       if(not termJSONObject["code"]):
@@ -133,7 +140,7 @@ if __name__ == "__main__":
         exit(1)
       termCodeline = "<" + termJSONObject["code"] # data lines all start with #
     
-    with open(terminology + "_Sampling_OWL.txt", "w") as termFile:
+    with open("samples/" + terminology + "-samples.txt", "w") as termFile:
         for index, line in enumerate(ontoLines): # get index just in case
             lastSpaces = spaces # previous line's number of leading spaces (for comparison)
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
@@ -147,7 +154,7 @@ if __name__ == "__main__":
             elif(line.startswith("</owl:ObjectProperty>")):
               inObjectProperty = False
             elif inObjectProperty and line.startswith(termCodeline):
-              uri2Code[currentClassURI] = re.findall(">(.*?)<", line)[0]
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               objectProperties[currentClassURI] = uri2Code[currentClassURI]
               
             elif(line.startswith("<owl:AnnotationProperty")):
@@ -156,7 +163,7 @@ if __name__ == "__main__":
             elif(line.startswith("</owl:AnnotationProperty>")):
               inObjectProperty = False
             elif inObjectProperty and line.startswith(termCodeline):
-              uri2Code[currentClassURI] = re.findall(">(.*?)<", line)[0]
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               annotationProperties[currentClassURI] = uri2Code[currentClassURI]
                 
             elif(len(line) < 1 or line[0] != '<'): # blank lines or random text
@@ -222,7 +229,7 @@ if __name__ == "__main__":
 
             elif(inClass and not inSubclass and not inEquivalentClass): # default property not in complex part of class
                 if(line.startswith(termCodeline)): # catch ID to return if it has properties
-                    currentClassCode = re.findall(">(.*?)<", line)[0]
+                    currentClassCode = re.findall(">(.+?)<", line)[0]
                     uri2Code[currentClassURI] = currentClassCode # store code for uri
                     continue
                 newEntry = checkForNewProperty(line)
