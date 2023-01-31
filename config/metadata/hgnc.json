@@ -1,5 +1,5 @@
 {
-	"uiLabel": "HGNC",
+	"uiLabel": "HGNC: HUGO Gene Nomenclature Committee",
 	"description": "HGNC, published by the HUGO Gene Nomenclature Committee at the European Bioinformatics Institute.",
 	"code": "hgnc_id",
 	"conceptStatus": null,

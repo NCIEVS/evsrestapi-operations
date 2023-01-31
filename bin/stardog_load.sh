@@ -89,6 +89,15 @@ cleanup() {
     fi
 }
 
+remove_graph() {
+    echo "    Removing graph: $1. Db: $2"
+    $STARDOG_HOME/bin/stardog data remove -g $1 $2 -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Problem running stardog to remove graph $1($2)"
+        cleanup 1
+    fi
+}
+
 echo "  Put data in standard location - /tmp ...`/bin/date`"
 dataext=`echo $data | perl -pe 's/.*\.//;'`
 if [[ "x$dataext" == "" ]]; then
@@ -275,9 +284,21 @@ maxVersions=1
 if [[ `grep -c maxVersions $DIR/../config/metadata/$terminology.json` -gt 0 ]]; then
     maxVersions=`grep maxVersions $DIR/../config/metadata/$terminology.json | perl -pe 's/.*\:\s*(\d+),.*/$1/;'`
 fi
-echo "  Remove old version (maxVersions=$maxVersions) ...`/bin/date`"
-echo "     TODO"
-# TODO EVSRESTAPI-292: put code here to list versions available count/sort them and if there are more than $maxVersions, call remove on those graphs
+echo "  Remove old monthly version (maxVersions=$maxVersions) ...`/bin/date`"
+monthly_graphs=`$DIR/list.sh $ncflag --quiet --stardog | grep -w $terminology | grep -w NCIT2 | awk -F\| '{print $5}'`
+monthly_graphs_array=(${monthly_graphs})
+for graph_to_remove in "${monthly_graphs_array[@]:0:${#monthly_graphs_array[@]}-maxVersions}"
+do
+  remove_graph "$graph_to_remove" "NCIT2"
+done
+
+echo "  Remove old weekly versions (will keep only 1)...`/bin/date`"
+weekly_graphs=`$DIR/list.sh $ncflag --quiet --stardog | grep -w $terminology | grep -w CTRP | awk -F\| '{print $5}'`
+weekly_graphs_array=(${weekly_graphs})
+for graph_to_remove in "${weekly_graphs_array[@]:0:${#weekly_graphs_array[@]}-1}"
+do
+  remove_graph "$graph_to_remove" "CTRP"
+done
 
 # Cleanup
 echo "  Cleanup...`/bin/date`"

@@ -1,5 +1,5 @@
 {
-	"uiLabel": "ChEBI",
+	"uiLabel": "ChEBI: Chemical Entities of Biological Interest",
 	"description": "Chemical Entities of Biological Interest (ChEBI) is a freely available dictionary of molecular entities focused on 'small' chemical compounds.",
 	"code": "oboInOwl:id",
 	"conceptStatus": "owl:deprecated",
