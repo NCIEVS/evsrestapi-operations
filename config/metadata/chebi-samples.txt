@@ -12,7 +12,7 @@ http://purl.obolibrary.org/obo/CHEBI_10	CHEBI:10	oboInOwl:inSubset	2_STAR
 http://purl.obolibrary.org/obo/CHEBI_10	CHEBI:10	rdfs:label	(+)-Atherospermoline
 http://purl.obolibrary.org/obo/CHEBI_100	CHEBI:100	rdfs:subClassOf/owl:Restriction~has_role	CHEBI:76924
 http://purl.obolibrary.org/obo/CHEBI_100	CHEBI:100	rdfs:subClassOf/owl:Restriction~is_enantiomer_of	CHEBI:6714
-http://purl.obolibrary.org/obo/CHEBI_100	CHEBI:100	obo:IAO_0000115	The (-)-enantiomer of medicarpin.
+http://purl.obolibrary.org/obo/CHEBI_100	CHEBI:100	IAO_0000115	The (-)-enantiomer of medicarpin.
 http://purl.obolibrary.org/obo/CHEBI_100	CHEBI:100	oboInOwl:hasRelatedSynonym	medicarpin
 http://purl.obolibrary.org/obo/CHEBI_10002	CHEBI:10002	rdfs:subClassOf/owl:Restriction~has_functional_parent	CHEBI:173072
 http://purl.obolibrary.org/obo/CHEBI_10003	CHEBI:10003	rdfs:subClassOf/owl:Restriction~has_part	CHEBI:65028
