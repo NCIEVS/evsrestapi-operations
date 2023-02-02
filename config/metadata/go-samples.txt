@@ -34,6 +34,16 @@ http://purl.obolibrary.org/obo/GO_0005623	GO:0005623	IAO_0000589	cell and encaps
 http://purl.obolibrary.org/obo/GO_0007095	GO:0007095	rdfs:subClassOf/owl:Restriction~happens_during	GO:0000085
 http://purl.obolibrary.org/obo/GO_0007127	GO:0007127	rdfs:subClassOf/owl:Restriction~ends_during	GO:0007134
 http://purl.obolibrary.org/obo/GO_0106405	GO:0106405	go:creation_date	2021-10-13T20:29:36Z
+http://purl.obolibrary.org/obo/GO_2001317	GO:2001317	qualifier-IAO_0000115~oboInOwl:hasDbXref	The chemical reactions and pathways resulting in the formation of kojic acid.~GOC:di
+http://purl.obolibrary.org/obo/GO_1990380	GO:1990380	qualifier-oboInOwl:hasDbXref~rdfs:label	Reactome:R-HSA-5690870~OTUD7B,TNFAIP3 deubiquitinate TRAF6
+http://purl.obolibrary.org/obo/GO_2001317	GO:2001317	qualifier-oboInOwl:hasRelatedSynonym~oboInOwl:hasDbXref	C6H6O4 synthesis~GOC:obol
+http://purl.obolibrary.org/obo/GO_2001307	GO:2001307	qualifier-oboInOwl:hasNarrowSynonym~oboInOwl:hasDbXref	xanthone biosynthetic process~CHEBI:37647
+http://purl.obolibrary.org/obo/GO_2001317	GO:2001317	qualifier-oboInOwl:hasExactSynonym~oboInOwl:hasDbXref	kojic acid synthesis~GOC:obol
+http://purl.obolibrary.org/obo/GO_2000749	GO:2000749	qualifier-oboInOwl:hasBroadSynonym~oboInOwl:hasDbXref	positive regulation of rDNA chromatin silencing~GOC:obol
+http://purl.obolibrary.org/obo/GO_0033770	GO:0033770	qualifier-oboInOwl:hasDbXref~oboInOwl:hasDbXref	EC:1.14.14.87~skos:exactMatch
+http://purl.obolibrary.org/obo/GO_0120241	GO:0120241	qualifier-oboInOwl:hasRelatedSynonym~rdfs:comment	imine intermediate deaminase activity~EC:3.5.99.10
+http://purl.obolibrary.org/obo/GO_0120326	GO:0120326	qualifier-oboInOwl:hasExactSynonym~oboInOwl:hasExactSynonym	appressorium-mediated penetration into host~GOC:ach
+http://purl.obolibrary.org/obo/GO_0160029	GO:0160029	qualifier-rdfs:comment~oboInOwl:hasDbXref	Following injury, renal cortex tubular epithelial cell appears to be undergoing epithelial-mesenchymal transition, detected by overexpression of vimentin.~PMID:31847447
 http://purl.obolibrary.org/obo/GO_0000001	GO:0000001	parent-style1	GO:0048308
 http://purl.obolibrary.org/obo/GO_0000001	GO:0048308	child-style1	GO:0000001
 http://purl.obolibrary.org/obo/GO_0000018	GO:0000018	parent-style2	GO:0065007

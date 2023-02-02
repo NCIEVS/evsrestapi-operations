@@ -23,6 +23,9 @@ http://purl.obolibrary.org/obo/CHEBI_100241	CHEBI:100241	rdfs:subClassOf/owl:Res
 http://purl.obolibrary.org/obo/CHEBI_100241	CHEBI:100241	rdfs:subClassOf/owl:Restriction~is_tautomer_of	CHEBI:192484
 http://purl.obolibrary.org/obo/CHEBI_111516	CHEBI:111516	rdfs:subClassOf/owl:Restriction~is_substituent_group_from	CHEBI:111513
 http://purl.obolibrary.org/obo/CHEBI_131515	CHEBI:131515	owl:deprecated	true
+http://purl.obolibrary.org/obo/CHEBI_9999	CHEBI:9999	qualifier-oboInOwl:hasDbXref~oboInOwl:source	CAS:35144-10-6~KEGG COMPOUND
+http://purl.obolibrary.org/obo/CHEBI_9999	CHEBI:9999	qualifier-oboInOwl:hasExactSynonym~oboInOwl:hasDbXref	Viscidulin B~KEGG_COMPOUND
+http://purl.obolibrary.org/obo/CHEBI_9997	CHEBI:9997	qualifier-oboInOwl:hasRelatedSynonym~oboInOwl:hasDbXref	Virginiamycin factor M1~ChemIDplus
 http://purl.obolibrary.org/obo/CHEBI_10	CHEBI:10	parent-style1	CHEBI:133004
 http://purl.obolibrary.org/obo/CHEBI_10	CHEBI:133004	child-style1	CHEBI:10
 http://purl.obolibrary.org/obo/CHEBI_24995	CHEBI:24995	max-children	7343
