@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from datetime import datetime
 import json
 import os
@@ -40,12 +41,12 @@ termCodeline = "" # terminology Code identifier line
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
-        print("Usage: owlQA.py <terminology owl file path> <terminology json path>")
+        print("Usage: owl_sampling.py <terminology owl file path> <terminology json path>")
         return False
     elif(os.path.isfile(argv[1]) == False or argv[1][-4:] != ".owl" or argv[2][-5:] != ".json"):
         print(argv[1][-4:])
         print("terminology owl file path is invalid")
-        print("Usage: owlQA.py <terminology owl file path> <terminology json path>")
+        print("Usage: owl_sampling.py <terminology owl file path> <terminology json path>")
         return False
     return True
 
