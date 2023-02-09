@@ -32,7 +32,7 @@ if __name__ == "__main__":
         rrfLines = rrfFile.readlines()
     terminology = sys.argv[2].upper()
     
-    with open("samples/" + terminology.lower() + "-rrf-samples.txt", "w") as termFile:
+    with open(terminology.lower() + "-rrf-samples.txt", "w") as termFile:
         for index, line in enumerate(rrfLines): # get index just in case
             lastSpaces = spaces # previous line's number of leading spaces (for comparison)
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
