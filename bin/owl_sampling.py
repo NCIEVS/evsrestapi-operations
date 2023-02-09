@@ -173,14 +173,16 @@ if __name__ == "__main__":
               uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               objectProperties[currentClassURI] = uri2Code[currentClassURI]
               
-            elif(line.startswith("<owl:AnnotationProperty")):
+            elif(line.startswith("<owl:AnnotationProperty")and not line.endswith("/>")):
               inAnnotationProperty = True;
               currentClassURI = re.findall('"([^"]*)"', line)[0]
             elif(line.startswith("</owl:AnnotationProperty>")):
               inAnnotationProperty = False
-            elif inAnnotationProperty and line.startswith(termCodeline):
+            elif (inAnnotationProperty and line.startswith(termCodeline)):
               uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               annotationProperties[currentClassURI] = uri2Code[currentClassURI]
+            elif(line.startswith("<owl:AnnotationProperty")and line.endswith("/>")):
+              annotationProperties[line.split("\"")[-2].split("/")[-1]] = line.split("\"")[-2].split("/")[-1]
               
             elif(line.startswith("xml") and oboURL in line): # handle obo prefixes
                 oboPrefix = line.split(':')[1].split("=")[0] # get oboPrefix
@@ -190,6 +192,8 @@ if __name__ == "__main__":
                 inClass = False
                 propertiesCurrentClass = {} # ignore properties in deprecated class
                 deprecated[currentClassURI] = True
+            elif(line.startswith("<owl:deprecated")): # track deprecated but still used classes for root filtering
+                deprecated[currentClassURI] = False;
                 
             elif(line.startswith("<owl:Class ") and not inEquivalentClass):
               if not hitClass:
@@ -306,4 +310,3 @@ if __name__ == "__main__":
     print("--------------------------------------------------")
     print("Ending..." + datetime.now().strftime("%d-%b-%Y %H:%M:%S"))
     print("--------------------------------------------------")
-    
