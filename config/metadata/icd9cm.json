@@ -1,0 +1,16 @@
+{
+	"uiLabel": "ICD-9-CM: The International Classification of Diseases, Ninth Revision, Clinical Modification",
+	"maxVersions": 1,
+	"metaConceptField": "CODE",
+	"preferredTermTypes": [
+		"PT",
+		"HT",
+		"ET",
+		"AB"
+	],
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-source": true,
+		"synonyms-termType": true
+	}
+}
