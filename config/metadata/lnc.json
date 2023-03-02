@@ -4,22 +4,11 @@
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [
 		"LN",
-		"MTH_LN",
-		"LO",
-		"MTH_LO",
-		"OSN",
 		"CN",
 		"HC",
-		"HS",
 		"LA",
 		"LC",
-		"LS",
-		"OOSN",
-		"MTH_CN",
-		"OLC",
-		"OLG",
-		"LG",
-		"DN"
+		"LG"
 	],
 	"hierarchy": true,
 	"detailsColumns": {

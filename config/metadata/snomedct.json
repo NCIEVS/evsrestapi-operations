@@ -5,18 +5,8 @@
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [
 		"PT",
-		"FN",
-		"PTGB",
-		"SY",
-		"SYGB",
 		"SB",
-		"XM",
-		"MTH_PT",
-		"MTH_PTGB",
-		"MTH_FN",
-		"MTH_PTGB",
-		"MTH_SYGB",
-		"MTH_SY"
+		"XM"
 	],
 	"hierarchy": true,
 	"detailsColumns": {
