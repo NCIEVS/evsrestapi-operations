@@ -4,7 +4,9 @@
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [
 		"PT",
-		"HT"
+		"HT",
+		"ET",
+		"AB"
 	],
 	"hierarchy": true,
 	"detailsColumns": {

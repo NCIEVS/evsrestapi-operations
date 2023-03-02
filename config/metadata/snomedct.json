@@ -5,6 +5,10 @@
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [
 		"PT",
+		"FN",
+		"PTGB",
+		"SY",
+		"SYGB",
 		"SB",
 		"XM"
 	],
