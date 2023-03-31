@@ -169,7 +169,7 @@ if [[ $dataext != "owl" ]]; then
       echo "ERROR: HGNC transformation needs APP_HOME to be set"
       exit 1
     fi
-    script_output=$(./transforms/hgnc.sh $file $APP_HOME)
+    script_output=$($DIR/transforms/hgnc.sh $file $APP_HOME)
     if [[ $? -ne 0 ]]; then
         echo "ERROR: failed to create HGNC owl file"
         echo "HGNC Script logs:"
