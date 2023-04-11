@@ -161,7 +161,7 @@ if [[ $dataext == "gz" ]]; then
 fi
 
 # If dataext is not owl. Look for transformations to apply
-if [[ $dataext != "owl" ]]; then
+if [[ $dataext != "owl" ]] && [[ $dataext != "zip" ]]; then
   echo "Unknown extension. Looking for transformations"
   if [[ $datafile =~ "hgnc_" ]]; then
     echo "Applying transformations for HGNC"
