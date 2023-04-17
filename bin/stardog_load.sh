@@ -201,7 +201,7 @@ fi
 
 # determine graph/version
 echo "  Determine graph and version ...`/bin/date`"
-if [[ $datafile =~ "ThesaurusInferred" ]]; then
+if [[ $datafile =~ "ThesaurusInf" ]]; then
 
     terminology=ncit
     if [[ $dataext == "zip" ]]; then

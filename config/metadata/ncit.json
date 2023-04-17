@@ -80,6 +80,7 @@
 		"JAX": "Jackson Laboratories Mouse Terminology, adapted for NCI use",
 		"KEGG": "KEGG Pathway Database",
 		"MedDRA": "Medical Dictionary for Regulatory Activities",
+		"mCode": "Minimal Common Oncology Data Elements",
 		"MMHCC": "Mouse Models of Human Cancer Consortium",
 		"NCCN": "National Comprehensive Cancer Network",
 		"NCI": "National Cancer Institute Thesaurus",
