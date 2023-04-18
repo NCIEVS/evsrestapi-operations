@@ -98,6 +98,19 @@ remove_graph() {
     fi
 }
 
+get_file_extension() {
+    local extension=`echo $1 | perl -pe 's/.*\.//;'`
+    if [[ "x$extension" == "" ]]; then
+        echo "ERROR: unable to find file extension = $1"
+        exit 1
+    fi
+    echo "$extension"
+}
+
+get_file_name() {
+  echo $1 |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'
+}
+
 echo "  Put data in standard location - /tmp ...`/bin/date`"
 dataext=`echo $data | perl -pe 's/.*\.//;'`
 if [[ "x$dataext" == "" ]]; then
@@ -145,6 +158,39 @@ if [[ $dataext == "gz" ]]; then
     datafile=`echo $datafile |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'`
     file=$DIR/f$$.$datafile.$dataext
     echo "    file = $file"
+fi
+
+# If dataext is not owl. Look for transformations to apply
+if [[ $dataext != "owl" ]] && [[ $dataext != "zip" ]]; then
+  echo "Unknown extension. Looking for transformations"
+  if [[ $datafile =~ "hgnc_" ]]; then
+    echo "Applying transformations for HGNC"
+    if [[ -z $APP_HOME ]]; then
+      echo "ERROR: HGNC transformation needs APP_HOME to be set"
+      exit 1
+    fi
+    script_output=$($DIR/transforms/hgnc.sh $file $APP_HOME)
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: failed to create HGNC owl file"
+        echo "HGNC Script logs:"
+        echo "$script_output"
+	      cleanup 1
+    fi
+    echo "HGNC Script logs:"
+    echo "$script_output"
+    transformed_owl=$(echo "$script_output" | tail -1)
+    echo "Generated owl file: $transformed_owl"
+  fi
+  if [[ ! -s $transformed_owl ]]; then
+        echo "ERROR: Generated owl file is empty"
+	      cleanup 1
+	fi
+  # look up file ext again
+  dataext=$(get_file_extension "$transformed_owl")
+  datafile=$(get_file_name "$transformed_owl")
+  mv "$transformed_owl" "$DIR"/f$$."$datafile"."$dataext"
+  file=$DIR/f$$.$datafile.$dataext
+  echo "    file = $file"
 fi
 
 # Verify that owl file is an owl file
