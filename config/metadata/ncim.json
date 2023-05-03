@@ -1,11 +1,12 @@
 {
-	"uiLabel": "NCI Metathesaurus",
-	"codeLabel": "CUI",
-	"detailsColumns": {
-		"definitions-source": true,
-		"synonyms-source": true,
-		"synonyms-termType": true,
-		"synonyms-code": true,
-		"properties-source": true
-	}
+  "uiLabel": "NCI Metathesaurus",
+  "description": "NCI Metathesaurus (NCIm) is a wide-ranging biomedical terminology database that covers most terminologies used by NCI for clinical care, translational and basic research, and public information and administrative activities.",
+  "codeLabel": "CUI",
+  "detailsColumns": {
+    "definitions-source": true,
+    "synonyms-source": true,
+    "synonyms-termType": true,
+    "synonyms-code": true,
+    "properties-source": true
+  }
 }
