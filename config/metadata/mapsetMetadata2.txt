@@ -1,6 +1,4 @@
 #name,mapsetLink,version,welcomeText,loader
-SNOMEDCT_US_2022_09_01_TO_ICD10CM_2023,,20220901,mapping-snomed-icd10cm.html,
-SNOMEDCT_US_2022_09_01_TO_ICD10_2016,,20220901,mapping-snomed-icd10.html,
 PDQ_2016_07_31_TO_NCI_2016_10E,,2016_07_31,mapping-pdq-nci.html,MappingLoadServiceImpl
 NCIt_to_HGNC_Mapping,,1.0,mapping-nci-hgnc.html,MappingLoadServiceImpl
 NCIt_to_ChEBI_Mapping,,1.0,mapping-nci-chebi.html,MappingLoadServiceImpl
