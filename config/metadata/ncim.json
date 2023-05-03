@@ -1,6 +1,6 @@
 {
   "uiLabel": "NCI Metathesaurus",
-  "description": "NCI Metathesaurus (NCIm) is a wide-ranging biomedical terminology database that covers most terminologies used by NCI for clinical care, translational and basic research, and public information and administrative activities.",
+  "description": "NCI Metathesaurus. Bethesda, MD: National Cancer Institute.",
   "codeLabel": "CUI",
   "detailsColumns": {
     "definitions-source": true,
