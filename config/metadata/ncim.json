@@ -1,5 +1,6 @@
 {
 	"uiLabel": "NCI Metathesaurus",
+	"licenseText": "Provide Brian text about what you want to say regarding a license and this will be replaced with that.  This is to demonstrate a click-through license",
 	"codeLabel": "CUI",
 	"detailsColumns": {
 		"definitions-source": true,
