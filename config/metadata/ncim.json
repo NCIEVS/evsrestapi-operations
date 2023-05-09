@@ -1,7 +1,7 @@
 {
 	"uiLabel": "NCI Metathesaurus",
 	"description": "NCI Metathesaurus. Bethesda, MD: National Cancer Institute.",
-	"licenseText": "Provide Brian text about what you want to say regarding a license and this will be replaced with that.  This is to demonstrate a click-through license",
+	"licenseText": "The NCI Metathesaurus (NCIm) includes various sources, some of which are proprietary and included, by permission, for non-commercial use only. By accepting this, you agree to the specified terms.",
 	"codeLabel": "CUI",
 	"detailsColumns": {
 		"definitions-source": true,
