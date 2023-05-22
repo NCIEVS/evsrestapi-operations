@@ -326,7 +326,6 @@ if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
 fi
 
 # Remove older versions here
-source ~/.bashrc
 maxVersions=1
 if [[ `grep -c maxVersions $DIR/../config/metadata/$terminology.json` -gt 0 ]]; then
     maxVersions=`grep maxVersions $DIR/../config/metadata/$terminology.json | perl -pe 's/.*\:\s*(\d+),.*/$1/;'`
