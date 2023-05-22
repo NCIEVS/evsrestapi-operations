@@ -1,9 +1,10 @@
 #!/bin/bash
 
 dir=`pwd | perl -pe 's#/cygdrive/c#C:#;'`
-APP_HOME="${2:-$dir/../../}"
-CONFIG_DIR="$APP_HOME/config/transforms/hgnc"
-LIB_HOME="$APP_HOME/lib"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+EVS_OPS_HOME=$DIR/../..
+CONFIG_DIR="$EVS_OPS_HOME/config/transforms/hgnc"
+LIB_HOME="$EVS_OPS_HOME/lib"
 # We sort on version to determine "latest" programmatically in a consistent way
 date=`/bin/date +%Y%m`
 
@@ -14,15 +15,6 @@ cleanup() {
     if [ "$code" != "" ]; then
       exit $code
     fi
-}
-
-
-setup(){
-  echo "hgnc.sh:Setting up transform script"
-  if [[ ! -d $APP_HOME ]]; then
-      echo "ERROR: hgnc.sh:APP_HOME is not set"
-      exit 1
-  fi
 }
 
 download_hgnc_file() {
@@ -66,8 +58,6 @@ set_version(){
   rm HGNC_$date_tmp.owl
 }
 
-setup
-#download_hgnc_file $1
 create_properties_file $1
 create_owl_file
 set_version
