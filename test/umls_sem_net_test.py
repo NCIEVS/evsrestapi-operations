@@ -1,11 +1,13 @@
 import csv
 import os
+import pathlib
 
 from src.converter.umls_sem_net import UmlsSemanticNetwork
 
 
 def test_convert(tmp_path):
-    usn: UmlsSemanticNetwork = UmlsSemanticNetwork("./fixtures/SRDEF", "./fixtures/SRSTRE1", tmp_path)
+    usn: UmlsSemanticNetwork = UmlsSemanticNetwork(pathlib.Path(__file__).parent / "fixtures" / "SRDEF",
+                                                   pathlib.Path(__file__).parent / "fixtures" / "SRSTRE1", tmp_path)
     usn.convert()
     assert os.path.exists(tmp_path / "attributes.txt")
     assert os.path.exists(tmp_path / "concepts.txt")
