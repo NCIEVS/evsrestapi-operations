@@ -1,5 +1,7 @@
 import csv
+import getopt
 import os
+import sys
 
 SEMANTIC_RECORD_TYPE = "STY"
 SEMANTIC_TREE_NUMBER = "STN"
@@ -8,7 +10,7 @@ RELATIONSHIP_TREE_NUMBER = "RTN"
 
 class UmlsSemanticNetwork:
     def __init__(
-            self, definition_file: str, relationship_file: str, output_directory: str
+        self, definition_file: str, relationship_file: str, output_directory: str
     ):
         self.definition_file = definition_file
         self.relationship_file = relationship_file
@@ -21,7 +23,7 @@ class UmlsSemanticNetwork:
 
     def convert(self):
         with open(self.definition_file) as df, open(self.relationship_file) as rf, open(
-                self.attribute_file, "w"
+            self.attribute_file, "w"
         ) as af, open(self.concepts_file, "w") as cf, open(
             self.parent_child_file, "w"
         ) as pcf, open(
@@ -126,9 +128,46 @@ class UmlsSemanticNetwork:
         return attributes_file, concepts_file, parent_child_file, relationships_file
 
 
-if __name__ == '__main__':
+def process_args(argv):
+    definition_file: str = ""
+    relationship_file: str = ""
+    output_directory:str = ""
+    opts, args = getopt.getopt(
+        argv,
+        "hd:r:o:",
+        ["help", "definition-file=", "relationship-file=", "output-directory="],
+    )
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print(
+                """
+                    Usage: 
+                    umls_sem_net_test.py -d <definition-file> -r <relationship-file> -o <output-file>
+                """
+            )
+            sys.exit()
+        elif opt in ("-d", "--definition-file"):
+            definition_file = arg
+        elif opt in ("-r", "--relationship-file"):
+            relationship_file = arg
+        elif opt in ("-o", "--output-directory"):
+            output_directory = arg
+    if not definition_file:
+        print("Definition file not provided. Exiting")
+        sys.exit(1)
+    if not relationship_file:
+        print("Relationship file not provided. Exiting")
+        sys.exit(1)
+    if not output_directory:
+        print("Output directory not provided. Exiting")
+        sys.exit(1)
+    return definition_file, relationship_file, output_directory
+
+
+if __name__ == "__main__":
+    definition_file, relationship_file, output_directory = process_args(sys.argv[1:])
     UmlsSemanticNetwork(
-        "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRDEF",
-        "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRSTRE1",
-        "/Users/squareroot/temp",
+        definition_file,
+        relationship_file,
+        output_directory,
     ).convert()
