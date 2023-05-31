@@ -31,3 +31,14 @@ Information on the operations processes for the EVSRESTAPI project
 
 ### Versioning
 * The version of the scripts are maintained in the ```Makefile```
+
+### Loading UMLS Semantic Network
+The UMLS Semantic Network is loaded using a python script. This script requires Python 3.7+. The script can be invoked as follows
+
+```python src/converter/umls_sem_net.py -d "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRDEF" -r "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRSTRE1" -o "/Users/squareroot/temp"```
+
+Input for the script:
+
+-d UMLS Sematic Net definition file<br/>
+-r UMLS Sematic Net relationship file<br/>
+-o Directory where the output files will be generated
