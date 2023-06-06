@@ -131,7 +131,7 @@ class UmlsSemanticNetwork:
 def process_args(argv):
     definition_file: str = ""
     relationship_file: str = ""
-    output_directory:str = ""
+    output_directory: str = ""
     opts, args = getopt.getopt(
         argv,
         "hd:r:o:",
@@ -142,7 +142,7 @@ def process_args(argv):
             print(
                 """
                     Usage: 
-                    umls_sem_net_test.py -d <definition-file> -r <relationship-file> -o <output-file>
+                    umls_sem_net.py -d <definition-file> -r <relationship-file> -o <output-file>
                 """
             )
             sys.exit()
