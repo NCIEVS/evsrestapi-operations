@@ -199,11 +199,11 @@ fi
 if [[ $quiet -eq 0 ]]; then
 # TODO: this doesn't work without "jq" installed
 curl -s "$ES/evs_metadata/_search?size=10000"  |\
-   $jq | grep terminologyVersion | perl -pe 's/_/ /; s/.*"\: ?"//; s/".*//' |\
+   $jq | grep terminologyVersion | perl -pe 's/(?<!snomedct)_/ /; s/.*"\: ?"//; s/".*//' |\
    sort | sed 's/^/    /'
 else
 curl -s "$ES/evs_metadata/_search?size=10000"  |\
-   $jq | grep terminologyVersion | perl -pe 's/_/|/; s/.*"\: ?"//; s/".*//' |\
+   $jq | grep terminologyVersion | perl -pe 's/(?<!snomedct)_/|/; s/.*"\: ?"//; s/".*//' |\
    sort | sed 's/^/es|/'
 fi
 if [[ $? -ne 0 ]]; then
