@@ -3,3 +3,4 @@
 .idea
 /build/
 .settings
+/config/setenv.sh

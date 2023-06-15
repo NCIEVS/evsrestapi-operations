@@ -4,7 +4,12 @@ import sys
 import xml.etree.ElementTree as ET
 from typing import Union
 
-from src.models.terminology import Concept, Attribute, ParentChild, Relationship
+from terminology_converter.models.terminology import (
+    Concept,
+    Attribute,
+    ParentChild,
+    Relationship,
+)
 
 RDF_PREFIX = "rdf"
 OWL_PREFIX = "owl"
@@ -89,9 +94,8 @@ class OwlConverter:
         self.write_metadata(root)
         self.write_class(root)
         tree = ET.ElementTree(root)
-        tree.write(
-            "/Users/squareroot/Library/Application Support/JetBrains/PyCharmCE2021.3/scratches/scratch.xml"
-        )
+        ET.indent(tree, space="    ", level=0)
+        tree.write(f"{self.output_directory}/umls.owl")
 
     def write_metadata(self, root: ET.Element):
         self.write_annotation_properties(root)
@@ -242,7 +246,7 @@ def process_args(argv):
             terminology_url = arg
         elif opt in ("-v", "--version"):
             version = arg
-        elif opt in ("-1", "--input-directory"):
+        elif opt in ("-i", "--input-directory"):
             input_directory = arg
         elif opt in ("-o", "--output-directory"):
             output_directory = arg
@@ -262,7 +266,9 @@ def process_args(argv):
 
 
 if __name__ == "__main__":
-    terminology_url, version, input_directory, output_directory = process_args(sys.argv)
+    terminology_url, version, input_directory, output_directory = process_args(
+        sys.argv[1:]
+    )
     OwlConverter(
         terminology_url,
         version,

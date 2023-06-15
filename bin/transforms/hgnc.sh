@@ -6,8 +6,9 @@ EVS_OPS_HOME=$DIR/../..
 CONFIG_DIR="$EVS_OPS_HOME/config/transforms/hgnc"
 LIB_HOME="$EVS_OPS_HOME/lib"
 # We sort on version to determine "latest" programmatically in a consistent way
+echo "Before:$date"
 date=`/bin/date +%Y%m`
-
+echo "After:$date"
 cleanup() {
     echo "hgnc.sh:Cleaning up. code:$1"
     local code=$1
