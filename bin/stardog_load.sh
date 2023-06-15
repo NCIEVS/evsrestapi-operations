@@ -111,6 +111,33 @@ get_file_name() {
   echo $1 |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'
 }
 
+set_transformed_owl(){
+if [[ $? -ne 0 ]]; then
+  echo "ERROR: failed to create $1 owl file"
+  echo "$1 Script logs:"
+  echo "$2"
+  cleanup 1
+fi
+echo "$1 Script logs:"
+echo "$2"
+transformed_owl=$(echo "$2" | tail -1)
+echo "Generated owl file: $transformed_owl"
+}
+
+set_load_variables_of_transform(){
+  echo "Setting up variables for the Stardog load. transformed owl file: $transformed_owl"
+  if [[ ! -s $transformed_owl ]]; then
+        echo "ERROR: Generated owl file is empty"
+	      cleanup 1
+	fi
+  # look up file ext again
+  dataext=$(get_file_extension "$transformed_owl")
+  datafile=$(get_file_name "$transformed_owl")
+  mv "$transformed_owl" "$DIR"/f$$."$datafile"."$dataext"
+  file=$DIR/f$$.$datafile.$dataext
+  echo "    file = $file"
+}
+
 echo "  Put data in standard location - /tmp ...`/bin/date`"
 dataext=`echo $data | perl -pe 's/.*\.//;'`
 if [[ "x$dataext" == "" ]]; then
@@ -170,27 +197,9 @@ if [[ $dataext != "owl" ]] && [[ $dataext != "zip" ]]; then
       exit 1
     fi
     script_output=$($DIR/transforms/hgnc.sh $file $APP_HOME)
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: failed to create HGNC owl file"
-        echo "HGNC Script logs:"
-        echo "$script_output"
-	      cleanup 1
-    fi
-    echo "HGNC Script logs:"
-    echo "$script_output"
-    transformed_owl=$(echo "$script_output" | tail -1)
-    echo "Generated owl file: $transformed_owl"
+    set_transformed_owl "hgnc" "$script_output"
+    set_load_variables_of_transform
   fi
-  if [[ ! -s $transformed_owl ]]; then
-        echo "ERROR: Generated owl file is empty"
-	      cleanup 1
-	fi
-  # look up file ext again
-  dataext=$(get_file_extension "$transformed_owl")
-  datafile=$(get_file_name "$transformed_owl")
-  mv "$transformed_owl" "$DIR"/f$$."$datafile"."$dataext"
-  file=$DIR/f$$.$datafile.$dataext
-  echo "    file = $file"
 fi
 
 # Verify that owl file is an owl file
@@ -234,6 +243,22 @@ elif [[ $datafile == "chebi" ]]; then
     version=`head -100 $file | grep 'owl:versionIRI' | perl -pe 's/.*\/(\d+)\/chebi.*/$1/'`
     # This is from "owl:versionIRI"
     graph=http://purl.obolibrary.org/obo/chebi/${version}/chebi.owl
+
+elif [[ $datafile == "umls" ]]; then
+    terminology=umls
+    if [[ $dataext == "zip" ]]; then
+      echo "Applying transformations for UMLS"
+      script_output=$($DIR/transforms/umls.sh $file)
+      # Done with zip file. Cleanup
+      /bin/rm $DIR/f$$.$datafile.zip
+      set_transformed_owl "umls" "$script_output"
+      set_load_variables_of_transform
+      version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
+      graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umls.owl
+    else
+        echo "ERROR: unable to handle extension - $data"
+        cleanup 1
+    fi
 
 else
     echo "ERROR: Unsupported file type = $datafile"

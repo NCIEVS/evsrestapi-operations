@@ -1,0 +1,24 @@
+{
+	"uiLabel": "UmlsSemNet",
+	"description": "UMLS Semantic Network",
+	"code": "Code",
+	"conceptStatus": null,
+	"retiredStatusValue": null,
+	"preferredName": "Preferred_Name",
+	"synonym": [
+		"Synonym"
+	],
+	"definition": "DEF",
+	"definitionSource": null,
+	"map": null,
+	"mapRelation": null,
+	"mapTarget": null,
+	"mapTargetTermType": null,
+	"mapTargetTerminology": null,
+	"mapTargetTerminologyVersion": null,
+	"relationshipToTarget": null,
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-type": true
+	}
+}
