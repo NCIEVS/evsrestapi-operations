@@ -25,7 +25,9 @@ setup() {
   python3 -m venv "$VENV_DIRECTORY"
   source "$VENV_BIN_DIRECTORY"/activate
   "$VENV_BIN_DIRECTORY"/pip install poetry
+  pushd "$EVS_OPS_HOME" || exit
   "$VENV_BIN_DIRECTORY"/poetry install
+  popd "$EVS_OPS_HOME" || exit
 
   mkdir "$WORK_DIRECTORY"/umls_input
   mkdir "$WORK_DIRECTORY"/umls_output
