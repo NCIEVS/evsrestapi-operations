@@ -8,7 +8,7 @@
 	"synonym": [
 		"Synonym"
 	],
-	"definition": "DEF",
+	"definition": ["DEF"],
 	"definitionSource": null,
 	"map": null,
 	"mapRelation": null,
