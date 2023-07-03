@@ -57,6 +57,7 @@ class OwlConverter:
         version: str,
         simple_files_directory: str,
         output_directory: str,
+        terminology: str
     ):
         self.base_url: str = base_url
         self.version: str = version
@@ -71,6 +72,7 @@ class OwlConverter:
             simple_files_directory, "relationships.txt", Relationship
         )
         self.output_directory = output_directory
+        self.terminology = terminology
 
     def convert(self):
         root = ET.Element(
@@ -95,7 +97,7 @@ class OwlConverter:
         self.write_class(root)
         tree = ET.ElementTree(root)
         ET.indent(tree, space="    ", level=0)
-        tree.write(f"{self.output_directory}/umls.owl")
+        tree.write(f"{self.output_directory}/{self.terminology}.owl")
 
     def write_metadata(self, root: ET.Element):
         self.write_annotation_properties(root)
@@ -224,13 +226,14 @@ def process_args(argv):
     output_directory: str = ""
     opts, args = getopt.getopt(
         argv,
-        "hu:v:i:o:",
+        "hu:v:i:o:t:",
         [
             "help",
             "terminology-url=",
             "version=",
             "input-directory",
             "output-directory=",
+            "terminology="
         ],
     )
     for opt, arg in opts:
@@ -250,6 +253,8 @@ def process_args(argv):
             input_directory = arg
         elif opt in ("-o", "--output-directory"):
             output_directory = arg
+        elif opt in ("-t", "--terminology"):
+            terminology = arg
     if not terminology_url:
         print("Terminology URL not provided. Exiting")
         sys.exit(1)
@@ -262,11 +267,11 @@ def process_args(argv):
     if not output_directory:
         print("Output directory not provided. Exiting")
         sys.exit(1)
-    return terminology_url, version, input_directory, output_directory
+    return terminology_url, version, input_directory, output_directory, terminology
 
 
 if __name__ == "__main__":
-    terminology_url, version, input_directory, output_directory = process_args(
+    terminology_url, version, input_directory, output_directory, terminology = process_args(
         sys.argv[1:]
     )
     OwlConverter(
@@ -274,4 +279,5 @@ if __name__ == "__main__":
         version,
         input_directory,
         output_directory,
+        terminology
     ).convert()
