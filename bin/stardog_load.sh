@@ -244,17 +244,17 @@ elif [[ $datafile == "chebi" ]]; then
     # This is from "owl:versionIRI"
     graph=http://purl.obolibrary.org/obo/chebi/${version}/chebi.owl
 
-elif [[ $datafile == "umls" ]]; then
-    terminology=umls
+elif [[ $datafile == "umlssemnet" ]]; then
+    terminology=umlssemnet
     if [[ $dataext == "zip" ]]; then
-      echo "Applying transformations for UMLS"
-      script_output=$($DIR/transforms/umls.sh $file)
+      echo "Applying transformations for UMLS Semnatic Network"
+      script_output=$($DIR/transforms/umlssemnet.sh $file)
       # Done with zip file. Cleanup
       /bin/rm $DIR/f$$.$datafile.zip
-      set_transformed_owl "umls" "$script_output"
+      set_transformed_owl "umlssemnet" "$script_output"
       set_load_variables_of_transform
       version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
-      graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umls.owl
+      graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umlssemnet.owl
     else
         echo "ERROR: unable to handle extension - $data"
         cleanup 1
