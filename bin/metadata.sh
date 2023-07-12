@@ -31,7 +31,7 @@ fi
 
 terminology=${arr[0]}
 version=${arr[1]}
-indexVersion=`echo $version | perl -pe 's/[\.\-]//g;'`
+indexVersion=`echo $version | perl -ne 's/[\.\-]//g; print lc($_)'`
 uri=${arr[2]}
 
 # Verify jq installed
