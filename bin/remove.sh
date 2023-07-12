@@ -28,7 +28,7 @@ fi
 terminology=${arr[0]}
 version=${arr[1]}
 # Strip dot and dash chars from version
-indexVersion=`echo $version | perl -pe 's/[\.\-]//g;'`
+indexVersion=`echo $version | perl -ne 's/[\.\-]//g; print lc($_)'`
 
 
 # Set directory of this script so we can call relative scripts
