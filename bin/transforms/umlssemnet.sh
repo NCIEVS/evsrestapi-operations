@@ -1,7 +1,7 @@
 #!/bin/bash
 TERMINOLOGY="umlssemnet"
 TERMINOLOGY_URL="${2:-http://www.nlm.nih.gov/research/umls/${TERMINOLOGY}.owl}"
-VERSION="${3:-1.0.0}"
+VERSION="${3:-2023AA}"
 dir=$(pwd | perl -pe 's#/cygdrive/c#C:#;')
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 EVS_OPS_HOME=$DIR/../..
