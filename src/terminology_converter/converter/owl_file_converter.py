@@ -1,8 +1,13 @@
 import csv
 import getopt
+import os
 import sys
 import xml.etree.ElementTree as ET
 from typing import Union
+import logging
+from datetime import datetime
+
+log = logging.getLogger(__name__)
 
 from terminology_converter.models.terminology import (
     Concept,
@@ -12,8 +17,13 @@ from terminology_converter.models.terminology import (
 )
 
 RDF_PREFIX = "rdf"
+RDF_URL = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 OWL_PREFIX = "owl"
+OWL_URL = "http://www.w3.org/2002/07/owl#"
 RDFS_PREFIX = "rdfs"
+RDFS_URL = "http://www.w3.org/2000/01/rdf-schema#"
+XML_URL = "http://www.w3.org/XML/1998/namespace"
+XSD_URL = "http://www.w3.org/2001/XMLSchema#"
 
 
 def load_concepts(simple_files_directory: str) -> list[Concept]:
@@ -36,17 +46,21 @@ def load_file(
     simple_files_directory: str, file_name: str, class_name
 ) -> list[Union[Attribute, ParentChild, Relationship]]:
     objects = []
-    with open(f"{simple_files_directory}/{file_name}") as file:
-        file_reader = csv.reader(file, delimiter="|")
-        for line in file_reader:
-            objects.append(
-                class_name(
-                    **{
-                        key: line[i]
-                        for i, key in enumerate(class_name.__fields__.keys())
-                    }
+    str_path = f"{simple_files_directory}/{file_name}"
+    if os.path.exists(str_path):
+        with open(str_path) as file:
+            file_reader = csv.reader(file, delimiter="|")
+            for line in file_reader:
+                objects.append(
+                    class_name(
+                        **{
+                            key: line[i]
+                            for i, key in enumerate(class_name.__fields__.keys())
+                        }
+                    )
                 )
-            )
+    else:
+        log.warning(f"{str_path} does not exist")
     return objects
 
 
@@ -57,17 +71,28 @@ class OwlConverter:
         version: str,
         simple_files_directory: str,
         output_directory: str,
-        terminology: str
+        terminology: str,
     ):
         self.base_url: str = base_url
         self.version: str = version
         self.concepts: list[Concept] = load_concepts(simple_files_directory)
-        self.attributes: list[Attribute] = load_file(
+        self.has_semantic_type: bool = any(
+            concept.semantic_type for concept in self.concepts
+        )
+        self.attributes = {}
+        attributes: list[Attribute] = load_file(
             simple_files_directory, "attributes.txt", Attribute
         )
-        self.parent_children: list[ParentChild] = load_file(
+
+        for attribute in attributes:
+            self.attributes.setdefault(attribute.code, []).append(attribute)
+        lst_parent_children: list[ParentChild] = load_file(
             simple_files_directory, "parChd.txt", ParentChild
         )
+        self.parent_children = {}
+        for parent_child in lst_parent_children:
+            self.parent_children.setdefault(parent_child.child, []).append(parent_child)
+
         self.relationships: list[Relationship] = load_file(
             simple_files_directory, "relationships.txt", Relationship
         )
@@ -78,12 +103,13 @@ class OwlConverter:
         root = ET.Element(
             "rdf:RDF",
             {
-                "xmlns": self.base_url,
-                f"xmlns:{RDF_PREFIX}": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-                f"xmlns:{OWL_PREFIX}": "http://www.w3.org/2002/07/owl#",
-                "xmlns:xml": "http://www.w3.org/XML/1998/namespace",
-                "xmlns:xsd": "http://www.w3.org/2001/XMLSchema#",
-                f"xmlns:{RDFS_PREFIX}": "http://www.w3.org/2000/01/rdf-schema#",
+                "xmlns": self.base_url + "#",
+                "xml:base": self.base_url,
+                f"xmlns:{RDF_PREFIX}": RDF_URL,
+                f"xmlns:{OWL_PREFIX}": OWL_URL,
+                "xmlns:xml": XML_URL,
+                "xmlns:xsd": XSD_URL,
+                f"xmlns:{RDFS_PREFIX}": RDFS_URL,
             },
         )
         ontology = ET.Element(
@@ -103,15 +129,24 @@ class OwlConverter:
         self.write_annotation_properties(root)
         self.write_object_properties(root)
 
+    def flatten_concatenation(self, matrix):
+        flat_list = []
+        for row in matrix:
+            flat_list += row
+        return flat_list
+
     def write_annotation_properties(self, root: ET.Element):
-        attribute_types = set(map(lambda a: a.attribute_type, self.attributes))
+        lst_attributes = self.flatten_concatenation(self.attributes.values())
+        attribute_types = set(map(lambda a: a.attribute_type, lst_attributes))
         annotation_properties = [
             "Code",
-            "Semantic_Type",
             "Preferred_Name",
             "Synonym",
             *attribute_types,
         ]
+        annotation_properties.sort()
+        if self.has_semantic_type:
+            annotation_properties.insert(1, "Semantic_Type")
         for annotation_property in annotation_properties:
             annotation_property_element = self.create_element_with_label(
                 "AnnotationProperty", annotation_property
@@ -128,30 +163,18 @@ class OwlConverter:
 
     def write_class(self, root: ET.Element):
         for concept in self.concepts:
+            print(f"Processing {concept}")
             class_element: ET.Element = self.create_element("Class", concept.code)
-            parents = set(
-                map(
-                    lambda pc: pc.parent,
-                    [
-                        parent_child
-                        for parent_child in self.parent_children
-                        if parent_child.child == concept.code
-                    ],
-                )
-            )
-            attributes = [
-                attribute
-                for attribute in self.attributes
-                if attribute.code == concept.code
-            ]
+            parent_children_for_code = self.parent_children.get(concept.code, [])
+            attributes = self.attributes.get(concept.code, [])
             relationships = [
                 relationship
                 for relationship in self.relationships
                 if relationship.code == concept.code
             ]
-            for parent in parents:
+            for parent_child in parent_children_for_code:
                 subclass_element: ET.Element = self.create_element_with_resource(
-                    "subClassOf", parent, RDFS_PREFIX
+                    "subClassOf", parent_child.parent, RDFS_PREFIX
                 )
                 class_element.append(subclass_element)
             self.append_class_element(class_element, "Code", concept.code)
@@ -233,7 +256,7 @@ def process_args(argv):
             "version=",
             "input-directory",
             "output-directory=",
-            "terminology="
+            "terminology=",
         ],
     )
     for opt, arg in opts:
@@ -271,13 +294,13 @@ def process_args(argv):
 
 
 if __name__ == "__main__":
-    terminology_url, version, input_directory, output_directory, terminology = process_args(
-        sys.argv[1:]
-    )
-    OwlConverter(
+    (
         terminology_url,
         version,
         input_directory,
         output_directory,
-        terminology
+        terminology,
+    ) = process_args(sys.argv[1:])
+    OwlConverter(
+        terminology_url, version, input_directory, output_directory, terminology
     ).convert()
