@@ -67,13 +67,13 @@ class Hgnc:
                                 for cv in column_values
                             ]
             locus_type_concepts = [
-                "|".join([locus_type, "", "", ""]) for locus_type in locus_types
+                "|".join([Hgnc.get_locus_type_or_group(locus_type), "", "", ""]) for locus_type in locus_types
             ]
             locus_group_concepts = [
-                "|".join([locus_group, "", "", ""]) for locus_group in locus_groups
+                "|".join([Hgnc.get_locus_type_or_group(locus_group), "", "", ""]) for locus_group in locus_groups
             ]
             locus_group_parent_child = [
-                "|".join([THING_URI, locus_group]) for locus_group in locus_groups
+                "|".join([THING_URI, Hgnc.get_locus_type_or_group(locus_group)]) for locus_group in locus_groups
             ]
             af.write("\n".join(attributes))
             pcf.write(
