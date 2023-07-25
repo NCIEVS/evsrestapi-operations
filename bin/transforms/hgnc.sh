@@ -1,7 +1,6 @@
 #!/bin/bash
 TERMINOLOGY="hgnc"
-TERMINOLOGY_URL="${2:-http://ncicb.nci.nih.gov/genenames.org/HGNC.owl}"
-VERSION="${3:-202307}"
+TERMINOLOGY_URL="${3:-http://ncicb.nci.nih.gov/genenames.org/HGNC.owl}"
 dir=$(pwd | perl -pe 's#/cygdrive/c#C:#;')
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 EVS_OPS_HOME=$DIR/../..
@@ -41,7 +40,7 @@ generate_owl_file() {
   echo "generating HGNC owl file at $OUTPUT_DIRECTORY"
   local terminology_upper=$(echo "$TERMINOLOGY" | tr '[:lower:]' '[:upper:]')
   local versioned_owl_file="$dir/${terminology_upper}_$date.owl"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${VERSION}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}"
+  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${date}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}"
   mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file"
   echo "$versioned_owl_file"
 }
