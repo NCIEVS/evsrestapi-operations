@@ -43,7 +43,7 @@ def load_concepts(simple_files_directory: str) -> list[Concept]:
 
 
 def load_file(
-    simple_files_directory: str, file_name: str, class_name
+        simple_files_directory: str, file_name: str, class_name
 ) -> list[Union[Attribute, ParentChild, Relationship]]:
     objects = []
     str_path = f"{simple_files_directory}/{file_name}"
@@ -66,12 +66,12 @@ def load_file(
 
 class OwlConverter:
     def __init__(
-        self,
-        base_url: str,
-        version: str,
-        simple_files_directory: str,
-        output_directory: str,
-        terminology: str,
+            self,
+            base_url: str,
+            version: str,
+            simple_files_directory: str,
+            output_directory: str,
+            terminology: str,
     ):
         self.base_url: str = base_url
         self.version: str = version
@@ -110,6 +110,7 @@ class OwlConverter:
                 "xmlns:xml": XML_URL,
                 "xmlns:xsd": XSD_URL,
                 f"xmlns:{RDFS_PREFIX}": RDFS_URL,
+                f"xmlns:{self.terminology.upper()}": self.base_url + "#"
             },
         )
         ontology = ET.Element(
@@ -201,7 +202,7 @@ class OwlConverter:
         )
 
     def create_element_with_resource(
-        self, element_name: str, label: str, element_prefix: str = OWL_PREFIX
+            self, element_name: str, label: str, element_prefix: str = OWL_PREFIX
     ):
         return ET.Element(
             f"{element_prefix}:{element_name}",
@@ -209,14 +210,14 @@ class OwlConverter:
         )
 
     def append_class_element(
-        self, class_element: ET.Element, element_name: str, value: str
+            self, class_element: ET.Element, element_name: str, value: str
     ):
         code_element: ET.Element = ET.Element(element_name)
         code_element.text = value
         class_element.append(code_element)
 
     def append_class_relationship(
-        self, class_element: ET.Element, relationship: Relationship
+            self, class_element: ET.Element, relationship: Relationship
     ):
         subclass_element: ET.Element = ET.Element(f"{RDFS_PREFIX}:subClassOf")
         restriction_element: ET.Element = ET.Element(f"{OWL_PREFIX}:Restriction")

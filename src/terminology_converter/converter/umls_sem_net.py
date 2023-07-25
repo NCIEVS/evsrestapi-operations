@@ -10,10 +10,12 @@ RELATIONSHIP_TREE_NUMBER = "RTN"
 
 class UmlsSemanticNetwork:
     def __init__(
-        self, definition_file: str, relationship_file: str, output_directory: str
+            self, definition_file: str, inferred_relationship_file: str, stated_relationship_file: str,
+            output_directory: str
     ):
         self.definition_file = definition_file
-        self.relationship_file = relationship_file
+        self.inferred_relationship_file = inferred_relationship_file
+        self.stated_relationship_file = stated_relationship_file
         (
             self.attribute_file,
             self.concepts_file,
@@ -22,21 +24,24 @@ class UmlsSemanticNetwork:
         ) = UmlsSemanticNetwork.get_output_files(output_directory)
 
     def convert(self):
-        with open(self.definition_file) as df, open(self.relationship_file) as rf, open(
+        with open(self.definition_file) as def_file, open(self.inferred_relationship_file) as inf_rel_file, open(
+                self.stated_relationship_file) as sta_ref_file, open(
             self.attribute_file, "w"
         ) as af, open(self.concepts_file, "w") as cf, open(
             self.parent_child_file, "w"
         ) as pcf, open(
             self.relationships_file, "w"
         ) as rfo:
-            definition_file_reader = csv.reader(df, delimiter="|")
-            relationship_file_reader = csv.reader(rf, delimiter="|")
+            definition_file_reader = csv.reader(def_file, delimiter="|")
+            inferred_relationship_file_reader = csv.reader(inf_rel_file, delimiter="|")
+            stated_relationship_file_reader = csv.reader(sta_ref_file, delimiter="|")
             concepts = []
             attributes = []
             parent_child_relationship = []
             parent_child_code = ""
             relationships = []
             concept_name_dict = {}
+            concept_id_dict = {}
             for definition_row in definition_file_reader:
                 (
                     record_type,
@@ -55,6 +60,7 @@ class UmlsSemanticNetwork:
                     "|".join([unique_identifier, record_type, name, abbreviation])
                 )
                 concept_name_dict[unique_identifier] = name
+                concept_id_dict[name] = unique_identifier
                 if UmlsSemanticNetwork.has_value(tree_number):
                     attributes.append(
                         "|".join(
@@ -81,11 +87,10 @@ class UmlsSemanticNetwork:
                     )
                 if name == "isa":
                     parent_child_code = unique_identifier
-            for relationship_row in relationship_file_reader:
+            for relationship_row in inferred_relationship_file_reader:
                 left_code, relationship_code, right_code, _ = relationship_row
-                if relationship_code == parent_child_code:
-                    parent_child_relationship.append("|".join([right_code, left_code]))
-                else:
+                # Ignore isa relationships. We will use the stated relationship file to determine that
+                if relationship_code != parent_child_code:
                     relationships.append(
                         "|".join(
                             [
@@ -98,6 +103,10 @@ class UmlsSemanticNetwork:
                             ]
                         )
                     )
+            for relationship_row in stated_relationship_file_reader:
+                left_code, relationship_code, right_code = relationship_row[:3]
+                if relationship_code == "isa" and right_code and left_code:
+                    parent_child_relationship.append("|".join([concept_id_dict[right_code], concept_id_dict[left_code]]))
             af.write("\n".join(attributes))
             cf.writelines("\n".join(concepts))
             pcf.writelines("\n".join(parent_child_relationship))
@@ -129,13 +138,14 @@ class UmlsSemanticNetwork:
 
 
 def process_args(argv):
-    definition_file: str = ""
-    relationship_file: str = ""
-    output_directory: str = ""
+    def_file: str = ""
+    inf_rel_file: str = ""
+    sta_rel_file: str = ""
+    out_directory: str = ""
     opts, args = getopt.getopt(
         argv,
-        "hd:r:o:",
-        ["help", "definition-file=", "relationship-file=", "output-directory="],
+        "hd:i:s:o:",
+        ["help", "definition-file=", "inferred-relationship-file=", "output-directory="],
     )
     for opt, arg in opts:
         if opt in ("-h", "--help"):
@@ -147,27 +157,33 @@ def process_args(argv):
             )
             sys.exit()
         elif opt in ("-d", "--definition-file"):
-            definition_file = arg
-        elif opt in ("-r", "--relationship-file"):
-            relationship_file = arg
+            def_file = arg
+        elif opt in ("-i", "--inferred-relationship-file"):
+            inf_rel_file = arg
+        elif opt in ("-s", "--stated-relationship-file"):
+            sta_rel_file = arg
         elif opt in ("-o", "--output-directory"):
-            output_directory = arg
-    if not definition_file:
+            out_directory = arg
+    if not def_file:
         print("Definition file not provided. Exiting")
         sys.exit(1)
-    if not relationship_file:
-        print("Relationship file not provided. Exiting")
+    if not inf_rel_file:
+        print("Inferred relationship file not provided. Exiting")
         sys.exit(1)
-    if not output_directory:
+    if not sta_rel_file:
+        print("Stated relationship file not provided. Exiting")
+        sys.exit(1)
+    if not out_directory:
         print("Output directory not provided. Exiting")
         sys.exit(1)
-    return definition_file, relationship_file, output_directory
+    return def_file, inf_rel_file, sta_rel_file, out_directory
 
 
 if __name__ == "__main__":
-    definition_file, relationship_file, output_directory = process_args(sys.argv[1:])
+    df, irf, srf, od = process_args(sys.argv[1:])
     UmlsSemanticNetwork(
-        definition_file,
-        relationship_file,
-        output_directory,
+        df,
+        irf,
+        srf,
+        od,
     ).convert()

@@ -44,7 +44,7 @@ extract_umls_files() {
 
 generate_standard_format_files() {
   echo "generating UMLS Semantic Network standard format files at $OUTPUT_DIRECTORY"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/umls_sem_net.py -d "$INPUT_DIRECTORY/SRDEF" -r "$INPUT_DIRECTORY/SRSTRE1" -o "$OUTPUT_DIRECTORY"
+  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/umls_sem_net.py -d "$INPUT_DIRECTORY/SRDEF" -i "$INPUT_DIRECTORY/SRSTRE1" -s "$INPUT_DIRECTORY/SRSTR" -o "$OUTPUT_DIRECTORY"
 }
 
 generate_owl_file() {
