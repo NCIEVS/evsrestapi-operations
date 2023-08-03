@@ -59,11 +59,11 @@ def checkParamsValid(argv):
     
     fullConceptURL = appBaseUrl + "concept/ncim/C0005768?include=full"
     conceptSearchURL = appBaseUrl + "concept/search?terminology=ncit&include=summary,highlights,properties&term=dis&type=contains&export=false&fromRecord=0&pageSize=1000"
-    mapListURL = appBaseUrl + "mapset/SNOMEDCT_US_2020_09_01_to_ICD10CM_2021_Mappings/maps?pageSize=1000&fromRecord=0"
+    mapListURL = appBaseUrl + "mapset/MA_to_NCIt_Mapping/maps?pageSize=1000&fromRecord=0"
     taxonomyURL = appBaseUrl + "concept/ncit/C16956/subtree/children?limit=100"
     subsetListURL = appBaseUrl + "subset/ncit?include=full"
         
-    return True
+    return True 
     
 def testApiCall(taskId, url, name):
 
@@ -77,7 +77,7 @@ def testApiCall(taskId, url, name):
         result = request.json()
         
         if (request.status_code != 200):
-            error = result.get('message')
+            error = str(request.status_code) + " - " + result.get('message')
     
     except Exception as e:
         error = e
