@@ -23,13 +23,13 @@ appBaseUrl = "http://localhost:4200/api/v1/"
 
 fullConceptURL = appBaseUrl + "concept/ncim/C0005768?include=full"
 fullConceptTaskName = "fullConcept"
-conceptSearchURL = appBaseUrl + "concept/search?terminology=ncit&include=summary,highlights,properties&term=dis&type=contains&export=false&fromRecord=0&pageSize=1000"
+conceptSearchURL = ""
 conceptSearchTaskName = "conceptSearch"
-mapListURL = appBaseUrl + "mapset/SNOMEDCT_US_2020_09_01_to_ICD10CM_2021_Mappings/maps?pageSize=1000&fromRecord=0"
+mapListURL = ""
 mapListTaskName = "mapList"
-taxonomyURL = appBaseUrl + "concept/ncit/C16956/subtree/children?limit=100"
+taxonomyURL = ""
 taxonomyTaskName = "taxonomy"
-subsetListURL = appBaseUrl + "subset/ncit?include=full"
+subsetListURL = ""
 subsetListTaskName = "subsetList"
 tests = [fullConceptTaskName, conceptSearchTaskName, mapListTaskName, taxonomyTaskName, subsetListTaskName]
 timeMap = {}
@@ -42,25 +42,32 @@ def currentMilliseconds():
 
 def checkParamsValid(argv):
 
-    global appBaseUrl, timeBetweenCalls, numberOfCalls
+    global appBaseUrl, timeBetweenCalls, numberOfCalls, fullConceptURL, conceptSearchURL, mapListURL, taxonomyURL, subsetListURL
     
     parser = argparse.ArgumentParser(
                     prog='LoadTests',
                     description='Load Testing')
                     
-    parser.add_argument("appBaseUrl", nargs='?', default="http://localhost:4200/api/v1/", help='the base URL for the app')                 
-    parser.add_argument("timeBetweenCalls", nargs='?', default=timeBetweenCalls, help='The time interval in milliseconds between subsequent calls. 0 runs everything simultaneously')                 
-    parser.add_argument("numberOfCalls", nargs='?', default=numberOfCalls, help='The number of calls to make')                            
+    parser.add_argument("-u", "--url", nargs='?', default=appBaseUrl, help='the base URL for the app')                 
+    parser.add_argument("-t", "--time", nargs='?', default=timeBetweenCalls, help='The time interval in milliseconds between subsequent calls. 0 runs everything simultaneously')                 
+    parser.add_argument("-c", "--calls", nargs='?', default=numberOfCalls, help='The number of calls to make')                            
     args = parser.parse_args()
-
-    appBaseUrl = args.appBaseUrl
-    timeBetweenCalls = int(args.timeBetweenCalls)
-    numberOfCalls = int(args.numberOfCalls)
+    
+    appBaseUrl = args.url
+    timeBetweenCalls = int(args.time)
+    numberOfCalls = int(args.calls)
+    
+    fullConceptURL = appBaseUrl + "concept/ncim/C0005768?include=full"
+    conceptSearchURL = appBaseUrl + "concept/search?terminology=ncit&include=summary,highlights,properties&term=dis&type=contains&export=false&fromRecord=0&pageSize=1000"
+    mapListURL = appBaseUrl + "mapset/SNOMEDCT_US_2020_09_01_to_ICD10CM_2021_Mappings/maps?pageSize=1000&fromRecord=0"
+    taxonomyURL = appBaseUrl + "concept/ncit/C16956/subtree/children?limit=100"
+    subsetListURL = appBaseUrl + "subset/ncit?include=full"
         
     return True
     
 def testApiCall(taskId, url, name):
 
+    global timeMap
     error = ""
     
     try:
@@ -71,15 +78,15 @@ def testApiCall(taskId, url, name):
         
         if (request.status_code != 200):
             error = result.get('message')
-            
+    
     except Exception as e:
         error = e
-    
+
     if (error == ""):
         timeMap[name + str(taskId)] = currentMilliseconds() - taskSart;
     else:
-        timeMap[name + str(taskId)] = "ERROR: " + error;
-        
+        timeMap[name + str(taskId)] = "ERROR: " + str(error);
+
     progressBar()
     
 def testRun(executor, url, name):
