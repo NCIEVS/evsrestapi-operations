@@ -98,7 +98,7 @@ class UmlsSemanticNetwork:
                                 "true",
                                 "",
                                 "",
-                                concept_name_dict[relationship_code],
+                                relationship_code,
                                 right_code,
                             ]
                         )
