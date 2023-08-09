@@ -78,10 +78,10 @@ def assert_simple_format(af_reader, cf_reader, pcf_reader, rf_reader):
 
     t001_relationships = list(filter(lambda r_row: r_row[0] == "T001", rf_reader))
     assert_iterable_count(
-        filter(lambda r_row: r_row[4] == "interacts_with", t001_relationships), 15
+        filter(lambda r_row: r_row[4] == "T142", t001_relationships), 15
     )
     assert_iterable_count(
-        filter(lambda r_row: r_row[4] == "issue_in", t001_relationships), 2
+        filter(lambda r_row: r_row[4] == "T165", t001_relationships), 2
     )
 
 
@@ -239,7 +239,7 @@ def assert_owl_class(first_class: ET.Element):
             ],
         )
     )
-    assert relationships.get(append_url("interacts_with")) == expected_interacts_with
+    assert relationships.get(append_url("T142")) == expected_interacts_with
 
 
 def get_attribute_samples(af_reader):
