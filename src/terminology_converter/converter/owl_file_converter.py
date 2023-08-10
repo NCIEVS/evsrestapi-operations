@@ -76,6 +76,7 @@ class OwlConverter:
         self.base_url: str = base_url
         self.version: str = version
         self.concepts: list[Concept] = load_concepts(simple_files_directory)
+        self.concepts_by_code: dict[str, Concept] = {c.code: c for c in self.concepts}
         self.has_semantic_type: bool = any(
             concept.semantic_type for concept in self.concepts
         )
@@ -157,9 +158,42 @@ class OwlConverter:
     def write_object_properties(self, root: ET.Element):
         relationship_types = set(map(lambda r: r.additional_type, self.relationships))
         for relationship_type in relationship_types:
-            object_property_element = self.create_element_with_label(
-                "ObjectProperty", relationship_type
-            )
+            object_property_concept = self.concepts_by_code.get(relationship_type, None)
+            if object_property_concept:
+                object_property_element: ET.Element = self.create_element("ObjectProperty", object_property_concept.code)
+                parent_children_for_code = self.parent_children.get(object_property_concept.code, [])
+                attributes = self.attributes.get(object_property_concept.code, [])
+                relationships = [
+                    relationship
+                    for relationship in self.relationships
+                    if relationship.code == object_property_concept.code
+                ]
+                for parent_child in parent_children_for_code:
+                    subclass_element: ET.Element = self.create_element_with_resource(
+                        "subObjectPropertyOf", parent_child.parent, OWL_PREFIX
+                    )
+                    object_property_element.append(subclass_element)
+                self.append_label_element(object_property_element, object_property_concept.preferred_name)
+                self.append_class_element(object_property_element, "Code", object_property_concept.code)
+                self.append_class_element(
+                    object_property_element, "Semantic_Type", object_property_concept.semantic_type
+                )
+                self.append_class_element(
+                    object_property_element, "Preferred_Name", object_property_concept.preferred_name
+                )
+                for synonym in object_property_concept.synonyms:
+                    self.append_class_element(object_property_element, "Synonym", synonym)
+                for attribute in attributes:
+                    self.append_class_element(
+                        object_property_element, attribute.attribute_type, attribute.value
+                    )
+                for relationship in relationships:
+                    self.append_class_relationship(object_property_element, relationship)
+            else:
+                object_property_element = self.create_element_with_label(
+                    "ObjectProperty", relationship_type
+                )
+
             root.append(object_property_element)
 
     def write_class(self, root: ET.Element):
@@ -237,11 +271,13 @@ class OwlConverter:
             f"{OWL_PREFIX}:{element_name}",
             {f"{RDF_PREFIX}:about": f"{self.base_url}#{label}"},
         )
+        self.append_label_element(element, label)
+        return element
+
+    def append_label_element(self, element: ET.Element, label: str):
         label_element = ET.Element(f"{RDFS_PREFIX}:label")
         label_element.text = label
         element.append(label_element)
-        return element
-
 
 def process_args(argv):
     terminology_url: str = ""
