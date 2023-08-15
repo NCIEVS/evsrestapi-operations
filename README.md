@@ -42,3 +42,16 @@ Input for the script:
 -d UMLS Sematic Net definition file<br/>
 -r UMLS Sematic Net relationship file<br/>
 -o Directory where the output files will be generated
+
+### Managing config info and mapping data
+
+The evsrestapi indexing process relies on configuration files and data files
+in this repository.  To support the ability for dev/qa to have in access
+to development features, we require a branching strategy to support development
+and testing as well as production deployment.  This can be managed with the
+following environment var setting.  Use this "develop" url in local/dev/qa
+contexts.
+
+```
+export CONFIG_BASE_URI=https://raw.githubusercontent.com/NCIEVS/evsrestapi-operations/develop/config/metadata
+```
