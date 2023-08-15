@@ -171,15 +171,19 @@ set_load_variables_of_transform(){
 	      cleanup 1
 	fi
   # look up file ext again
-  dataext=$(get_file_extension "$transformed_owl")
-  datafile=$(get_file_name "$transformed_owl")
-  echo "Datafile:$datafile"
+  echo "  datafile:$datafile"
   if [[ ! $transformed_owl =~ f$$ ]]; then
+    dataext=$(get_file_extension "$transformed_owl")
+    datafile=$(get_file_name "$transformed_owl")
     mv "$transformed_owl" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
-    file=$INPUT_DIRECTORY/f$$.$datafile.$dataext
   else
-    file=$INPUT_DIRECTORY/$datafile.$dataext
+    # When OWL file is extracted from compressed files, then it will already have the temp prefix. So strip that to find actual name and extension
+    stripped_owl=${transformed_owl//f$$./}
+    dataext=$(get_file_extension "$stripped_owl")
+    datafile=$(get_file_name "$stripped_owl")
+    echo "    after strip datafile:$datafile"
   fi
+  file=$INPUT_DIRECTORY/f$$.$datafile.$dataext
   echo "    file = $file"
 }
 
@@ -218,6 +222,8 @@ echo "  output from get_owl_file: $owl_file"
 
 if [[ ! -e $owl_file ]]; then
   echo "  Looking for transformations"
+  IFS='_' read -r -a array <<< "$datafile"
+  echo "${array[0]}"
   if [[ $datafile =~ "hgnc_" ]]; then
     echo "    Applying transformations for HGNC"
     script_output=$($DIR/transforms/hgnc.sh "$file")
