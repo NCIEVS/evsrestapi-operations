@@ -144,10 +144,14 @@ if __name__ == "__main__":
     
     print("")
     #print("Timemap: ", timeMap)
-    
+   
+    # print stats
     with open("load-test-run_" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".txt", "w") as testFile:
     
-        # print stats
+        testFile.write("1 Stats\t" + "Params appBaseUrl\t" + appBaseUrl + "\n")
+        testFile.write("1 Stats\t" + "Params timeBetweenCalls\t" + str(timeBetweenCalls) + "\n")
+        testFile.write("1 Stats\t" + "Params numberOfCalls\t" + str(numberOfCalls) + "\n")
+            
         for test in tests:
         
             times = []
@@ -164,17 +168,25 @@ if __name__ == "__main__":
                 else:
                     errors += 1
                     
-                testFile.write(test + "\t" + index + "\t" + str(value) + "\n")
+                testFile.write("Individual Times\t" + test + "\t" + index + "\t" + str(value) + "\n")
             
             if (len(times) > 0):
             
+                testFile.write("2 Stats\t" + test + " call minimum time taken\t" + str(min(times)) + "\n")
+                testFile.write("2 Stats\t" + test + " call maximum time taken\t" + str(max(times)) + "\n")
+                testFile.write("2 Stats\t" + test + " call average time taken\t" + str(statistics.mean(times)) + "\n")
+                testFile.write("2 Stats\t" + test + " call median time taken\t" + str(statistics.median(times)) + "\n")
+                
                 print(test + " call minimum time taken: ", min(times))   
                 print(test + " call maximum time taken: ", max(times))   
                 print(test + " call average time taken: ", statistics.mean(times))   
                 print(test + " call median time taken: ", statistics.median(times))  
                 
+            testFile.write("2 Stats\t" + test + " call errors\t" + str(errors) + "\n")
             print(test + " call errors: ", errors)   
             print("")
+    
+        testFile.write("3 Stats\t" + "Load Test time taken\t" + str(currentMilliseconds() - loadStart) + "\n")
         
     print("Load Test time taken: ", (currentMilliseconds() - loadStart))
     print("")
