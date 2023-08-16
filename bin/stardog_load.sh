@@ -339,7 +339,7 @@ if [[ $? -ne 0 ]]; then
     cleanup 1
 fi
 echo "  Optimize database ($db) ...`/bin/date`"
-# $STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+$STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem optimizing stardog ($db)"
     cleanup 1

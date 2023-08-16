@@ -13,6 +13,18 @@ VENV_BIN_DIRECTORY=$VENV_DIRECTORY/bin
 # We sort on version to determine "latest" programmatically in a consistent way
 date=$(/bin/date +%Y%m)
 
+pre_condition_check(){
+if [ ! -d $INPUT_DIRECTORY ]; then
+  echo "No input directory ($INPUT_DIRECTORY) found. Exiting"
+  cleanup 1
+fi
+
+if [ ! -d $OUTPUT_DIRECTORY ]; then
+  echo "No output directory ($OUTPUT_DIRECTORY) found. Exiting"
+  cleanup 1
+fi
+}
+
 setup() {
   python3 -m venv "$VENV_DIRECTORY"
   source "$VENV_BIN_DIRECTORY"/activate
@@ -36,6 +48,7 @@ generate_owl_file() {
   echo "$versioned_owl_file"
 }
 
+pre_condition_check
 setup
 generate_standard_format_files
 versioned_owl_file=$(generate_owl_file)
