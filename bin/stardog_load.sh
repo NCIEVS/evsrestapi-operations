@@ -116,7 +116,7 @@ extract_zipped_files() {
 cleanup() {
     local code=$1
     /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log > /dev/null 2>&1
-    #/bin/rm -rf "$WORK_DIRECTORY"
+    /bin/rm -rf "$WORK_DIRECTORY"
 
     if [ "$code" != "" ]; then
       exit $code
@@ -223,18 +223,11 @@ echo "  output from get_owl_file: $owl_file"
 if [[ ! -e $owl_file ]]; then
   echo "  Looking for transformations"
   IFS='_' read -r -a array <<< "$datafile"
-  echo "${array[0]}"
-  if [[ $datafile =~ "hgnc_" ]]; then
-    echo "    Applying transformations for HGNC"
-    script_output=$($DIR/transforms/hgnc.sh "$file")
-    set_transformed_owl "hgnc" "$script_output"
-    set_load_variables_of_transform
-  elif [[ $datafile =~ "umlssemnet" ]]; then
-    echo "   Applying transformations for UMLS Semnatic Network"
-    script_output=$($DIR/transforms/umlssemnet.sh $file)
-    set_transformed_owl "umlssemnet" "$script_output"
-    set_load_variables_of_transform
-  fi
+  terminology="${array[0]}"
+  echo "    Applying transformations for $terminology"
+  script_output=$($DIR/transforms/"$terminology".sh "$file")
+  set_transformed_owl "$terminology" "$script_output"
+  set_load_variables_of_transform
 else
   echo "  Found owl file: $owl_file"
   transformed_owl=$owl_file
@@ -275,7 +268,7 @@ elif [[ $datafile == "chebi" ]]; then
     # This is from "owl:versionIRI"
     graph=http://purl.obolibrary.org/obo/chebi/${version}/chebi.owl
 
-elif [[ $datafile == "umlssemnet" ]]; then
+elif [[ $datafile =~ "UMLSSEMNET" ]]; then
     terminology=umlssemnet
     version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
     graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umlssemnet.owl

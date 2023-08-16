@@ -3,9 +3,10 @@ TERMINOLOGY="hgnc"
 TERMINOLOGY_URL="${3:-http://ncicb.nci.nih.gov/genenames.org/HGNC.owl}"
 dir=$(pwd | perl -pe 's#/cygdrive/c#C:#;')
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-WORK_DIRECTORY=../work
-INPUT_DIRECTORY=$WORK_DIRECTORY/${TERMINOLOGY}_input
-OUTPUT_DIRECTORY=$WORK_DIRECTORY/${TERMINOLOGY}_output
+EVS_OPS_HOME=$DIR/../..
+WORK_DIRECTORY=$EVS_OPS_HOME/bin/work
+INPUT_DIRECTORY=$WORK_DIRECTORY/input
+OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
 VENV_DIRECTORY=$WORK_DIRECTORY/venv
 VENV_BIN_DIRECTORY=$VENV_DIRECTORY/bin
 # We sort on version to determine "latest" programmatically in a consistent way
@@ -57,5 +58,4 @@ pre_condition_check
 setup
 generate_standard_format_files "$@"
 versioned_owl_file=$(generate_owl_file)
-cleanup
 echo "$versioned_owl_file"
