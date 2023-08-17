@@ -1,7 +1,7 @@
 #name,mapsetLink,version,welcomeText,loader
 PDQ_2016_07_31_TO_NCI_2016_10E,,201607,mapping-pdq-nci.html,MappingLoadServiceImpl,.csv
 NCIt_to_HGNC_Mapping,,July2023,mapping-nci-hgnc.html,MappingLoadServiceImpl,.txt
-NCIt_to_ChEBI_Mapping,,August2023,mapping-nci-chebi.html,MappingLoadServiceImpl,.txt
+NCIt_to_ChEBI_Mapping,,July2023,mapping-nci-chebi.html,MappingLoadServiceImpl,.txt
 MA_to_NCIt_Mapping,,November2011,mapping-ma-nci.html,MappingLoadServiceImpl,.csv
 GO_to_NCIt_Mapping,,February2020,mapping-go-nci.html,MappingLoadServiceImpl,.csv
 NCIT_TO_SWISSPROT,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/NCIt-SwissProt_Mapping.txt,June2023,,MappingLoadServiceImpl,download
