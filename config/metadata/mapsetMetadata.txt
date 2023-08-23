@@ -8,3 +8,4 @@ NCIT_TO_SWISSPROT,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/NCIt-Swiss
 ICDO_TO_NCI_TOPOGRAPHY,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/ICD-O-3_Mappings/ICD-O-3.1-NCIt_Topography_Mapping.txt,2017-12-21,,MappingLoadServiceImpl,download
 ICDO_TO_NCI_MORPHOLOGY,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/ICD-O-3_Mappings/ICD-O-3.1-NCIt_Morphology_Mapping.txt,2017-12-21,,MappingLoadServiceImpl,download
 ICDO_TO_NCI_AXIS,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/ICD-O-3_Mappings/ICD-O-3.1-NCIt_Axis_Mappings.xls,2017-12-21,,MappingLoadServiceImpl,download
+ICD-10-MedDRA,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/ICD-10_Mappings/ICD-10-MedDRA_Mapping.xls,June2023,,MappingLoadServiceImpl,download
