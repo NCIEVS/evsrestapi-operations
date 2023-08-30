@@ -3,7 +3,7 @@
 	"maxVersions": 3,
 	"licenseText": "The Medical Dictionary for Regulatory Activities (MedDRA) terminology is licensed for NCI work and may be viewed on NCI browsers. All other uses are prohibited, unless covered by separate subscription to MedDRA from the MedDRA MSSO (see http://www.meddra.org) or contact at mssohelp@meddra.org, +1-571-508-1491, or 12975 Worldgate Drive Herndon, VA 20170-6008.",
     "licenseCheck": "TBD",
-    "licenseFailText": "API calls for terminology='mdr' require an X-EVSRESTAPI-License header, visit https://github.com/NCIEVS/evsrestapi-client-SDK/blob/master/doc/LICENSE.md for more information.",
+    "licenseFailText": "API calls for terminology='mdr' require an X-EVSRESTAPI-License-Key header, visit https://github.com/NCIEVS/evsrestapi-client-SDK/blob/master/doc/LICENSE.md for more information.",
     "metaConceptField": "CODE",
 	"preferredTermTypes": [
 		"HG",
