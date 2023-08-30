@@ -144,7 +144,7 @@ class OwlConverter:
             "Code",
             "Preferred_Name",
             "Synonym",
-            *attribute_types,
+            *[transform_attribute_type(attribute_type) for attribute_type in attribute_types],
         ]
         annotation_properties.sort()
         if self.has_semantic_type:
@@ -160,7 +160,8 @@ class OwlConverter:
         for relationship_type in relationship_types:
             object_property_concept = self.concepts_by_code.get(relationship_type, None)
             if object_property_concept:
-                object_property_element: ET.Element = self.create_element("ObjectProperty", object_property_concept.code)
+                object_property_element: ET.Element = self.create_element("ObjectProperty",
+                                                                          object_property_concept.code)
                 parent_children_for_code = self.parent_children.get(object_property_concept.code, [])
                 attributes = self.attributes.get(object_property_concept.code, [])
                 relationships = [
@@ -213,17 +214,20 @@ class OwlConverter:
                 )
                 class_element.append(subclass_element)
             self.append_class_element(class_element, "Code", concept.code)
-            self.append_class_element(
-                class_element, "Semantic_Type", concept.semantic_type
-            )
-            self.append_class_element(
-                class_element, "Preferred_Name", concept.preferred_name
-            )
+            if concept.semantic_type:
+                self.append_class_element(
+                    class_element, "Semantic_Type", concept.semantic_type
+                )
+            if concept.preferred_name:
+                self.append_class_element(
+                    class_element, "Preferred_Name", concept.preferred_name
+                )
             for synonym in concept.synonyms:
-                self.append_class_element(class_element, "Synonym", synonym)
+                if len(synonym) > 0:
+                    self.append_class_element(class_element, "Synonym", synonym)
             for attribute in attributes:
                 self.append_class_element(
-                    class_element, attribute.attribute_type, attribute.value
+                    class_element, transform_attribute_type(attribute.attribute_type), attribute.value
                 )
             for relationship in relationships:
                 self.append_class_relationship(class_element, relationship)
@@ -279,6 +283,7 @@ class OwlConverter:
         label_element.text = label
         element.append(label_element)
 
+
 def process_args(argv):
     terminology_url: str = ""
     version: str = ""
@@ -328,6 +333,10 @@ def process_args(argv):
         print("Output directory not provided. Exiting")
         sys.exit(1)
     return terminology_url, version, input_directory, output_directory, terminology
+
+
+def transform_attribute_type(attribute_type: str) -> str:
+    return attribute_type.replace(" ", "_")
 
 
 if __name__ == "__main__":
