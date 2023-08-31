@@ -44,6 +44,10 @@ fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+WORK_DIRECTORY=$DIR/work
+INPUT_DIRECTORY=$WORK_DIRECTORY/input
+OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
+
 
 echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"
@@ -80,10 +84,40 @@ fi
 echo "    STARDOG_HOME = $STARDOG_HOME"
 echo ""
 
+setup() {
+  echo "Setting up input and output directories"
+  mkdir -p "$INPUT_DIRECTORY"
+  mkdir -p "$OUTPUT_DIRECTORY"
+}
+setup
+
+extract_zipped_files() {
+  echo "  extracting files from $1 to $INPUT_DIRECTORY"
+  if [ -f "$1" ]; then
+    if [[ $dataext == "zip" ]]; then
+      echo "    extracting zip file"
+      unzip "$1" -d "$INPUT_DIRECTORY"
+    fi
+    if [[ $dataext == "gz" ]]; then
+      echo "    extracting gz file"
+      gunzip "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
+    fi
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Problem unzipping file $1"
+        cleanup 1
+    fi
+  else
+    echo "  $1 does not exist. Exiting transformation"
+    cleanup 1
+  fi
+}
+
 # cleanup log files
 cleanup() {
     local code=$1
     /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log > /dev/null 2>&1
+    /bin/rm -rf "$WORK_DIRECTORY"
+
     if [ "$code" != "" ]; then
       exit $code
     fi
@@ -111,17 +145,23 @@ get_file_name() {
   echo $1 |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'
 }
 
+get_owl_file() {
+  for owl_file in $(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl"); do
+    echo "$owl_file"
+  done
+}
+
 set_transformed_owl(){
-if [[ $? -ne 0 ]]; then
-  echo "ERROR: failed to create $1 owl file"
+  if [[ $? -ne 0 ]]; then
+    echo "ERROR: failed to create $1 owl file"
+    echo "$1 Script logs:"
+    echo "$2"
+    cleanup 1
+  fi
   echo "$1 Script logs:"
   echo "$2"
-  cleanup 1
-fi
-echo "$1 Script logs:"
-echo "$2"
-transformed_owl=$(echo "$2" | tail -1)
-echo "Generated owl file: $transformed_owl"
+  transformed_owl=$(echo "$2" | tail -1)
+  echo "Generated owl file: $transformed_owl"
 }
 
 set_load_variables_of_transform(){
@@ -131,29 +171,34 @@ set_load_variables_of_transform(){
 	      cleanup 1
 	fi
   # look up file ext again
-  dataext=$(get_file_extension "$transformed_owl")
-  datafile=$(get_file_name "$transformed_owl")
-  mv "$transformed_owl" "$DIR"/f$$."$datafile"."$dataext"
-  file=$DIR/f$$.$datafile.$dataext
+  echo "  datafile:$datafile"
+  if [[ ! $transformed_owl =~ f$$ ]]; then
+    dataext=$(get_file_extension "$transformed_owl")
+    datafile=$(get_file_name "$transformed_owl")
+    mv "$transformed_owl" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
+  else
+    # When OWL file is extracted from compressed files, then it will already have the temp prefix. So strip that to find actual name and extension
+    stripped_owl=${transformed_owl//f$$./}
+    dataext=$(get_file_extension "$stripped_owl")
+    datafile=$(get_file_name "$stripped_owl")
+    echo "    after strip datafile:$datafile"
+  fi
+  file=$INPUT_DIRECTORY/f$$.$datafile.$dataext
   echo "    file = $file"
 }
 
-echo "  Put data in standard location - /tmp ...`/bin/date`"
-dataext=`echo $data | perl -pe 's/.*\.//;'`
-if [[ "x$dataext" == "" ]]; then
-    echo "ERROR: unable to find file extension = $data"
-    exit 1
-fi
-datafile=`echo $data |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'`
+echo "  Put data in standard location - $INPUT_DIRECTORY ...`/bin/date`"
+dataext=$(get_file_extension $data)
+datafile=$(get_file_name $data)
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
-    cp $data $DIR/f$$.$datafile.$dataext
+    cp "$data" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
 
 # Otherwise, download it
 elif [[ $data = http* ]] || [[ $data = ftp* ]]; then
     echo "    download = $data"
-    curl --fail -v -o $DIR/f$$.$datafile.$dataext $data > /tmp/x.$$.log 2>&1
+    curl --fail -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$data" > /tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
@@ -165,41 +210,30 @@ else
     cleanup 1
 fi
 
-file=$DIR/f$$.$datafile.$dataext
+file="$INPUT_DIRECTORY"/f$$.$datafile.$dataext
 echo "    file = $file"
 
-if [[ $dataext == "gz" ]]; then
-    echo "    unpack gz file"
-    gunzip $DIR/f$$.$datafile.$dataext
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: failed to gunzip file"
-	cleanup 1
-    fi
-    
-    # look up file ext again
-    dataext=`echo $datafile | perl -pe 's/.*\.//;'`
-    if [[ "x$dataext" == "" ]]; then
-        echo "ERROR: unable to find file extension = $datafile"
-        exit 1
-    fi
-    datafile=`echo $datafile |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'`
-    file=$DIR/f$$.$datafile.$dataext
-    echo "    file = $file"
+if [[ $dataext == "zip" ]] || [[ $dataext == "gz" ]]; then
+  extract_zipped_files "$file"
 fi
 
-# If dataext is not owl. Look for transformations to apply
-if [[ $dataext != "owl" ]] && [[ $dataext != "zip" ]]; then
-  echo "Unknown extension. Looking for transformations"
-  if [[ $datafile =~ "hgnc_" ]]; then
-    echo "Applying transformations for HGNC"
-    if [[ -z $APP_HOME ]]; then
-      echo "ERROR: HGNC transformation needs APP_HOME to be set"
-      exit 1
-    fi
-    script_output=$($DIR/transforms/hgnc.sh $file $APP_HOME)
-    set_transformed_owl "hgnc" "$script_output"
-    set_load_variables_of_transform
-  fi
+owl_file=$(get_owl_file)
+echo "  output from get_owl_file: $owl_file"
+
+if [[ ! -e $owl_file ]]; then
+  echo "  Looking for transformations"
+  IFS='_' read -r -a array <<< "$datafile"
+  terminology="${array[0]}"
+  echo "    Applying transformations for $terminology"
+  script_output=$($DIR/transforms/"$terminology".sh "$file")
+  set_transformed_owl "$terminology" "$script_output"
+  set_load_variables_of_transform
+else
+  echo "  Found owl file: $owl_file"
+  transformed_owl=$owl_file
+  # The OWL file can either be extracted from a zip file or is native OWL file.
+  # If extracted from zip file, we need to re-set the file name and extensions
+  set_load_variables_of_transform
 fi
 
 # Verify that owl file is an owl file
@@ -211,18 +245,8 @@ fi
 # determine graph/version
 echo "  Determine graph and version ...`/bin/date`"
 if [[ $datafile =~ "ThesaurusInf" ]]; then
-
     terminology=ncit
-    if [[ $dataext == "zip" ]]; then
-        version=`unzip -p $file "*ThesaurusInferred_forTS.owl" | grep '<owl:versionInfo>' | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
-
-    elif [[ $dataext == "owl" ]]; then
-        version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
-
-    else
-        echo "ERROR: unable to handle extension - $data"
-        cleanup 1
-    fi
+    version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
     $STARDOG_HOME/bin/stardog data remove -g http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl CTRP -u $STARDOG_USERNAME -p $STARDOG_PASSWORD
     $STARDOG_HOME/bin/stardog data remove -g http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl NCIT2 -u $STARDOG_USERNAME -p $STARDOG_PASSWORD
     graph=http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus$version.owl
@@ -244,22 +268,10 @@ elif [[ $datafile == "chebi" ]]; then
     # This is from "owl:versionIRI"
     graph=http://purl.obolibrary.org/obo/chebi/${version}/chebi.owl
 
-elif [[ $datafile == "umlssemnet" ]]; then
+elif [[ $datafile =~ "UMLSSEMNET" ]]; then
     terminology=umlssemnet
-    if [[ $dataext == "zip" ]]; then
-      echo "Applying transformations for UMLS Semnatic Network"
-      script_output=$($DIR/transforms/umlssemnet.sh $file)
-      # Done with zip file. Cleanup
-      /bin/rm $DIR/f$$.$datafile.zip
-      set_transformed_owl "umlssemnet" "$script_output"
-      set_load_variables_of_transform
-      version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
-      graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umlssemnet.owl
-    else
-        echo "ERROR: unable to handle extension - $data"
-        cleanup 1
-    fi
-
+    version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
+    graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umlssemnet.owl
 else
     echo "ERROR: Unsupported file type = $datafile"
     cleanup 1
@@ -284,7 +296,7 @@ if [[ $force -eq 1 ]]; then
 else
     echo "  Run QA on $file ...`/bin/date`"
     $DIR/stardog_qa.sh $terminology $file > /tmp/x.$$.log  2>&1
-    if [[ $? -ne 0 ]]; then 
+    if [[ $? -ne 0 ]]; then
 	cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: QA errors, re-run with --force to bypass this"
         cleanup 1
