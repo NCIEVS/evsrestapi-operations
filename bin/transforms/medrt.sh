@@ -35,6 +35,8 @@ setup() {
   python3 -m venv "$VENV_DIRECTORY"
   source "$VENV_BIN_DIRECTORY"/activate
   "$VENV_BIN_DIRECTORY"/pip install poetry
+  # Setting the URL lib to a specific version to avoid upgrading OpenSSL version
+  "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15"
   pushd "$EVS_OPS_HOME" || exit
   "$VENV_BIN_DIRECTORY"/poetry install
   popd "$EVS_OPS_HOME" || exit
