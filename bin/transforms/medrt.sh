@@ -1,6 +1,6 @@
 #!/bin/bash
-TERMINOLOGY="hgnc"
-TERMINOLOGY_URL="${3:-http://ncicb.nci.nih.gov/genenames.org/HGNC.owl}"
+TERMINOLOGY="medrt"
+TERMINOLOGY_URL="${3:-http://ncicb.nci.nih.gov/MEDRT.owl}"
 dir=$(pwd | perl -pe 's#/cygdrive/c#C:#;')
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 EVS_OPS_HOME=$DIR/../..
@@ -43,15 +43,16 @@ setup() {
 }
 
 generate_standard_format_files() {
-  echo "generating HGNC standard format files at $OUTPUT_DIRECTORY"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/hgnc.py -d "$1" -o "$OUTPUT_DIRECTORY"
+  echo "generating MED-RT standard format files at $OUTPUT_DIRECTORY"
+  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/med_rt.py -d "$1" -o "$OUTPUT_DIRECTORY"
 }
 
 generate_owl_file() {
-  echo "generating HGNC owl file at $OUTPUT_DIRECTORY"
+  echo "generating MED-RT owl file at $OUTPUT_DIRECTORY"
   local terminology_upper=$(echo "$TERMINOLOGY" | tr '[:lower:]' '[:upper:]')
-  local versioned_owl_file="$dir/${terminology_upper}_$date.owl"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${date}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}"
+  local version=$(grep '<version>' "$1" | perl -pe 's/.*<version>//; s/<\/version>//; s/^\s+|\s+$//g;')
+  local versioned_owl_file="$dir/${terminology_upper}_$version.owl"
+  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${version}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}"
   mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file"
   echo "$versioned_owl_file"
 }
@@ -59,5 +60,5 @@ generate_owl_file() {
 pre_condition_check
 setup
 generate_standard_format_files "$@"
-versioned_owl_file=$(generate_owl_file)
+versioned_owl_file=$(generate_owl_file "$@")
 echo "$versioned_owl_file"
