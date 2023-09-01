@@ -3,6 +3,8 @@ import getopt
 import os
 import sys
 
+from terminology_converter.converter.simple_format_utils import get_output_files
+
 SEMANTIC_RECORD_TYPE = "STY"
 SEMANTIC_TREE_NUMBER = "STN"
 RELATIONSHIP_TREE_NUMBER = "RTN"
@@ -21,7 +23,7 @@ class UmlsSemanticNetwork:
             self.concepts_file,
             self.parent_child_file,
             self.relationships_file,
-        ) = UmlsSemanticNetwork.get_output_files(output_directory)
+        ) = get_output_files(output_directory)
 
     def convert(self):
         with open(self.definition_file) as def_file, open(self.inferred_relationship_file) as inf_rel_file, open(
@@ -127,14 +129,6 @@ class UmlsSemanticNetwork:
     @staticmethod
     def has_value(value: str) -> bool:
         return value and not "NULL" == value
-
-    @staticmethod
-    def get_output_files(output_directory: str):
-        attributes_file = os.path.join(output_directory, "attributes.txt")
-        concepts_file = os.path.join(output_directory, "concepts.txt")
-        parent_child_file = os.path.join(output_directory, "parChd.txt")
-        relationships_file = os.path.join(output_directory, "relationships.txt")
-        return attributes_file, concepts_file, parent_child_file, relationships_file
 
 
 def process_args(argv):

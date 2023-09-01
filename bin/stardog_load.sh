@@ -223,11 +223,21 @@ echo "  output from get_owl_file: $owl_file"
 if [[ ! -e $owl_file ]]; then
   echo "  Looking for transformations"
   IFS='_' read -r -a array <<< "$datafile"
-  terminology="${array[0]}"
-  echo "    Applying transformations for $terminology"
-  script_output=$($DIR/transforms/"$terminology".sh "$file")
-  set_transformed_owl "$terminology" "$script_output"
-  set_load_variables_of_transform
+  for terminology in "${array[@]}"
+  do
+    echo "Terminology from file name: $terminology"
+    terminology_lower=$(echo "$terminology" | tr '[:upper:]' '[:lower:]')
+    transformation_script=$DIR/transforms/"$terminology_lower".sh
+    if [[ -e $transformation_script ]]; then
+      echo "    Applying transformations for $terminology"
+      script_output=$("$transformation_script" "$file")
+      set_transformed_owl "$terminology" "$script_output"
+      set_load_variables_of_transform
+      break
+    else
+      echo "    No transformation script ($transformation_script) found"
+    fi
+  done
 else
   echo "  Found owl file: $owl_file"
   transformed_owl=$owl_file
@@ -272,6 +282,10 @@ elif [[ $datafile =~ "UMLSSEMNET" ]]; then
     terminology=umlssemnet
     version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
     graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umlssemnet.owl
+elif [[ $datafile =~ "MEDRT" ]]; then
+    terminology=medrt
+    version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
+    graph=http://www.nlm.nih.gov/research/${version}/medrt.owl
 else
     echo "ERROR: Unsupported file type = $datafile"
     cleanup 1
