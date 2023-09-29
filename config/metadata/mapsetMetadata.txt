@@ -1,6 +1,6 @@
 #name,mapsetLink,version,welcomeText,loader
 PDQ_2016_07_31_TO_NCI_2016_10E,,201607,mapping-pdq-nci.html,MappingLoadServiceImpl
-NCIt_to_HGNC_Mapping,,August2023,mapping-nci-hgnc.html,MappingLoadServiceImpl
+NCIt_to_HGNC_Mapping,,September2023,mapping-nci-hgnc.html,MappingLoadServiceImpl
 NCIt_to_ChEBI_Mapping,,August2023,mapping-nci-chebi.html,MappingLoadServiceImpl
 MA_to_NCIt_Mapping,,November2011,mapping-ma-nci.html,MappingLoadServiceImpl
 GO_to_NCIt_Mapping,,February2020,mapping-go-nci.html,MappingLoadServiceImpl
