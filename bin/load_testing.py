@@ -21,7 +21,7 @@ numberOfCalls = 10;
 # the base URL for the app 
 appBaseUrl = "http://localhost:4200/api/v1/"
 
-fullConceptURL = appBaseUrl + "concept/ncim/C0005768?include=full"
+fullConceptURL = ""
 fullConceptTaskName = "fullConcept"
 conceptSearchURL = ""
 conceptSearchTaskName = "conceptSearch"
@@ -57,7 +57,7 @@ def checkParamsValid(argv):
     timeBetweenCalls = int(args.time)
     numberOfCalls = int(args.calls)
     
-    fullConceptURL = appBaseUrl + "concept/ncim/C0005768?include=full"
+    fullConceptURL = appBaseUrl + "concept/ncit/C12756?include=full"
     conceptSearchURL = appBaseUrl + "concept/search?terminology=ncit&include=summary,highlights,properties&term=dis&type=contains&export=false&fromRecord=0&pageSize=1000"
     mapListURL = appBaseUrl + "mapset/MA_to_NCIt_Mapping/maps?pageSize=1000&fromRecord=0"
     taxonomyURL = appBaseUrl + "concept/ncit/C16956/subtree/children?limit=100"
