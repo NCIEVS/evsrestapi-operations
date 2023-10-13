@@ -144,7 +144,8 @@ class OwlConverter:
             "Code",
             "Preferred_Name",
             "Synonym",
-            *[transform_attribute_type(attribute_type) for attribute_type in attribute_types],
+            *[transform_attribute_type(attribute_type) for attribute_type in attribute_types if
+              ":" not in attribute_type],
         ]
         annotation_properties.sort()
         if self.has_semantic_type:

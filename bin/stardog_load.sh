@@ -193,21 +193,40 @@ datafile=$(get_file_name $data)
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
-    cp "$data" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
+  cp "$data" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
 
 # Otherwise, download it
 elif [[ $data = http* ]] || [[ $data = ftp* ]]; then
-    echo "    download = $data"
-    curl --fail -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$data" > /tmp/x.$$.log 2>&1
-    if [[ $? -ne 0 ]]; then
-        cat /tmp/x.$$.log | sed 's/^/    /;'
-        echo "ERROR: problem downloading file"
-        cleanup 1
+  IFS=',' read -r -a array <<<"$data"
+  for url in "${array[@]}"; do
+    echo "    download = $url"
+    datafile=$(get_file_name $url)
+    dataext=$(get_file_extension $url)
+    # there is no usable file name at the end of Canmed URLs. So using known string in the URL as file names
+    if [[ $url == *"hcpcs"* ]]; then
+      datafile="hcpcs"
+      dataext="csv"
     fi
-
+    if [[ $url == *"ndconc"* ]]; then
+      datafile="ndconc"
+      dataext="csv"
+    fi
+    echo "     download datafile:${datafile}"
+    echo "     download dataext:${dataext}"
+    curl --fail -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$url" >/tmp/x.$$.log 2>&1
+    if [[ $? -ne 0 ]]; then
+      cat /tmp/x.$$.log | sed 's/^/    /;'
+      echo "ERROR: problem downloading file"
+      cleanup 1
+    fi
+    # Setting the terminology name as $datafile to get to the correct transformation
+    if [[ $datafile == "ndconc" ]]; then
+      datafile="canmed"
+    fi
+  done
 else
-    echo "ERROR: $data is not local or http/ftp"
-    cleanup 1
+  echo "ERROR: $data is not local or http/ftp"
+  cleanup 1
 fi
 
 file="$INPUT_DIRECTORY"/f$$.$datafile.$dataext
@@ -283,9 +302,13 @@ elif [[ $datafile =~ "UMLSSEMNET" ]]; then
     version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
     graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umlssemnet.owl
 elif [[ $datafile =~ "MEDRT" ]]; then
-    terminology=medrt
-    version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
-    graph=http://www.nlm.nih.gov/research/${version}/medrt.owl
+  terminology=medrt
+  version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  graph=http://www.nlm.nih.gov/research/${version}/medrt.owl
+elif [[ $datafile =~ "CANMED" ]]; then
+  terminology=canmed
+  version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  graph=http://seer.nci.nih.gov/CanMED.owl/${version}/canmed.owl
 else
     echo "ERROR: Unsupported file type = $datafile"
     cleanup 1
