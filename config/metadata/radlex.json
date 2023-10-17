@@ -1,0 +1,17 @@
+{
+	"uiLabel": "RadLex: Radiology Lexicon",
+	"maxVersions": 1,
+	"metaConceptField": "CODE",
+	"preferredTermTypes": [
+		"PT",
+		"ACR",
+		"OP",
+		"SY",
+		"IS"
+	],
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-source": true,
+		"synonyms-termType": true
+	}
+}
