@@ -309,6 +309,10 @@ elif [[ $datafile =~ "CANMED" ]]; then
   terminology=canmed
   version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
   graph=http://seer.nci.nih.gov/CanMED.owl/${version}/canmed.owl
+elif [[ $datafile =~ "ctcae" ]]; then
+  terminology=ctcae
+  version=`echo $datafile | perl -pe 's/ctcae//gi;'`
+  graph=http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae${version}.owl
 else
     echo "ERROR: Unsupported file type = $datafile"
     cleanup 1
