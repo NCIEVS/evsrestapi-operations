@@ -56,7 +56,7 @@ def test_convert_canmed(tmp_path):
 def assert_simple_format(af_reader, cf_reader, pcf_reader):
     # 43709 lines in the file and 27 lines from the locus_group and locus_type fields
     cf_rows = list(cf_reader)
-    assert_iterable_count(cf_rows, 16867)
+    assert_iterable_count(cf_rows, 16872)
     # assert that all NA HCPCS codes got converted
     assert len([cf_row for cf_row in cf_rows if cf_row[0] == "HCPCS_NA"]) == 0
     # assert that at least one NA got converted to Generic Name + Strength
