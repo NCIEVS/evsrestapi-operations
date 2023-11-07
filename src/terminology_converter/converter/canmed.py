@@ -1,9 +1,9 @@
 import csv
-import dataclasses
+from dataclasses import dataclass
 import getopt
 import re
 import sys
-from typing import TextIO, Callable
+from typing import TextIO, Callable, Dict
 
 from terminology_converter.converter.simple_format_utils import get_output_files
 
@@ -35,15 +35,31 @@ HCPCS_ROOT_CLASS = "HCPCS"
 NDC_ROOT_CLASS = "NDC"
 
 
+@dataclass(eq=True, frozen=True)
+class CanmedConcept:
+    code: str
+    name: str
+
+    def __key(self):
+        return (self.code.lower(), self.name.lower())
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        if isinstance(other, CanmedConcept):
+            return self.__key() == other.__key()
+        return NotImplemented
+
 class CanmedData:
     concepts: set[str]
-    products: set[str]
+    products: set[CanmedConcept]
     attributes: set[str]
     parent_child_relationship: set[str]
-    generic_code_classes: set[str]
-    minor_drug_classes: set[str]
-    major_drug_classes: set[str]
-    categories: set[str]
+    generic_code_classes: set[CanmedConcept]
+    minor_drug_classes: set[CanmedConcept]
+    major_drug_classes: set[CanmedConcept]
+    categories: set[CanmedConcept]
 
     def __init__(self):
         self.concepts = set()
@@ -82,7 +98,7 @@ class Canmed:
             self.parent_child_file, "w"
         ) as pcf:
             parent_concepts = [
-                "|".join([generic_code_class, "", "", ""]) for generic_code_class in
+                "|".join([generic_code_class.code, "", generic_code_class.name, ""]) for generic_code_class in
                 [*ndconc_data.products, *hcpcs_data.generic_code_classes, *ndconc_data.generic_code_classes,
                  *hcpcs_data.minor_drug_classes, *ndconc_data.minor_drug_classes, *hcpcs_data.major_drug_classes,
                  *ndconc_data.major_drug_classes, *hcpcs_data.categories, *ndconc_data.categories]
@@ -192,14 +208,15 @@ class Canmed:
                               major_drug_class_header: str, code_type: str):
         product_code = ""
         if product_header:
-            product_code = Canmed.get_generic_code_non_standardized(code_type, definition_row[headers.index(product_header)])
-            data.products.add(product_code)
+            product_code = Canmed.get_generic_code_non_standardized(code_type,
+                                                                    definition_row[headers.index(product_header)])
+            data.products.add(Canmed.get_code_name_pair(product_code, definition_row[headers.index(product_header)]))
             data.parent_child_relationship.add(
                 "|".join([product_code, code])
             )
         generic_name = definition_row[headers.index(generic_name_header)]
         generic_code = Canmed.get_generic_code(code_type, generic_name)
-        data.generic_code_classes.add(generic_code)
+        data.generic_code_classes.add(Canmed.get_code_name_pair(generic_code, generic_name))
         data.parent_child_relationship.add(
             "|".join([generic_code, product_code if product_header else code])
         )
@@ -208,18 +225,18 @@ class Canmed:
         minor_drug_class = definition_row[headers.index(minor_drug_class_header)]
         if minor_drug_class:
             minor_drug_code = Canmed.get_generic_code(code_type, minor_drug_class)
-            data.minor_drug_classes.add(minor_drug_code)
+            data.minor_drug_classes.add(Canmed.get_code_name_pair(minor_drug_code, minor_drug_class))
             data.parent_child_relationship.add(
                 "|".join([minor_drug_code, generic_code])
             )
         major_drug_class = definition_row[headers.index(major_drug_class_header)]
         if major_drug_class:
             major_drug_code = Canmed.get_generic_code(code_type, major_drug_class)
-            data.major_drug_classes.add(major_drug_code)
+            data.major_drug_classes.add(Canmed.get_code_name_pair(major_drug_code, major_drug_class))
         category = definition_row[headers.index("SEER*Rx Category")]
         if category:
             category_code = Canmed.get_generic_code(code_type, category)
-            data.categories.add(category_code)
+            data.categories.add(Canmed.get_code_name_pair(category_code, category))
             if major_drug_class:
                 data.parent_child_relationship.add(
                     "|".join([category_code, major_drug_code])
@@ -297,6 +314,10 @@ class Canmed:
                         )
                         for cv in column_values
                     ]
+
+    @staticmethod
+    def get_code_name_pair(code, name) -> CanmedConcept:
+        return CanmedConcept(code, name)
 
 
 def process_args(argv):
