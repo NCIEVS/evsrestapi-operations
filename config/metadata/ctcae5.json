@@ -1,7 +1,6 @@
 {
 	"uiLabel": "CTCAE 5",
 	"description": "Common Terminology Criteria for Adverse Events ",
-	"licenseText": "Government information at NLM Web sites is in the public domain. Public domain information may be freely distributed and copied, but it is requested that in any subsequent use the National Library of Medicine (NLM) be given appropriate acknowledgement as specified at https://lhncbc.nlm.nih.gov/semanticnetwork/terms.html",
 	"code": "NCIt_Code",
 	"conceptStatus": null,
 	"retiredStatusValue": null,
