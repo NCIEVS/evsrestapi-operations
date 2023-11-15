@@ -51,6 +51,7 @@ class CanmedConcept:
             return self.__key() == other.__key()
         return NotImplemented
 
+
 class CanmedData:
     concepts: set[str]
     products: set[CanmedConcept]
@@ -60,6 +61,7 @@ class CanmedData:
     minor_drug_classes: set[CanmedConcept]
     major_drug_classes: set[CanmedConcept]
     categories: set[CanmedConcept]
+    root_concept: CanmedConcept
 
     def __init__(self):
         self.concepts = set()
@@ -101,7 +103,8 @@ class Canmed:
                 "|".join([generic_code_class.code, "", generic_code_class.name, ""]) for generic_code_class in
                 [*ndconc_data.products, *hcpcs_data.generic_code_classes, *ndconc_data.generic_code_classes,
                  *hcpcs_data.minor_drug_classes, *ndconc_data.minor_drug_classes, *hcpcs_data.major_drug_classes,
-                 *ndconc_data.major_drug_classes, *hcpcs_data.categories, *ndconc_data.categories]
+                 *ndconc_data.major_drug_classes, *hcpcs_data.categories, *ndconc_data.categories,
+                 hcpcs_data.root_concept, ndconc_data.root_concept]
             ]
             af.write("\n".join([*hcpcs_data.attributes, *ndconc_data.attributes]))
             pcf.write(
@@ -237,6 +240,8 @@ class Canmed:
         if category:
             category_code = Canmed.get_generic_code(code_type, category)
             data.categories.add(Canmed.get_code_name_pair(category_code, category))
+            data.root_concept = Canmed.get_code_name_pair(code_type, code_type)
+            data.parent_child_relationship.add("|".join([code_type, category_code]))
             if major_drug_class:
                 data.parent_child_relationship.add(
                     "|".join([category_code, major_drug_code])

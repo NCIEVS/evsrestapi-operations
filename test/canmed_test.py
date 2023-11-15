@@ -56,7 +56,10 @@ def test_convert_canmed(tmp_path):
 def assert_simple_format(af_reader, cf_reader, pcf_reader):
     # 43709 lines in the file and 27 lines from the locus_group and locus_type fields
     cf_rows = list(cf_reader)
-    assert_iterable_count(cf_rows, 16872)
+    assert_iterable_count(cf_rows, 16874)
+    # assert that root concepts are created
+    assert len([cf_row for cf_row in cf_rows if cf_row[0] == "HCPCS"]) == 1
+    assert len([cf_row for cf_row in cf_rows if cf_row[0] == "NDC"]) == 1
     # assert that all NA HCPCS codes got converted
     assert len([cf_row for cf_row in cf_rows if cf_row[0] == "HCPCS_NA"]) == 0
     # assert that at least one NA got converted to Generic Name + Strength
@@ -102,6 +105,10 @@ def assert_simple_format(af_reader, cf_reader, pcf_reader):
         filter(lambda pc_row: pc_row[0] == "HCPCS_ASPARAGINASE", pc_rows),
         3,
     )
+    assert_iterable_count(
+        filter(lambda pc_row: pc_row[0] == "HCPCS", pc_rows),
+        6,
+    )
 
     # assert hierarchy count of NDC
     assert_iterable_count(
@@ -123,6 +130,10 @@ def assert_simple_format(af_reader, cf_reader, pcf_reader):
     assert_iterable_count(
         filter(lambda pc_row: pc_row[0] == "NDC_68462-0106", pc_rows),
         2,
+    )
+    assert_iterable_count(
+        filter(lambda pc_row: pc_row[0] == "NDC", pc_rows),
+        6,
     )
 
 
