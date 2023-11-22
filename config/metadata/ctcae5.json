@@ -5,13 +5,15 @@
 	"conceptStatus": null,
 	"retiredStatusValue": null,
 	"preferredName": "Preferred_Name",
+	"synonymSource": "term-source",
+	"synonymTermType": "term-group",
 	"synonym": [
 		"FULL_SYN"
 	],
 	"definition": [
 		"DEFINITION", "ALT_DEFINITION"
 	],
-	"definitionSource": null,
+	"definitionSource": "def-source",
 	"map": null,
 	"mapRelation": null,
 	"mapTarget": null,
@@ -21,6 +23,8 @@
 	"relationshipToTarget": null,
 	"hierarchy": true,
 	"detailsColumns": {
-		"synonyms-type": true
-	}
+		"definitions-source": true,
+		"synonyms-source": true,
+		"synonyms-termType": true
+ 	}
 }
