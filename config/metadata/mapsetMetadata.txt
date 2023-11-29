@@ -1,11 +1,11 @@
 #name,mapsetLink,version,welcomeText,loader,sourceTerminology,sourceTerminologyVersion,targetTerminology,targetTerminologyVersion
 PDQ_2016_07_31_TO_NCI_2016_10E,,201607,mapping-pdq-nci.html,MappingLoadServiceImpl,pdq,2016_07,ncit,16.10e
-NCIt_to_HGNC_Mapping,,October2023,mapping-nci-hgnc.html,MappingLoadServiceImpl,ncit,23.10e,hgnc,October2023
+NCIt_to_HGNC_Mapping,,November2023,mapping-nci-hgnc.html,MappingLoadServiceImpl,ncit,23.11d,hgnc,November2023
 NCIt_to_ChEBI_Mapping,,August2023,mapping-nci-chebi.html,MappingLoadServiceImpl,ncit,23.08e,chebi,v224
 MA_to_NCIt_Mapping,,November2011,mapping-ma-nci.html,MappingLoadServiceImpl,ma,July2011,ncit,11.09d
 GO_to_NCIt_Mapping,,February2020,mapping-go-nci.html,MappingLoadServiceImpl,go,February2020,ncit,20.02d
 ICD10_to_MedDRA_Mapping,,July2023,mapping-icd10-mdr.html,MappingLoadServiceImpl,icd10,2019,mdr,23.1
-NCIT_TO_SWISSPROT,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/NCIt-SwissProt_Mapping.txt,October2023,,MappingLoadServiceImpl,,,,
+NCIT_TO_SWISSPROT,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/NCIt-SwissProt_Mapping.txt,November2023,,MappingLoadServiceImpl,,,,
 ICDO_TO_NCI_TOPOGRAPHY,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/ICD-O-3_Mappings/ICD-O-3.1-NCIt_Topography_Mapping.txt,2017-12-21,,MappingLoadServiceImpl,,,,
 ICDO_TO_NCI_MORPHOLOGY,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/ICD-O-3_Mappings/ICD-O-3.1-NCIt_Morphology_Mapping.txt,2017-12-21,,MappingLoadServiceImpl,,,,
 ICDO_TO_NCI_AXIS,https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Mappings/ICD-O-3_Mappings/ICD-O-3.1-NCIt_Axis_Mappings.xls,2017-12-21,,MappingLoadServiceImpl,,,,
