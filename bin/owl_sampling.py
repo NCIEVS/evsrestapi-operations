@@ -179,10 +179,10 @@ if __name__ == "__main__":
             elif(line.startswith("</owl:AnnotationProperty>")):
               inAnnotationProperty = False
             elif (inAnnotationProperty and line.startswith(termCodeline)):
-              uri2Code[currentClassURI.split("/")[-1]] = re.findall(">(.+?)<", line)[0]
-              annotationProperties[currentClassURI] = uri2Code[currentClassURI.split("/")[-1]]
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
+              annotationProperties[currentClassURI] = uri2Code[currentClassURI]
             elif(line.startswith("<owl:AnnotationProperty")and line.endswith("/>")):
-              annotationProperties[line.split("\"")[-2].split("/")[-1]] = line.split("\"")[-2].split("/")[-1]
+              annotationProperties[line.split("\"")[-2]] = line.split("\"")[-2].split("/")[-1]
               
             elif(line.startswith("xml") and oboURL in line): # handle obo prefixes
                 oboPrefix = line.split(':')[1].split("=")[0] # get oboPrefix
