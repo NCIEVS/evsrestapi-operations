@@ -81,6 +81,8 @@ def checkForNewProperty(line):
     if(splitLine[0] in properties or splitLine[0] in propertiesCurrentClass): # check duplicates
         return ""
     detail = ""
+    if(splitLine[0].startswith(terminology + ":")):
+      splitLine[0] = splitLine[0].removeprefix(terminology + ":")
     if("rdf:resource=\"" in line): # grab stuff in quotes
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
