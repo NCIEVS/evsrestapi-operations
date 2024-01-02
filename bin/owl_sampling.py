@@ -164,6 +164,9 @@ if __name__ == "__main__":
             if(line.startswith("// Annotations")): # skip ending annotation
                 hitClass = False
                 
+            elif(line.startswith("<owl:deprecated>false")):
+              continue
+                
             elif(line.startswith("<owl:ObjectProperty")):
               inObjectProperty = True;
               currentClassURI = re.findall('"([^"]*)"', line)[0]
