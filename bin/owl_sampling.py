@@ -184,10 +184,10 @@ if __name__ == "__main__":
             elif(line.startswith("</owl:AnnotationProperty>")):
               inAnnotationProperty = False
             elif (inAnnotationProperty and line.startswith(termCodeline)):
-              uri2Code[currentClassURI.split("/")[-1]] = re.findall(">(.+?)<", line)[0]
-              annotationProperties[currentClassURI] = uri2Code[currentClassURI.split("/")[-1]]
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
+              annotationProperties[currentClassURI] = uri2Code[currentClassURI]
             elif(line.startswith("<owl:AnnotationProperty")and line.endswith("/>")):
-              annotationProperties[line.split("\"")[-2].split("/")[-1]] = line.split("\"")[-2].split("/")[-1]
+              annotationProperties[line.split("\"")[-2]] = line.split("\"")[-2].split("/")[-1]
               
             elif(line.startswith("xml") and oboURL in line): # handle obo prefixes
                 oboPrefix = line.split(':')[1].split("=")[0] # get oboPrefix
@@ -306,8 +306,9 @@ if __name__ == "__main__":
         for numParents in sorted(parentCount.keys()): # sort for writing to file
             termFile.write(parentCount[numParents] + "\t" + uri2Code[parentCount[numParents]] + "\t" + "parent-count" + str(numParents) + "\n")
             
+        print((list(annotationProperties.items())[:10]))
         for code in uri2Code: # write out roots (all codes with no parents)
-            if code not in allParents and code not in deprecated and code not in objectProperties and code not in annotationProperties: # deprecated codes, object properties, and annotation properties are fake roots
+            if code not in allParents and code not in deprecated and code not in objectProperties and code not in annotationProperties.keys(): # deprecated codes, object properties, and annotation properties are fake roots
                 termFile.write(code + "\t" + uri2Code[code] + "\t" + "root" + "\n")
             
 
