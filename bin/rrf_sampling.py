@@ -29,21 +29,21 @@ def checkParamsValid(argv):
 
     if(len(argv) != 4):
     
-        print("Usage: rrf_sampling.py <terminology RRF file path> <terminology config file path> <terminology>")
+        print("Usage: rrf_sampling.py <terminology RRF file path> <terminology config dir path> <terminology>")
         return False
         
     elif(os.path.isdir(argv[1]) == False):
     
         print(argv[1])
         print("terminology RRF directory path is invalid")
-        print("Usage: rrfSampling.py <terminology RRF file path> <terminology config file path> <terminology>")
+        print("Usage: rrfSampling.py <terminology RRF file path> <terminology config dir path> <terminology>")
         return False
         
     elif(os.path.isdir(argv[2]) == False):
     
         print(argv[2])
         print("terminology config file directory path is invalid")
-        print("Usage: rrfSampling.py <terminology RRF file path> <terminology config file path> <terminology>")
+        print("Usage: rrfSampling.py <terminology RRF file path> <terminology config dir path> <terminology>")
         return False
         
     return True
@@ -222,14 +222,16 @@ if __name__ == "__main__":
                 if(lineAui2 not in auiCodeMappings or lineAui1 not in auiCodeMappings): # AUIs must be from the terminology being processed 
                     continue
                     
-                if (lineAui1 not in listAui1):
-                    listAui1.append(lineAui1)
+                if (lineRel == "CHD"):
+                    
+                    if (lineAui1 not in listAui1):
+                        listAui1.append(lineAui1)
                 
-                if (lineAui2 not in listAui1):
-                    listAui2.append(lineAui2)
-                    
+                    if (lineAui2 not in listAui2):
+                        listAui2.append(lineAui2)
+
                 if (lineRel == "PAR"):
-                    
+
                     auiParents = {"count": 0, "parentAuis": []}
                     
                     if (lineAui1 in auiNumberParents): # get any existing parent info

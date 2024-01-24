@@ -193,21 +193,40 @@ datafile=$(get_file_name $data)
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
-    cp "$data" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
+  cp "$data" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
 
 # Otherwise, download it
 elif [[ $data = http* ]] || [[ $data = ftp* ]]; then
-    echo "    download = $data"
-    curl --fail -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$data" > /tmp/x.$$.log 2>&1
-    if [[ $? -ne 0 ]]; then
-        cat /tmp/x.$$.log | sed 's/^/    /;'
-        echo "ERROR: problem downloading file"
-        cleanup 1
+  IFS=',' read -r -a array <<<"$data"
+  for url in "${array[@]}"; do
+    echo "    download = $url"
+    datafile=$(get_file_name $url)
+    dataext=$(get_file_extension $url)
+    # there is no usable file name at the end of Canmed URLs. So using known string in the URL as file names
+    if [[ $url == *"hcpcs"* ]]; then
+      datafile="hcpcs"
+      dataext="csv"
     fi
-
+    if [[ $url == *"ndconc"* ]]; then
+      datafile="ndconc"
+      dataext="csv"
+    fi
+    echo "     download datafile:${datafile}"
+    echo "     download dataext:${dataext}"
+    curl --fail -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$url" >/tmp/x.$$.log 2>&1
+    if [[ $? -ne 0 ]]; then
+      cat /tmp/x.$$.log | sed 's/^/    /;'
+      echo "ERROR: problem downloading file"
+      cleanup 1
+    fi
+    # Setting the terminology name as $datafile to get to the correct transformation
+    if [[ $datafile == "ndconc" ]]; then
+      datafile="canmed"
+    fi
+  done
 else
-    echo "ERROR: $data is not local or http/ftp"
-    cleanup 1
+  echo "ERROR: $data is not local or http/ftp"
+  cleanup 1
 fi
 
 file="$INPUT_DIRECTORY"/f$$.$datafile.$dataext
@@ -223,11 +242,21 @@ echo "  output from get_owl_file: $owl_file"
 if [[ ! -e $owl_file ]]; then
   echo "  Looking for transformations"
   IFS='_' read -r -a array <<< "$datafile"
-  terminology="${array[0]}"
-  echo "    Applying transformations for $terminology"
-  script_output=$($DIR/transforms/"$terminology".sh "$file")
-  set_transformed_owl "$terminology" "$script_output"
-  set_load_variables_of_transform
+  for terminology in "${array[@]}"
+  do
+    echo "Terminology from file name: $terminology"
+    terminology_lower=$(echo "$terminology" | tr '[:upper:]' '[:lower:]')
+    transformation_script=$DIR/transforms/"$terminology_lower".sh
+    if [[ -e $transformation_script ]]; then
+      echo "    Applying transformations for $terminology"
+      script_output=$("$transformation_script" "$file")
+      set_transformed_owl "$terminology" "$script_output"
+      set_load_variables_of_transform
+      break
+    else
+      echo "    No transformation script ($transformation_script) found"
+    fi
+  done
 else
   echo "  Found owl file: $owl_file"
   transformed_owl=$owl_file
@@ -272,6 +301,18 @@ elif [[ $datafile =~ "UMLSSEMNET" ]]; then
     terminology=umlssemnet
     version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`
     graph=http://www.nlm.nih.gov/research/umls/UmlsSemNet/${version}/umlssemnet.owl
+elif [[ $datafile =~ "MEDRT" ]]; then
+  terminology=medrt
+  version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  graph=http://www.nlm.nih.gov/research/${version}/medrt.owl
+elif [[ $datafile =~ "CANMED" ]]; then
+  terminology=canmed
+  version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  graph=http://seer.nci.nih.gov/CanMED.owl/${version}/canmed.owl
+elif [[ $datafile =~ "ctcae" ]]; then
+  terminology=ctcae
+  version=`echo $datafile | perl -pe 's/ctcae//gi;'`
+  graph=http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae${version}.owl
 else
     echo "ERROR: Unsupported file type = $datafile"
     cleanup 1

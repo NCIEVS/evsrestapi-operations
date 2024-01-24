@@ -3,6 +3,8 @@ import getopt
 import os
 import sys
 
+from terminology_converter.converter.simple_format_utils import get_output_files
+
 THING_URI = "http://www.w3.org/2002/07/owl#Thing"
 
 
@@ -13,7 +15,8 @@ class Hgnc:
             self.attribute_file,
             self.concepts_file,
             self.parent_child_file,
-        ) = Hgnc.get_output_files(output_directory)
+            _
+        ) = get_output_files(output_directory)
 
     def convert(self):
         with open(self.definition_file) as df, open(
@@ -84,13 +87,6 @@ class Hgnc:
             )
 
     @staticmethod
-    def get_output_files(output_directory: str):
-        attributes_file = os.path.join(output_directory, "attributes.txt")
-        concepts_file = os.path.join(output_directory, "concepts.txt")
-        parent_child_file = os.path.join(output_directory, "parChd.txt")
-        return attributes_file, concepts_file, parent_child_file
-
-    @staticmethod
     def get_locus_type_or_group(column_value: str) -> str:
         return column_value.replace(", ", "_").replace(" ", "_")
 
@@ -112,7 +108,7 @@ def process_args(argv):
             print(
                 """
                     Usage: 
-                    umls_sem_net.py -d <definition-file> -o <output-file>
+                    hgnc.py -d <definition-file> -o <output-file>
                 """
             )
             sys.exit()

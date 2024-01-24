@@ -1,0 +1,26 @@
+{
+	"uiLabel": "CanMED",
+	"description": "Cancer Medications Enquiry Database (CanMED)",
+	"code": "Code",
+	"conceptStatus": null,
+	"retiredStatusValue": null,
+	"preferredName": "Preferred_Name",
+	"synonym": [
+		"Generic_Name","Brand_Name"
+	],
+	"definition": [
+		"Description"
+	],
+	"definitionSource": null,
+	"map": null,
+	"mapRelation": null,
+	"mapTarget": null,
+	"mapTargetTermType": null,
+	"mapTargetTerminology": null,
+	"mapTargetTerminologyVersion": null,
+	"relationshipToTarget": null,
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-type": true
+	}
+}

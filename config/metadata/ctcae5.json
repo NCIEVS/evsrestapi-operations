@@ -1,0 +1,30 @@
+{
+	"uiLabel": "CTCAE 5",
+	"description": "Common Terminology Criteria for Adverse Events ",
+	"code": "NCIt_Code",
+	"conceptStatus": "owl:deprecated",
+	"retiredStatusValue": "true",
+	"preferredName": "Preferred_Name",
+	"synonymSource": "term-source",
+	"synonymTermType": "term-group",
+	"synonym": [
+		"FULL_SYN"
+	],
+	"definition": [
+		"DEFINITION", "ALT_DEFINITION"
+	],
+	"definitionSource": "def-source",
+	"map": null,
+	"mapRelation": null,
+	"mapTarget": null,
+	"mapTargetTermType": null,
+	"mapTargetTerminology": null,
+	"mapTargetTerminologyVersion": null,
+	"relationshipToTarget": null,
+	"hierarchy": true,
+	"detailsColumns": {
+		"definitions-source": true,
+		"synonyms-source": true,
+		"synonyms-termType": true
+ 	}
+}

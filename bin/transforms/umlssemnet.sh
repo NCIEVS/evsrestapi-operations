@@ -1,7 +1,7 @@
 #!/bin/bash
 TERMINOLOGY="umlssemnet"
 TERMINOLOGY_URL="${2:-http://www.nlm.nih.gov/research/umls/${TERMINOLOGY}.owl}"
-VERSION="${3:-2023AA}"
+VERSION="${3:-2023aa}"
 dir=$(pwd | perl -pe 's#/cygdrive/c#C:#;')
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 EVS_OPS_HOME=$DIR/../..
@@ -29,6 +29,8 @@ setup() {
   python3 -m venv "$VENV_DIRECTORY"
   source "$VENV_BIN_DIRECTORY"/activate
   "$VENV_BIN_DIRECTORY"/pip install poetry
+  # Setting the URL lib to a specific version to avoid upgrading OpenSSL version
+  "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15"
   pushd "$EVS_OPS_HOME" || exit
   "$VENV_BIN_DIRECTORY"/poetry install
   popd "$EVS_OPS_HOME" || exit

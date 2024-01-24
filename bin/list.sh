@@ -170,7 +170,7 @@ done
 # Sort by version then reverse by DB (NCIT2 goes before CTRP)
 # this is because we need "monthly" to be indexed from the "monthlyDb"
 # defined in ncit.json
-/bin/sort -t\| -k 1,1 -k 2,2r -o /tmp/y.$$.txt /tmp/y.$$.txt
+sort -t\| -k 1,1 -k 2,2r -o /tmp/y.$$.txt /tmp/y.$$.txt
 
 if [[ $quiet -eq 0 ]]; then
     echo "  List stardog graphs ...`/bin/date`"
@@ -181,7 +181,7 @@ for x in `cat /tmp/y.$$.txt`; do
     db=`echo $x | cut -d\| -f 2`
     uri=`echo $x | cut -d\| -f 3`
     graph_uri=`echo $x | cut -d\| -f 4`
-    term=`echo $uri | perl -pe 's/.*Thesaurus.owl/ncit/; s/.*obo\/go.owl/go/; s/.*\/HGNC.owl/hgnc/; s/.*\/chebi.owl/chebi/; s/.*\/umlssemnet.owl/umlssemnet/'`
+    term=`echo $uri | perl -pe 's/.*Thesaurus.owl/ncit/; s/.*obo\/go.owl/go/; s/.*\/HGNC.owl/hgnc/; s/.*\/chebi.owl/chebi/; s/.*\/umlssemnet.owl/umlssemnet/; s/.*\/MEDRT.owl/medrt/; s/.*\/CanMED.owl/canmed/; s/.*\/ctcae5.owl/ctcae5/'`
     if [[ $quiet -eq 1 ]]; then
         echo "stardog|$db|$term|$version|$graph_uri"
     else

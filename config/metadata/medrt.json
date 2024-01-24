@@ -1,0 +1,26 @@
+{
+	"uiLabel": "MED-RT",
+	"description": "MEDRT",
+	"code": "Code",
+	"conceptStatus": null,
+	"retiredStatusValue": null,
+	"preferredName": "Preferred_Term",
+	"synonym": [
+		"Synonym",
+		"Preferred_Term",
+		"Concept_Name"
+	],
+	"definition": null,
+	"definitionSource": null,
+	"map": null,
+	"mapRelation": null,
+	"mapTarget": null,
+	"mapTargetTermType": null,
+	"mapTargetTerminology": null,
+	"mapTargetTerminologyVersion": null,
+	"relationshipToTarget": null,
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-type": true
+	}
+}

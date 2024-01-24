@@ -1,6 +1,6 @@
 #!/bin/bash
-TERMINOLOGY="hgnc"
-TERMINOLOGY_URL="${3:-http://ncicb.nci.nih.gov/genenames.org/HGNC.owl}"
+TERMINOLOGY="canmed"
+TERMINOLOGY_URL="${3:-http://seer.nci.nih.gov/CanMED.owl}"
 dir=$(pwd | perl -pe 's#/cygdrive/c#C:#;')
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 EVS_OPS_HOME=$DIR/../..
@@ -43,12 +43,20 @@ setup() {
 }
 
 generate_standard_format_files() {
-  echo "generating HGNC standard format files at $OUTPUT_DIRECTORY"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/hgnc.py -d "$1" -o "$OUTPUT_DIRECTORY"
+  echo "generating ${TERMINOLOGY} standard format files at $OUTPUT_DIRECTORY"
+  local hcpcs_file=${1/canmed/hcpcs}
+  local ndconc_file=${1/canmed/ndconc}
+  echo "hcpcs_file:$hcpcs_file. ndconc_file:${ndconc_file}"
+  if [ -e "$hcpcs_file" ] && [ -e "$ndconc_file" ]; then
+    "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/canmed.py -d "$hcpcs_file" -n "$ndconc_file" -o "$OUTPUT_DIRECTORY"
+  else
+    echo "hcpcs.csv and ndconc.csv not found in $INPUT_DIRECTORY. Cannot perform Canmed transformation"
+    exit 1
+  fi
 }
 
 generate_owl_file() {
-  echo "generating HGNC owl file at $OUTPUT_DIRECTORY"
+  echo "generating ${TERMINOLOGY} owl file at $OUTPUT_DIRECTORY"
   local terminology_upper=$(echo "$TERMINOLOGY" | tr '[:lower:]' '[:upper:]')
   local versioned_owl_file="$dir/${terminology_upper}_$date.owl"
   "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${date}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}"
@@ -59,5 +67,5 @@ generate_owl_file() {
 pre_condition_check
 setup
 generate_standard_format_files "$@"
-versioned_owl_file=$(generate_owl_file)
+versioned_owl_file=$(generate_owl_file "$@")
 echo "$versioned_owl_file"

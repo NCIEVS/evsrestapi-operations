@@ -81,6 +81,8 @@ def checkForNewProperty(line):
     if(splitLine[0] in properties or splitLine[0] in propertiesCurrentClass): # check duplicates
         return ""
     detail = ""
+    if(splitLine[0].startswith(terminology + ":")):
+      splitLine[0] = splitLine[0].removeprefix(terminology + ":")
     if("rdf:resource=\"" in line): # grab stuff in quotes
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
@@ -163,6 +165,9 @@ if __name__ == "__main__":
             line = line.strip() # no need for leading spaces anymore
             if(line.startswith("// Annotations")): # skip ending annotation
                 hitClass = False
+                
+            elif(line.startswith("<owl:deprecated>false")):
+              continue
                 
             elif(line.startswith("<owl:ObjectProperty")):
               inObjectProperty = True;
@@ -301,8 +306,9 @@ if __name__ == "__main__":
         for numParents in sorted(parentCount.keys()): # sort for writing to file
             termFile.write(parentCount[numParents] + "\t" + uri2Code[parentCount[numParents]] + "\t" + "parent-count" + str(numParents) + "\n")
             
+        print((list(annotationProperties.items())[:10]))
         for code in uri2Code: # write out roots (all codes with no parents)
-            if code not in allParents and code not in deprecated and code not in objectProperties and code not in annotationProperties: # deprecated codes, object properties, and annotation properties are fake roots
+            if code not in allParents and code not in deprecated and code not in objectProperties and code not in annotationProperties.keys(): # deprecated codes, object properties, and annotation properties are fake roots
                 termFile.write(code + "\t" + uri2Code[code] + "\t" + "root" + "\n")
             
 
