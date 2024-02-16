@@ -42,8 +42,13 @@ setup() {
   popd "$EVS_OPS_HOME" || exit
 }
 
+get_input_file() {
+  input_file=$(find "$INPUT_DIRECTORY" -type f -iname "*MEDRT*.xml")
+  echo "$input_file"
+}
+
 generate_standard_format_files() {
-  echo "generating MED-RT standard format files at $OUTPUT_DIRECTORY"
+  echo "generating MED-RT standard format files at $OUTPUT_DIRECTORY. Input XML:$1"
   "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/med_rt.py -d "$1" -o "$OUTPUT_DIRECTORY"
 }
 
@@ -58,7 +63,8 @@ generate_owl_file() {
 }
 
 pre_condition_check
+input_file=$(get_input_file)
 setup
-generate_standard_format_files "$@"
-versioned_owl_file=$(generate_owl_file "$@")
+generate_standard_format_files "$input_file"
+versioned_owl_file=$(generate_owl_file "$input_file")
 echo "$versioned_owl_file"
