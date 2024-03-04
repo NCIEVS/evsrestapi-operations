@@ -193,7 +193,7 @@ for x in `cat /tmp/y.$$.txt`; do
     db=`echo $x | cut -d\| -f 2`
     uri=`echo $x | cut -d\| -f 3`
     graph_uri=`echo $x | cut -d\| -f 4`
-    term=$(get_terminology "$uri"
+    term=$(get_terminology "$uri")
     if [[ $quiet -eq 1 ]]; then
         echo "stardog|$db|$term|$version|$graph_uri"
     else
