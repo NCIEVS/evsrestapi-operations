@@ -102,7 +102,7 @@ if [[ $stardog -eq 1 ]]; then
 
 curl -s -g -u "${STARDOG_USERNAME}:$STARDOG_PASSWORD" \
     "http://${STARDOG_HOST}:${STARDOG_PORT}/admin/databases" |\
-    $jq | perl -ne 's/\r//; $x=0 if /\]/; if ($x) { s/.* "//; s/",?$//; print "$_"; }; 
+    $jq | perl -ne 's/\r//; $x=0 if /\]/; if ($x) { s/.* "//; s/",?$//; print "$_"; };
                     $x=1 if/\[/;' > /tmp/db.$$.txt
 if [[ $? -ne 0 ]]; then
     echo "ERROR: unexpected problem listing databases"
@@ -182,8 +182,7 @@ get_terminology(){
     echo "ncit"
   else
     lower_terminology=$(basename "$1" | sed 's/.owl//g' | tr '[:upper:]' '[:lower:]')
-    stripped_digits=${lower_terminology//[[:digit:]]/}
-    IFS='_' read -r -a array <<<"$stripped_digits"
+    IFS='_' read -r -a array <<<"$lower_terminology"
     echo $array
   fi
 }
