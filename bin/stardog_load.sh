@@ -187,6 +187,34 @@ set_load_variables_of_transform(){
   echo "    file = $file"
 }
 
+get_namespace(){
+  echo $(grep -o 'xmlns="[^"]*"' "$1" | sed -e 's/xmlns="//g' -e 's/"//g' -e 's/#//g')
+}
+
+get_terminology(){
+  lower_terminology=$(basename "$1" | sed 's/.owl//g' | tr '[:upper:]' '[:lower:]')
+  if [[ $lower_terminology =~ "thesaurus" ]]; then
+    echo "ncit"
+  else
+    lower_terminology=$(basename "$1" | sed 's/.owl//g' | tr '[:upper:]' '[:lower:]')
+    IFS='_' read -r -a array <<<"$lower_terminology"
+    echo $array
+  fi
+}
+
+get_version(){
+  version=$(grep '<owl:versionInfo>' $1 | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  if [[ -z "$version" ]]; then
+    echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/(\d+)\/$2.*/\1/")
+  else
+    echo $version
+  fi
+}
+
+get_graph(){
+  echo $(echo "$1" | sed -e "s/\.owl/_$2.owl/g")
+}
+
 echo "  Put data in standard location - $INPUT_DIRECTORY ...`/bin/date`"
 dataext=$(get_file_extension $data)
 datafile=$(get_file_name $data)
@@ -273,6 +301,15 @@ fi
 
 # determine graph/version
 echo "  Determine graph and version ...`/bin/date`"
+namespace=$(get_namespace "$file")
+echo "  Namespace of OWL file:$namespace"
+terminology=$(get_terminology "$namespace")
+echo "  Terminology:$terminology"
+version=$(get_version "$file" "$terminology")
+echo "  Version:$version"
+graph=$(get_graph "$namespace" "$version")
+echo "  Graph:$graph"
+
 if [[ $datafile =~ "ThesaurusInf" ]]; then
     terminology=ncit
     version=`grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//'`

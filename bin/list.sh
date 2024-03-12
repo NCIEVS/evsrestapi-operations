@@ -102,7 +102,7 @@ if [[ $stardog -eq 1 ]]; then
 
 curl -s -g -u "${STARDOG_USERNAME}:$STARDOG_PASSWORD" \
     "http://${STARDOG_HOST}:${STARDOG_PORT}/admin/databases" |\
-    $jq | perl -ne 's/\r//; $x=0 if /\]/; if ($x) { s/.* "//; s/",?$//; print "$_"; }; 
+    $jq | perl -ne 's/\r//; $x=0 if /\]/; if ($x) { s/.* "//; s/",?$//; print "$_"; };
                     $x=1 if/\[/;' > /tmp/db.$$.txt
 if [[ $? -ne 0 ]]; then
     echo "ERROR: unexpected problem listing databases"
@@ -176,12 +176,23 @@ if [[ $quiet -eq 0 ]]; then
     echo "  List stardog graphs ...`/bin/date`"
 fi
 # Here determine the parts for each case
+get_terminology(){
+  lower_terminology=$(basename "$1" | sed 's/.owl//g' | tr '[:upper:]' '[:lower:]')
+  if [[ $lower_terminology =~ "thesaurus" ]]; then
+    echo "ncit"
+  else
+    lower_terminology=$(basename "$1" | sed 's/.owl//g' | tr '[:upper:]' '[:lower:]')
+    IFS='_' read -r -a array <<<"$lower_terminology"
+    echo $array
+  fi
+}
+
 for x in `cat /tmp/y.$$.txt`; do
     version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(\d+)/[a-zA-Z]+.owl#$1#;'`
     db=`echo $x | cut -d\| -f 2`
     uri=`echo $x | cut -d\| -f 3`
     graph_uri=`echo $x | cut -d\| -f 4`
-    term=`echo $uri | perl -pe 's/.*Thesaurus.owl/ncit/; s/.*obo\/go.owl/go/; s/.*\/HGNC.owl/hgnc/; s/.*\/chebi.owl/chebi/; s/.*\/umlssemnet.owl/umlssemnet/; s/.*\/MEDRT.owl/medrt/; s/.*\/CanMED.owl/canmed/; s/.*\/ctcae5.owl/ctcae5/'`
+    term=$(get_terminology "$uri")
     if [[ $quiet -eq 1 ]]; then
         echo "stardog|$db|$term|$version|$graph_uri"
     else
