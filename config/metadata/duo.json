@@ -4,9 +4,10 @@
   "code": "oboInOwl:id",
   "conceptStatus": "owl:deprecated",
   "retiredStatusValue": "true",
-  "preferredName": "DUO_0000041",
+  "preferredName": "rdfs:label",
   "synonym": [
     "rdfs:label",
+    "DUO_0000041",
     "oboInOwl:hasExactSynonym",
     "oboInOwl:hasRelatedSynonym",
     "oboInOwl:hasNarrowSynonym",
