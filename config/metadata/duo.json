@@ -1,7 +1,7 @@
 {
   "uiLabel": "DUO: Data Use Ontology",
   "description": "DUO (Data Use Ontology) is an ontology which represents data use conditions.",
-  "code": "oboInOwl:id",
+  "code": "",
   "conceptStatus": "owl:deprecated",
   "retiredStatusValue": "true",
   "preferredName": "rdfs:label",
