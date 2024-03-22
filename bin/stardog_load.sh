@@ -205,7 +205,7 @@ get_terminology(){
 get_version(){
   version=$(grep '<owl:versionInfo>' $1 | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
   if [[ -z "$version" ]]; then
-    echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/(\d+)\/$2.*/\1/")
+    echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/([\d-]+)\/$2.*/\1/")
   else
     echo $version
   fi

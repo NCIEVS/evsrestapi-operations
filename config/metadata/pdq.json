@@ -1,0 +1,17 @@
+{
+	"uiLabel": "PDQ: Physician Data Query",
+	"maxVersions": 1,
+	"metaConceptField": "CODE",
+	"preferredTermTypes": [
+		"PT",
+		"HT",
+		"PSC",
+		"LV",
+		"CON"
+	],
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-source": true,
+		"synonyms-termType": true
+	}
+}
