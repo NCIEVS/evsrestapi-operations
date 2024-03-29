@@ -1,0 +1,19 @@
+{
+  "uiLabel": "HL7: Health Level 7 Vocabulary (V3)",
+  "description": "The Reference Information Model (RIM) is the cornerstone of the HL7 Version 3 development process.",
+  "maxVersions": 1,
+  "metaConceptField": "CODE",
+  "preferredTermTypes": [
+    "PT",
+    "BR",
+    "CDO",
+    "CPR",
+    "CR",
+    "OP"
+  ],
+  "hierarchy": true,
+  "detailsColumns": {
+    "synonyms-source": true,
+    "synonyms-termType": true
+  }
+}
