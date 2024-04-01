@@ -10,7 +10,8 @@
     "CPR",
     "CR",
     "OP",
-    "VS"
+    "VS",
+    "CSY"
   ],
   "hierarchy": true,
   "detailsColumns": {
