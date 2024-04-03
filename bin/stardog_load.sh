@@ -145,10 +145,15 @@ get_file_name() {
   echo $1 |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'
 }
 
-get_owl_file() {
-  for owl_file in $(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl"); do
-    echo "$owl_file"
-  done
+get_owl_files() {
+  filenames=()
+
+  # Loop through each line of the find command output
+  while IFS= read -r filename; do
+    # Add filename to the array
+    filenames+=("$filename")
+  done <<< "$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" -print | sort)"
+  echo "${filenames[*]}"
 }
 
 set_transformed_owl(){
@@ -205,7 +210,7 @@ get_terminology(){
 get_version(){
   version=$(grep '<owl:versionInfo>' $1 | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
   if [[ -z "$version" ]]; then
-    echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/(\d+)\/$2.*/\1/")
+    echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/(.*)\/$2.*/\1/")
   else
     echo $version
   fi
@@ -264,7 +269,11 @@ if [[ $dataext == "zip" ]] || [[ $dataext == "gz" ]]; then
   extract_zipped_files "$file"
 fi
 
-owl_file=$(get_owl_file)
+str_owl_files=$(get_owl_files)
+read -r -a owl_files <<<"$str_owl_files"
+if [ "${#owl_files[@]}" -gt 0 ]; then
+    owl_file=${owl_files[0]}
+fi
 echo "  output from get_owl_file: $owl_file"
 
 if [[ ! -e $owl_file ]]; then
@@ -350,9 +359,6 @@ elif [[ $datafile =~ "ctcae" ]]; then
   terminology=ctcae
   version=`echo $datafile | perl -pe 's/ctcae//gi;'`
   graph=http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae${version}.owl
-else
-    echo "ERROR: Unsupported file type = $datafile"
-    cleanup 1
 fi
 
 echo "    terminology = $terminology"
@@ -409,13 +415,23 @@ if [[ $force -eq 1 ]]; then
 fi
 
 # Load Data
-
 echo "  Load data ($db) ...`/bin/date`"
 $STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem loading stardog ($db)"
     cleanup 1
 fi
+
+echo "  Loading other owl files in $INPUT_DIRECTORY"
+for of in "${owl_files[@]:1}"; do
+  echo "    Loading $of"
+  $STARDOG_HOME/bin/stardog data add $db -g $graph $of -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+  if [[ $? -ne 0 ]]; then
+      echo "ERROR: Problem loading stardog ($db)"
+      cleanup 1
+  fi
+done
+
 echo "  Optimize database ($db) ...`/bin/date`"
 $STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
 if [[ $? -ne 0 ]]; then
