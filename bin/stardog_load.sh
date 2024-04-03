@@ -146,13 +146,17 @@ get_file_name() {
 }
 
 get_owl_files() {
-  filenames=()
-
-  # Loop through each line of the find command output
+  extension=$(get_file_extension "$1")
+  if [[ $extension == "owl" ]]; then
+    filenames=("$1")
+  else
+    filenames=()
+  fi
+  # Loop through all the owl files in $INPUT_DIRECTORY. Ignore the OWL specified as the first
   while IFS= read -r filename; do
     # Add filename to the array
     filenames+=("$filename")
-  done <<< "$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" -print | sort)"
+  done <<< "$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" ! -name "*$2*" -print | sort)"
   echo "${filenames[*]}"
 }
 
@@ -226,11 +230,16 @@ datafile=$(get_file_name $data)
 
 # If the file exists, copy it to /tmp preserving the extension
 if [[ -e $data ]]; then
+  first_file_name="$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
   cp "$data" "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
 
 # Otherwise, download it
 elif [[ $data = http* ]] || [[ $data = ftp* ]]; then
   IFS=',' read -r -a array <<<"$data"
+  first_file_url=${array[0]}
+  first_file_datafile=$(get_file_name "$first_file_url")
+  first_file_dataext=$(get_file_extension "$first_file_url")
+  first_file_name="$INPUT_DIRECTORY"/f$$."$first_file_datafile"."$first_file_dataext"
   for url in "${array[@]}"; do
     echo "    download = $url"
     datafile=$(get_file_name $url)
@@ -268,8 +277,10 @@ echo "    file = $file"
 if [[ $dataext == "zip" ]] || [[ $dataext == "gz" ]]; then
   extract_zipped_files "$file"
 fi
-
-str_owl_files=$(get_owl_files)
+echo "  first_file_name: $first_file_name"
+echo "  first_file_datafile: $first_file_datafile"
+str_owl_files=$(get_owl_files "$first_file_name" "$first_file_datafile")
+echo "  str_owl_files:$str_owl_files"
 read -r -a owl_files <<<"$str_owl_files"
 if [ "${#owl_files[@]}" -gt 0 ]; then
     owl_file=${owl_files[0]}
