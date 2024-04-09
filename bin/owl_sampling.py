@@ -43,6 +43,7 @@ termCodeline = "" # terminology Code identifier line
 uniquePropertiesList = [] # store potential synonym/definition metadata values
 inComplexProperty = False # skip complex properties
 buildingProperty = "" # catch for badly formatted multi line properties
+termJSONObject = "" # terminology properties
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -85,7 +86,9 @@ def checkForNewProperty(line):
     detail = ""
     if(splitLine[0].startswith(terminology + ":")):
       splitLine[0] = splitLine[0].removeprefix(terminology + ":")
-    if("rdf:resource=\"" in line): # grab stuff in quotes
+    if("rdf:resource=" in line and "http" in line): # grab link in quotes
+        detail = re.findall('"([^"]*)"', line)[0]
+    elif("rdf:resource=\"" in line): # grab stuff in quotes
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
         detail = re.findall(">(.+?)<", line)[0]
@@ -159,6 +162,8 @@ if __name__ == "__main__":
         uniquePropertiesList.append(termJSONObject["synonymTermType"])
       if("definitionSource" in termJSONObject):
         uniquePropertiesList.append(termJSONObject["definitionSource"])
+      if("preferredName" in termJSONObject):
+        uniquePropertiesList.append(termJSONObject["preferredName"])
       
     
     with open(terminology + "-samples.txt", "w") as termFile:
