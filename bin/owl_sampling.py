@@ -41,6 +41,9 @@ newRestriction = "" # restriction code
 hitClass = False # ignore axioms and stuff before hitting any classes
 termCodeline = "" # terminology Code identifier line
 uniquePropertiesList = [] # store potential synonym/definition metadata values
+inComplexProperty = False # skip complex properties
+buildingProperty = "" # catch for badly formatted multi line properties
+termJSONObject = "" # terminology properties
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -83,7 +86,9 @@ def checkForNewProperty(line):
     detail = ""
     if(splitLine[0].startswith(terminology + ":")):
       splitLine[0] = splitLine[0].removeprefix(terminology + ":")
-    if("rdf:resource=\"" in line): # grab stuff in quotes
+    if("rdf:resource=" in line and "http" in line): # grab link in quotes
+        detail = re.findall('"([^"]*)"', line)[0]
+    elif("rdf:resource=\"" in line): # grab stuff in quotes
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
         detail = re.findall(">(.+?)<", line)[0]
@@ -148,14 +153,17 @@ if __name__ == "__main__":
       termJSONObject = json.load(termJSONFile)
       if(not termJSONObject["code"]):
         print("terminology json file does not have ID entry")
-        exit(1)
-      termCodeline = "<" + termJSONObject["code"] # data lines all start with #
+        termCodeline = "<owl:Class rdf:about"
+      else:
+        termCodeline = "<" + termJSONObject["code"] # data lines all start with #
       if("synonymSource" in termJSONObject): # get unique properties list (the ones we want to track all possible properties of for sampling)
         uniquePropertiesList.append(termJSONObject["synonymSource"])
       if("synonymTermType" in termJSONObject):
         uniquePropertiesList.append(termJSONObject["synonymTermType"])
       if("definitionSource" in termJSONObject):
         uniquePropertiesList.append(termJSONObject["definitionSource"])
+      if("preferredName" in termJSONObject):
+        uniquePropertiesList.append(termJSONObject["preferredName"])
       
     
     with open(terminology + "-samples.txt", "w") as termFile:
@@ -168,8 +176,25 @@ if __name__ == "__main__":
                 
             elif(line.startswith("<owl:deprecated>false")):
               continue
+            elif(buildingProperty != ""): # handling badly formatted multi-line properties
+              buildingProperty += (" " + line)
+              if(line.endswith(">")):
+                line = buildingProperty
+                buildingProperty = "" # end of the property
+              else:
+                continue
+            # skipping complex properties
+            elif(line.startswith("</owl:someValuesFrom>") or line.startswith("</owl:disjointWith>")):
+              inComplexProperty = False
+              continue
+            elif(line.startswith("<owl:someValuesFrom>") or line.startswith("<owl:disjointWith>")):
+              inComplexProperty = True
+              continue
+            elif(inComplexProperty):
+              continue
+            # end of skipping complex properties
                 
-            elif(line.startswith("<owl:ObjectProperty")):
+            elif(line.startswith("<owl:ObjectProperty") and not line.endswith("/>")):
               inObjectProperty = True;
               currentClassURI = re.findall('"([^"]*)"', line)[0]
             elif(line.startswith("</owl:ObjectProperty>")):
@@ -256,6 +281,9 @@ if __name__ == "__main__":
                 handleRestriction(line)
 
             elif(inClass and not inSubclass and not inEquivalentClass): # default property not in complex part of class
+                if(not line.endswith(">")):
+                  buildingProperty = line
+                  continue                 
                 if(line.startswith(termCodeline)): # catch ID to return if it has properties
                     currentClassCode = re.findall(">(.+?)<", line)[0]
                     classHasCode = True
@@ -306,7 +334,6 @@ if __name__ == "__main__":
         for numParents in sorted(parentCount.keys()): # sort for writing to file
             termFile.write(parentCount[numParents] + "\t" + uri2Code[parentCount[numParents]] + "\t" + "parent-count" + str(numParents) + "\n")
             
-        print((list(annotationProperties.items())[:10]))
         for code in uri2Code: # write out roots (all codes with no parents)
             if code not in allParents and code not in deprecated and code not in objectProperties and code not in annotationProperties.keys(): # deprecated codes, object properties, and annotation properties are fake roots
                 termFile.write(code + "\t" + uri2Code[code] + "\t" + "root" + "\n")
