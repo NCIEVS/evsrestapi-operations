@@ -41,7 +41,7 @@ newRestriction = "" # restriction code
 hitClass = False # ignore axioms and stuff before hitting any classes
 termCodeline = "" # terminology Code identifier line
 uniquePropertiesList = [] # store potential synonym/definition metadata values
-inComplexProperty = False # skip complex properties
+inComplexProperty = 0 # skip complex properties
 buildingProperty = "" # catch for badly formatted multi line properties
 termJSONObject = "" # terminology properties
 
@@ -173,7 +173,8 @@ if __name__ == "__main__":
             line = line.strip() # no need for leading spaces anymore
             if(line.startswith("// Annotations")): # skip ending annotation
                 hitClass = False
-                
+            elif(line.startswith("<!--")): # skip concept titles
+              continue
             elif(line.startswith("<owl:deprecated>false")):
               continue
             elif(buildingProperty != ""): # handling badly formatted multi-line properties
@@ -184,14 +185,15 @@ if __name__ == "__main__":
               else:
                 continue
             # skipping complex properties
-            elif(line.startswith("</owl:someValuesFrom>") or line.startswith("</owl:disjointWith>")):
-              inComplexProperty = False
+            elif(inComplexProperty > 0 and (line.startswith("</owl:someValuesFrom>") or line.startswith("</owl:disjointWith>") or (line.startswith("</owl:Class>") and (inEquivalentClass or inSubclass)))):
+              inComplexProperty -= 1
               continue
-            elif(line.startswith("<owl:someValuesFrom>") or line.startswith("<owl:disjointWith>")):
-              inComplexProperty = True
+            elif(line.startswith("<owl:someValuesFrom>") or line.startswith("<owl:disjointWith>") or (line.startswith("<owl:Class>") and (inEquivalentClass or inSubclass))):
+              inComplexProperty += 1
               continue
-            elif(inComplexProperty):
+            elif(inComplexProperty > 0):
               continue
+            
             # end of skipping complex properties
                 
             elif(line.startswith("<owl:ObjectProperty") and not line.endswith("/>")):
@@ -248,7 +250,8 @@ if __name__ == "__main__":
                 elif(lastSpaces > spaces): # remove from stack based on spacing (less/up level)
                     currentClassPath.pop()
                 else: # replace in stack based on spacing (unchanged)
-                    currentClassPath.pop()
+                    if(len(currentClassPath) > 0):
+                      currentClassPath.pop()
                     currentClassPath.append(re.split(">| ", line)[0][1:])
 
             if((line.startswith("<rdfs:subClassOf>") and not line.endswith("//>\n"))): # find complex subclass            
