@@ -1,5 +1,5 @@
 {
-  "uiLabel": "HL7: Health Level 7 Vocabulary (V3)",
+  "uiLabel": "HL7V3.0: Health Level 7 Vocabulary (V3)",
   "description": "The Reference Information Model (RIM) is the cornerstone of the HL7 Version 3 development process.",
   "maxVersions": 1,
   "metaConceptField": "CODE",
