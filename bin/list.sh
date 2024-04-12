@@ -222,7 +222,7 @@ get_terminology(){
 }
 
 for x in `cat /tmp/y.$$.txt`; do
-    version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/([\d-]+)/[a-zA-Z]+.owl#$1#;'`
+    version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(.*)/[a-zA-Z]+.owl#$1#;'`
     db=`echo $x | cut -d\| -f 2`
     uri=`echo $x | cut -d\| -f 3`
     graph_uri=`echo $x | cut -d\| -f 4`
