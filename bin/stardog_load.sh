@@ -390,7 +390,7 @@ if [[ $force -eq 1 ]]; then
     echo "  SKIP QA on $file ...`/bin/date`"
 else
     echo "  Run QA on $file ...`/bin/date`"
-    $DIR/stardog_qa.sh $terminology $file > /tmp/x.$$.log  2>&1
+    $DIR/stardog_qa.sh $terminology $file $weekly > /tmp/x.$$.log  2>&1
     if [[ $? -ne 0 ]]; then
 	cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: QA errors, re-run with --force to bypass this"
