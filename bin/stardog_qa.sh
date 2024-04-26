@@ -50,9 +50,10 @@ get_ncit_last_char() {
 
 # NCI Thesaurus checks
 if [[ $terminology == "ncit" ]]; then
-  ncit_last_char=$(get_ncit_last_char)
+  version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  ncit_last_char=${version: -1}
   if [[ "$ncit_last_char" =~ [^abc] && "$weekly" -eq 1 ]]; then
-    echo "A non-weekly NCIT file ${file} is run as a weekly load"
+    echo "A non-weekly NCIT file is run as a weekly load. NCIT version:${version}"
     error=1
   fi
 	echo "    Verify each owl:Class has an NHC0 property"
