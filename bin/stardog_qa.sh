@@ -52,6 +52,7 @@ get_ncit_last_char() {
 if [[ $terminology == "ncit" ]]; then
   version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
   ncit_last_char=${version: -1}
+  # If the last character of the NCIT version is a, b or c and if the script is run as weekly, we want to fail
   if [[ "$ncit_last_char" =~ [^abc] && "$weekly" -eq 1 ]]; then
     echo "A non-weekly NCIT file is run as a weekly load. NCIT version:${version}"
     error=1
