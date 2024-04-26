@@ -41,11 +41,13 @@ newRestriction = "" # restriction code
 hitClass = False # ignore axioms and stuff before hitting any classes
 termCodeline = "" # terminology Code identifier line
 uniquePropertiesList = [] # store potential synonym/definition metadata values
+dataPropertiesList = [] # hold list of data properties
 inComplexProperty = 0 # skip complex properties
 buildingProperty = "" # catch for badly formatted multi line properties
 termJSONObject = "" # terminology properties
 inComplexAxiom = False # complex axiom handling (skipping)
 inIndividuals = False # skip individuals section
+inDataProperties = False # get data properties to skip
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -98,9 +100,13 @@ def checkForNewProperty(line):
 
 def handleRestriction(line):
     global newRestriction # grab newRestriction global
+    global dataPropertiesList # grab data properties list
     detail = re.findall('"([^"]*)"', line)[0]
     pathCode = "/".join(currentClassPath) + "~" # prebuild tag stack for restriction
     property = re.split(r'[#/]', detail)[-1] # extract property
+    #print(dataPropertiesList)
+    if(property in dataPropertiesList): # ignore anything in dataPropertiesList
+      return
     if(line.startswith("<owl:onProperty")): # property code
       if(detail in uri2Code):
         newRestriction = uri2Code[detail]
@@ -181,6 +187,16 @@ if __name__ == "__main__":
             if(line.startswith("// Annotations")): # skip ending annotation
                 hitClass = False
                 continue
+            elif(inDataProperties and line.startswith("<!--") and not line.endswith(" -->")):
+              inDataProperties = False
+              continue
+            elif(inDataProperties):
+              if(line.startswith("<owl:DatatypeProperty ")):
+                dataPropertiesList.append(line.split('/')[-1].split('"')[0])
+              continue
+            elif(line.startswith("// Data properties")):
+              inDataProperties = True
+              continue
             elif(line.startswith("<!--") or line.startswith("-->")): # skip concept titles
               continue
             elif(line.startswith("<owl:deprecated>false")):
