@@ -41,9 +41,13 @@ newRestriction = "" # restriction code
 hitClass = False # ignore axioms and stuff before hitting any classes
 termCodeline = "" # terminology Code identifier line
 uniquePropertiesList = [] # store potential synonym/definition metadata values
+dataPropertiesList = [] # hold list of data properties
 inComplexProperty = 0 # skip complex properties
 buildingProperty = "" # catch for badly formatted multi line properties
 termJSONObject = "" # terminology properties
+inComplexAxiom = False # complex axiom handling (skipping)
+inIndividuals = False # skip individuals section
+inDataProperties = False # get data properties to skip
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -96,9 +100,13 @@ def checkForNewProperty(line):
 
 def handleRestriction(line):
     global newRestriction # grab newRestriction global
+    global dataPropertiesList # grab data properties list
     detail = re.findall('"([^"]*)"', line)[0]
     pathCode = "/".join(currentClassPath) + "~" # prebuild tag stack for restriction
     property = re.split(r'[#/]', detail)[-1] # extract property
+    #print(dataPropertiesList)
+    if(property in dataPropertiesList): # ignore anything in dataPropertiesList
+      return
     if(line.startswith("<owl:onProperty")): # property code
       if(detail in uri2Code):
         newRestriction = uri2Code[detail]
@@ -115,6 +123,7 @@ def handleRestriction(line):
 def handleAxiom(line):
     global currentClassURI # grab globals
     global currentClassCode
+    global inComplexAxiom
     if(line.startswith("<owl:annotatedSource")): # get source uri and code
         currentClassURI = re.findall('"([^"]*)"', line)[0]
     elif(line.startswith("<owl:annotatedProperty")): # get property code
@@ -125,6 +134,9 @@ def handleAxiom(line):
           axiomInfo.append("qualifier-" + re.split(r'[/]', sourceProperty)[-1].replace("rdf-schema#", "rdfs:") + "~")
         else:
           axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
+    elif(line.startswith("<owl:annotatedTarget>")): # skip complex axiom
+        inComplexAxiom = True
+        return
     elif(line.startswith("<owl:annotatedTarget")): # get target code
         axiomInfo.append(re.findall(">(.+?)<", line)[0] + "~")
     elif(not line.startswith("<owl:annotated") and len(re.split(r'[< >]', line)) > 1 and len(re.findall(">(.+?)<", line)) > 0 and axiomInfo[0] + re.split(r'[< >]', line)[1] + "~" + re.findall(">(.+?)<", line)[0] not in axiomProperties): # get connected properties
@@ -168,12 +180,24 @@ if __name__ == "__main__":
     
     with open(terminology + "-samples.txt", "w") as termFile:
         for index, line in enumerate(ontoLines): # get index just in case
+            #print(line + " " + str(index))
             lastSpaces = spaces # previous line's number of leading spaces (for comparison)
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
             line = line.strip() # no need for leading spaces anymore
             if(line.startswith("// Annotations")): # skip ending annotation
                 hitClass = False
-            elif(line.startswith("<!--")): # skip concept titles
+                continue
+            elif(inDataProperties and line.startswith("<!--") and not line.endswith(" -->")):
+              inDataProperties = False
+              continue
+            elif(inDataProperties):
+              if(line.startswith("<owl:DatatypeProperty ")):
+                dataPropertiesList.append(line.split('/')[-1].split('"')[0])
+              continue
+            elif(line.startswith("// Data properties")):
+              inDataProperties = True
+              continue
+            elif(line.startswith("<!--") or line.startswith("-->")): # skip concept titles
               continue
             elif(line.startswith("<owl:deprecated>false")):
               continue
@@ -184,11 +208,14 @@ if __name__ == "__main__":
                 buildingProperty = "" # end of the property
               else:
                 continue
+            elif(line.startswith("// Individuals") or inIndividuals): # skip everything past individuals
+              inIndividuals = True
+              continue
             # skipping complex properties
-            elif(inComplexProperty > 0 and (line.startswith("</owl:someValuesFrom>") or line.startswith("</owl:disjointWith>") or (line.startswith("</owl:Class>") and (inEquivalentClass or inSubclass)))):
+            elif(inComplexProperty > 0 and (line.startswith("</owl:someValuesFrom>") or line.startswith("</owl:disjointWith>") or (line.startswith("</owl:Class>") or (line.startswith("</owl:allValuesFrom>")) and (inEquivalentClass or inSubclass)))):
               inComplexProperty -= 1
               continue
-            elif(line.startswith("<owl:someValuesFrom>") or line.startswith("<owl:disjointWith>") or (line.startswith("<owl:Class>") and (inEquivalentClass or inSubclass))):
+            elif(line.startswith("<owl:someValuesFrom>") or line.startswith("<owl:disjointWith>") or (line.startswith("<owl:Class>") or (line.startswith("<owl:allValuesFrom>")) and (inEquivalentClass or inSubclass))):
               inComplexProperty += 1
               continue
             elif(inComplexProperty > 0):
@@ -227,7 +254,7 @@ if __name__ == "__main__":
             elif(line.startswith("<owl:deprecated")): # track deprecated but still used classes for root filtering
                 deprecated[currentClassURI] = False;
                 
-            elif(line.startswith("<owl:Class ") and not inEquivalentClass):
+            elif(line.startswith("<owl:Class ") and not inEquivalentClass and not line.endswith("/>")):
               if not hitClass:
                 hitClass = True
               inClass = True
@@ -262,10 +289,12 @@ if __name__ == "__main__":
             elif line.startswith("<owl:Axiom>") and hitClass: # find complex subclass            
                 inAxiom = True
             elif line.startswith("</owl:Axiom>"):
+                inComplexAxiom = False
                 inAxiom = False
                 axiomInfo = [] # empty the info list for the previous axiom
             elif inAxiom:
-                handleAxiom(line)
+                if(not inComplexAxiom):
+                    handleAxiom(line)
  
             elif(line.startswith("<owl:equivalentClass>")): # tag equivalentClass (necessary for restrictions)
                 inEquivalentClass = True
