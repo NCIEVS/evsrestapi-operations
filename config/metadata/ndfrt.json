@@ -1,26 +1,19 @@
 {
   "uiLabel": "NDFRT: National Drug File Reference Terminology",
   "description": "NDFRT: National Drug File Reference Terminology (NDF-RT) is produced by the Veterans Health Administration (VHA) as an extension of the VHA National Drug File (VANDF) formulary.",
-  "code": "",
+  "code": "rdf:ID",
   "conceptStatus": "owl:deprecated",
   "retiredStatusValue": "true",
   "preferredName": "rdfs:label",
   "synonym": [
     "rdfs:label",
-    "DUO_0000041",
-    "oboInOwl:hasExactSynonym",
-    "oboInOwl:hasRelatedSynonym",
-    "oboInOwl:hasNarrowSynonym",
-    "oboInOwl:hasBroadSynonym"
+    "Display_Name"
   ],
-  "synonymTermType": "oboInOwl:hasSynonymType",
+  "synonymTermType": null,
   "synonymSource": null,
   "synonymCode": null,
   "synonymSubSource": null,
-  "definition": [
-    "IAO_0000115",
-    "IAO_0000232"
-  ],
+  "definition": null,
   "definitionSource": null,
   "map": null,
   "mapRelation": null,
