@@ -61,7 +61,7 @@ def checkParamsValid(argv):
     return True
 
 def parentChildProcess(line):
-    uriToProcess = re.findall('"([^"]*)"', line)[0]
+    uriToProcess = re.findall('"([^"]*)"', line)[0].replace("#","")
     if(line.startswith("<rdfs:subClassOf rdf:resource=")):
         if(parentStyle1 == []): # first example of rdf:subClassOf child
             parentStyle1.append((currentClassURI, uriToProcess)) # hold in the parentStyle1 object as tuple
@@ -96,7 +96,7 @@ def checkForNewProperty(line):
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
         detail = re.findall(">(.+?)<", line)[0]
-    return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n")
+    return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n") # pound sign removal for ndfrt
 
 def handleRestriction(line):
     global newRestriction # grab newRestriction global
@@ -116,7 +116,7 @@ def handleRestriction(line):
     elif(line.startswith("<owl:someValuesFrom")): # value code
       if(newRestriction == "" or pathCode + newRestriction in uriRestrictions2Code): # duplicate
         return
-      propertiesCurrentClass[pathCode+newRestriction] = currentClassURI + "\t" + currentClassCode + "\t" + pathCode+newRestriction + "\t" + detail + "\n" # add code/path to properties
+      propertiesCurrentClass[pathCode+newRestriction] = currentClassURI + "\t" + currentClassCode + "\t" + pathCode+newRestriction + "\t" + detail.strip("#") + "\n" # add code/path to properties
       uriRestrictions2Code[pathCode+newRestriction] = newRestriction
       newRestriction = "" # saved code now used, reset to empty
             
@@ -232,7 +232,11 @@ if __name__ == "__main__":
               uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               objectProperties[currentClassURI] = uri2Code[currentClassURI]
               
-            elif(line.startswith("<owl:AnnotationProperty")and not line.endswith("/>")):
+            elif(line.startswith("<owl:AnnotationProperty") and not line.endswith("/>")):
+              if(not line.endswith(">")): # badly formatted properties
+                  buildingProperty = line
+                  inAnnotationProperty = True;
+                  continue   
               inAnnotationProperty = True;
               currentClassURI = re.findall('"([^"]*)"', line)[0]
             elif(line.startswith("</owl:AnnotationProperty>")):
