@@ -81,6 +81,8 @@ def parentChildProcess(line):
     return
 
 def checkForNewProperty(line):
+    if(line.endswith("/>") and not re.search(r'>.*?<', line) and not "owl:disjointWith" in line): # check for non-picked single-line properties
+      return ""
     splitLine = re.split("[<>= \"]", line.strip()) # split by special characters
     splitLine = [x for x in splitLine if x != ''] # remove empty entries for consistency
     if(oboPrefix and splitLine[0].startswith(oboPrefix)):
