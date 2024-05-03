@@ -25,5 +25,6 @@
 	"hierarchy": true,
 	"detailsColumns": {
 		"synonyms-type": true
-	}
+	},
+	"sparqlPrefix": "PREFIX :<http://ncicb.nci.nih.gov/genenames.org/HGNC.owl#> PREFIX HGNC:<http://ncicb.nci.nih.gov/genenames.org/HGNC.owl#>"
 }

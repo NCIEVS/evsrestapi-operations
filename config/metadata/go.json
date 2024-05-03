@@ -30,5 +30,6 @@
 	"hierarchy": true,
 	"detailsColumns": {
 		"synonyms-type": true
-	}
+	},
+	"sparqlPrefix": "PREFIX obo1:<http://purl.obolibrary.org/obo> PREFIX GO:<http://purl.obolibrary.org/obo/go.owl>"
 }

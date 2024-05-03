@@ -31,5 +31,6 @@
 	"detailsColumns": {
 		"synonyms-type": true,
 		"synonyms-termType": true
-	}
+	},
+	"sparqlPrefix": "PREFIX :<http://purl.obolibrary.org/obo/chebi.owl#> PREFIX base:<http://purl.obolibrary.org/obo/chebi.owl#> PREFIX chebi:<http://purl.obolibrary.org/obo/chebi/> PREFIX CHEBI:<http://purl.obolibrary.org/obo/chebi/> PREFIX obo:<http://purl.obolibrary.org/obo>"
 }
