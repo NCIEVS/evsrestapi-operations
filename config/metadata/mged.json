@@ -1,0 +1,25 @@
+{
+	"uiLabel": "MGED: Microarray Gene Expression Data Ontology",
+	"code": "unique_identifier",
+	"conceptStatus": "owl:deprecated",
+	"retiredStatusValue": "true",
+	"preferredName": "rdf:ID",
+	"synonym": [
+		"rdf:ID"
+	],
+	"synonymTermType": null,
+	"synonymSource": null,
+	"synonymCode": null,
+	"synonymSubSource": null,
+	"definition": [],
+	"definitionSource": null,
+	"map": null,
+	"mapRelation": null,
+	"mapTarget": null,
+	"mapTargetTermType": null,
+	"mapTargetTerminology": null,
+	"mapTargetTerminologyVersion": null,
+	"relationshipToTarget": null,
+	"hierarchy": true,
+	"detailsColumns": {}
+}

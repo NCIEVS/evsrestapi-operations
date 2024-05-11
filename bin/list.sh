@@ -126,7 +126,7 @@ get_ignored_sources(){
   fi
 }
 ignored_sources=$(get_ignored_sources)
-echo "Ignored source URLs:${ignored_sources}"
+echo "    Ignored source URLs:${ignored_sources}"
 if [ -n "$ignored_sources" ];then
 cat > /tmp/x.$$.txt << EOF
 query=PREFIX owl:<http://www.w3.org/2002/07/owl#>
