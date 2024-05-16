@@ -37,7 +37,8 @@
           "placeholder": "Enter your organization"
         },
         {
-          "description": "Privacy Notice: For term submission purposes we request business contact information only, not personal information. Any contact information that you enter will be stored on a publicly accessible web site in support of CDISC term submission tracking. NCI-EVS or CDISC personnel may contact you"}
+          "description": "Privacy Notice: For term submission purposes we request business contact information only, not personal information. Any contact information that you enter will be stored on a publicly accessible web site in support of CDISC term submission tracking. NCI-EVS or CDISC personnel may contact you"
+        }
       ]
     },
     {
@@ -1490,6 +1491,11 @@
               "name": "required",
               "validator": "required",
               "message": "Term/Codelist Request information is required"
+            },
+            {
+              "name": "maxLength",
+              "validator": 200,
+              "message": "Only 200 characters or less allowed"
             }
           ]
         }
@@ -1509,6 +1515,11 @@
               "name": "required",
               "validator": "required",
               "message": "Description is required"
+            },
+            {
+              "name": "maxLength",
+              "validator": 200,
+              "message": "Only 200 characters or less allowed"
             }
           ]
         }
