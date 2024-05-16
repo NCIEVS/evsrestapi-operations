@@ -3,32 +3,46 @@
   "recipientEmail": "NciEvsCdiscHelp@mail.nih.gov",
   "sections": [
     {
-      "name": "Contact Information",
+      "name": "contact",
+      "label": "Contact Information",
       "fields": [
         {
-          "name": "Business Email",
-          "type": "text",
+          "name": "email",
+          "label": "Business Email",
+          "type": "email",
           "placeholder": "Enter your business email",
-          "required": true
+          "validation": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Email is required"
+            },
+            {
+              "name": "pattern",
+              "validator": "email",
+              "message": "Invalid email format"
+            }
+          ]
         },
         {
-          "name": "Name",
+          "name": "name",
+          "label": "Name",
           "type": "text",
-          "placeholder": "Enter your name",
-          "required": false
+          "placeholder": "Enter your name"
         },
         {
-          "name": "Organization",
+          "name": "organization",
+          "label": "Organization",
           "type": "text",
-          "placeholder": "Enter your organization",
-          "required": false
+          "placeholder": "Enter your organization"
         },
         {
           "description": "Privacy Notice: For term submission purposes we request business contact information only, not personal information. Any contact information that you enter will be stored on a publicly accessible web site in support of CDISC term submission tracking. NCI-EVS or CDISC personnel may contact you"}
       ]
     },
     {
-      "name": "Term Information",
+      "name": "termInfo",
+      "label": "Term Information",
       "instructions": {
         "parts": [
           {
@@ -55,13 +69,15 @@
       },
       "fields": [
         {
-          "name": "Vocabulary",
+          "name": "vocabulary",
+          "label": "Vocabulary",
           "type": "text",
           "value": "CDISC Terminology",
           "readonly": true
         },
         {
-          "name": "Request Type",
+          "name": "type",
+          "label": "Request Type",
           "type": "dropdown",
           "options": [
             "Create New Term",
@@ -71,12 +87,18 @@
             "Other"
           ],
           "placeholder": "Select request type",
-          "required": true
+          "validations": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Request Type is required"
+            }
+          ]
         },
         {
-          "name": "CDISC Subset",
+          "name": "subset",
+          "label": "CDISC Subset",
           "type": "dropdown",
-          "required": true,
           "options": [
             "New",
             "ADaM",
@@ -92,14 +114,28 @@
             "TMF",
             "Other",
             "Unknown"
+          ],
+          "validations": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Subset is required"
+            }
           ]
         },
         {
-          "name": "CDISC Codelist",
+          "name": "codelist",
+          "label": "CDISC Codelist",
           "type": "dropdown",
           "multiple": true,
-          "required": true,
           "placeholder": "Select All Codes that Apply",
+          "validations": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Codelist is required"
+            }
+          ],
           "options": [
             "New",
             "Other",
@@ -1445,21 +1481,36 @@
           ]
         },
         {
-          "name": "Term or Codelist Request",
+          "name": "requestInfo",
+          "label": "Term or Codelist Request",
           "type": "textarea",
           "placeholder": "Enter the Term or Codelist Request Information",
-          "required": true
+          "validations": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Term/Codelist Request information is required"
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Additional Information",
+      "name": "additionalInfo",
+      "label": "Additional Information",
       "fields": [
         {
-          "name": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\”. Failure to include supporting information may delay resolution of the request.",
+          "name": "reason",
+          "label": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\”. Failure to include supporting information may delay resolution of the request.",
           "type": "textarea",
           "placeholder": "Enter reason, draft definition and examples",
-          "required": true
+          "validations": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Description is required"
+            }
+          ]
         }
       ]
     }

@@ -6,16 +6,28 @@
       "name": "Contact Information",
       "fields": [
         {
-          "name": "Business Email",
-          "type": "text",
+          "name": "email",
+          "label": "Business Email",
+          "type": "email",
           "placeholder": "Enter your business email",
-          "required": true
+          "validation": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Email is required"
+            },
+            {
+              "name": "pattern",
+              "validator": "email",
+              "message": "Invalid email format"
+            }
+          ]
         },
         {
-          "name": "Other",
+          "name": "other",
+          "label": "Other",
           "type": "textarea",
-          "placeholder": "Enter additional contact information",
-          "required": false
+          "placeholder": "Enter additional contact information"
         },
         {
           "description": "Privacy Notice: For term submission purposes we request business contact information only, not personal information.\n    Your business email, and any other business contact information that you enter, will only be used to contact you\n    about this topic if any clarifications are needed. This information will not be disseminated to others outside the\n    EVS group of the NCI, or stored except as part of the email communications on this topic. "
@@ -23,11 +35,13 @@
       ]
     },
     {
-      "name": "Term Information",
+      "name": "termInfo",
+      "label": "Term Information",
       "instructions": "Fill in the following fields as appropriate. For multiple terms, please consider emailing an Excel, delimited text, or similar file to ncithesaurus@mail.nih.gov, which can also respond to any questions.",
       "fields": [
         {
-          "name": "Vocabulary",
+          "name": "vocabulary",
+          "label": "Vocabulary",
           "type": "dropdown",
           "options": [
             "NCI Thesaurus",
@@ -36,48 +50,62 @@
             "Other"
           ],
           "placeholder": "Select vocabulary",
-          "required": true
+          "validations": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Vocabulary is required"
+            }
+          ]
         },
         {
-          "name": "Term",
+          "name": "term",
+          "label": "Term",
           "type": "textarea",
           "placeholder": "Enter the term(s)",
-          "required": true
+          "validations": [
+            {
+              "name": "required",
+              "validator": "required",
+              "message": "Term is required"
+            }
+          ]
         },
         {
-          "name": "Synonym(s)",
+          "name": "synonym",
+          "label": "Synonym(s)",
           "type": "textarea",
-          "placeholder": "Enter synonyms (if any)",
-          "required": false
+          "placeholder": "Enter synonyms (if any)"
         },
         {
-          "name": "Nearest Code/CUI",
+          "name": "nearestCode",
+          "label": "Nearest Code/CUI",
           "type": "textarea",
-          "placeholder": "Enter nearest code/CUI",
-          "required": false
+          "placeholder": "Enter nearest code/CUI"
         },
         {
-          "name": "Definition/Other",
+          "name": "other",
+          "label": "Definition/Other",
           "type": "textarea",
-          "placeholder": "Enter definition/other information",
-          "required": false
+          "placeholder": "Enter definition/other information"
         }
       ]
     },
     {
-      "name": "Additional Information",
+      "name": "additionalInfo",
+      "label": "Additional Information",
       "fields": [
         {
-          "name": "Project/Product term needed for",
+          "name": "project",
+          "label": "Project/Product term needed for",
           "type": "textarea",
-          "placeholder": "Enter project/product term",
-          "required": false
+          "placeholder": "Enter project/product term"
         },
         {
-          "name": "Reason for suggestion/Any additional information",
+          "name": "reason",
+          "label": "Reason for suggestion/Any additional information",
           "type": "textarea",
-          "placeholder": "Enter reason for suggestion or any additional information that may help us",
-          "required": false
+          "placeholder": "Enter reason for suggestion or any additional information that may help us"
         }
       ]
     }
