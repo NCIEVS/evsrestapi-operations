@@ -1514,16 +1514,5 @@
         }
       ]
     }
-  ],
-  "captcha": true,
-  "buttons": [
-    {
-      "name": "Clear",
-      "type": "reset"
-    },
-    {
-      "name": "Submit",
-      "type": "submit"
-    }
   ]
 }
