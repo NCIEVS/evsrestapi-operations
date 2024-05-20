@@ -3,7 +3,8 @@
   "recipientEmail": "ncithesaurus@mail.nih.gov",
   "sections": [
     {
-      "name": "Contact Information",
+      "name": "contact",
+      "label": "Contact Information",
       "fields": [
         {
           "name": "email",
