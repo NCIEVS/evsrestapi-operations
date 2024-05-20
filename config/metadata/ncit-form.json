@@ -1,5 +1,6 @@
 {
   "formName": "Term Suggestion",
+  "formType": "NCIT",
   "recipientEmail": "ncithesaurus@mail.nih.gov",
   "sections": [
     {
