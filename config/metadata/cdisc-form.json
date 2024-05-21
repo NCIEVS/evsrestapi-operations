@@ -49,7 +49,6 @@
         "parts": [
           {
             "text": "Fill in the following fields as appropriate. For multiple term submissions (any more than 3 terms), please click on and download the ",
-            "link": null
           },
           {
             "text": "Excel file CDISC Controlled Terminology Multiple Term Request Spreadsheet.",
@@ -57,15 +56,13 @@
           },
           {
             "text": "Fill in the template appropriately, add your name and request date to the end of the file name, and Email the completed file to",
-            "link": null
           },
           {
             "text": "NciEvsCdiscHelp@mail.nih.gov.",
-            "link": "mailto:NciEvsCdiscHelp@mail.nih.gov?Subject=CDISC%20New%20Term%20Request"
+            "link": "mailto:NciEvsCdiscHelp@mail.nih.gov?Subject=CDISC%20New%20Term%20Request%20File"
           },
           {
             "text": "In addition, please submit this CDISC New Term Request form indicating \"File emailed separately\" in the “Additional Information” field below.",
-            "link": null
           }
         ]
       },
@@ -1508,7 +1505,7 @@
       "fields": [
         {
           "name": "reason",
-          "label": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\”. Failure to include supporting information may delay resolution of the request.",
+          "label": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\". Failure to include supporting information may delay resolution of the request.",
           "type": "textarea",
           "placeholder": "Enter reason, draft definition and examples",
           "validations": [
