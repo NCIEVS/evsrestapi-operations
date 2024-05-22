@@ -6,6 +6,14 @@
     {
       "name": "contact",
       "label": "Contact Information",
+      "instructions": {
+        "parts": [
+          {
+            "text": "Privacy Notice: For term submission purposes we request business contact information only, not personal information. Any contact information that you enter will be stored on a publicly accessible web site in support of CDISC term submission tracking. NCI-EVS or CDISC personnel may contact you."
+
+          }
+        ]
+      },
       "fields": [
         {
           "name": "email",
@@ -39,10 +47,6 @@
           "type": "text",
           "value": "",
           "placeholder": "Enter your organization"
-        },
-        {
-          "name": "description",
-          "label": "Privacy Notice: For term submission purposes we request business contact information only, not personal information. Any contact information that you enter will be stored on a publicly accessible web site in support of CDISC term submission tracking. NCI-EVS or CDISC personnel may contact you."
         }
       ]
     },
