@@ -9,7 +9,10 @@
       "instructions": {
         "parts": [
           {
-            "text":  "Privacy Notice: For term submission purposes we request business contact information only, not personal information. Your business email, and any other business contact information that you enter, will only be used to contact you about this topic if any clarifications are needed. This information will not be disseminated to others outside the EVS group of the NCI, or stored except as part of the email communications on this topic."
+            "text":  "Privacy Notice:"
+          },
+          {
+            "text": "For term submission purposes we request business contact information only, not personal information. Your business email, and any other business contact information that you enter, will only be used to contact you about this topic if any clarifications are needed. This information will not be disseminated to others outside the EVS group of the NCI, or stored except as part of the email communications on this topic."
           }
         ]
       },
