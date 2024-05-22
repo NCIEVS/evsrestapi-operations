@@ -48,21 +48,21 @@
       "instructions": {
         "parts": [
           {
-            "text": "Fill in the following fields as appropriate. For multiple term submissions (any more than 3 terms), please click on and download the ",
+            "text": "Fill in the following fields as appropriate. For multiple term submissions (any more than 3 terms), please click on and download the "
           },
           {
             "text": "Excel file CDISC Controlled Terminology Multiple Term Request Spreadsheet.",
             "link": "https://ncitermform.nci.nih.gov/ncitermform/download?action=download"
           },
           {
-            "text": "Fill in the template appropriately, add your name and request date to the end of the file name, and Email the completed file to",
+            "text": "Fill in the template appropriately, add your name and request date to the end of the file name, and Email the completed file to"
           },
           {
             "text": "NciEvsCdiscHelp@mail.nih.gov.",
             "link": "mailto:NciEvsCdiscHelp@mail.nih.gov?Subject=CDISC%20New%20Term%20Request%20File"
           },
           {
-            "text": "In addition, please submit this CDISC New Term Request form indicating \"File emailed separately\" in the “Additional Information” field below.",
+            "text": "In addition, please submit this CDISC New Term Request form indicating \"File emailed separately\" in the “Additional Information” field below."
           }
         ]
       },
