@@ -10,7 +10,7 @@
         {
           "name": "email",
           "label": "Business Email",
-          "type": "email",
+          "type": "text",
           "value": "",
           "placeholder": "Enter your business email",
           "validations": [
