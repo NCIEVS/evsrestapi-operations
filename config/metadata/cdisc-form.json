@@ -11,6 +11,7 @@
           "name": "email",
           "label": "Business Email",
           "type": "email",
+          "value": "",
           "placeholder": "Enter your business email",
           "validations": [
             {
@@ -29,12 +30,14 @@
           "name": "name",
           "label": "Name",
           "type": "text",
+          "value": "",
           "placeholder": "Enter your name"
         },
         {
           "name": "organization",
           "label": "Organization",
           "type": "text",
+          "value": "",
           "placeholder": "Enter your organization"
         },
         {
@@ -78,6 +81,7 @@
           "name": "type",
           "label": "Request Type",
           "type": "dropdown",
+          "value": "",
           "options": [
             "Create New Term",
             "Create New Codelist",
@@ -98,6 +102,7 @@
           "name": "subset",
           "label": "CDISC Subset",
           "type": "dropdown",
+          "value": "",
           "options": [
             "New",
             "ADaM",
@@ -127,6 +132,7 @@
           "label": "CDISC Codelist",
           "type": "dropdown",
           "multiple": true,
+          "value": "",
           "placeholder": "Select All Codes that Apply",
           "validations": [
             {
@@ -1483,6 +1489,7 @@
           "name": "requestInfo",
           "label": "Term or Codelist Request",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter the Term or Codelist Request Information",
           "validations": [
             {
@@ -1507,6 +1514,7 @@
           "name": "reason",
           "label": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\". Failure to include supporting information may delay resolution of the request.",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter reason, draft definition and examples",
           "validations": [
             {

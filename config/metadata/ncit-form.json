@@ -11,6 +11,7 @@
           "name": "email",
           "label": "Business Email",
           "type": "email",
+          "value": "",
           "placeholder": "Enter your business email",
           "validations": [
             {
@@ -29,6 +30,7 @@
           "name": "other",
           "label": "Other",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter additional contact information"
         },
         {
@@ -58,6 +60,7 @@
           "name": "vocabulary",
           "label": "Vocabulary",
           "type": "dropdown",
+          "value": "",
           "options": [
             "NCI Thesaurus",
             "NCI Metathesaurus",
@@ -77,6 +80,7 @@
           "name": "term",
           "label": "Term",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter the term(s)",
           "validations": [
             {
@@ -90,18 +94,21 @@
           "name": "synonym",
           "label": "Synonym(s)",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter synonyms (if any)"
         },
         {
           "name": "nearestCode",
           "label": "Nearest Code/CUI",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter nearest code/CUI"
         },
         {
           "name": "other",
           "label": "Definition/Other",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter definition/other information"
         }
       ]
@@ -114,12 +121,14 @@
           "name": "project",
           "label": "Project/Product term needed for",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter project/product term"
         },
         {
           "name": "reason",
           "label": "Reason for suggestion/Any additional information",
           "type": "textarea",
+          "value": "",
           "placeholder": "Enter reason for suggestion or any additional information that may help us"
         }
       ]
