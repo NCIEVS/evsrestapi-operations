@@ -1510,13 +1510,20 @@
     {
       "name": "additionalInfo",
       "label": "Additional Information",
+      "instructions": {
+        "parts": [
+          {
+            "text": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\". Failure to include supporting information may delay resolution of the request."
+          }
+        ]
+      },
       "fields": [
         {
           "name": "reason",
-          "label": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\". Failure to include supporting information may delay resolution of the request.",
+          "label": "Reason for suggestion/Any additional information",
           "type": "textarea",
           "value": "",
-          "placeholder": "Enter reason, draft definition and examples",
+          "placeholder": "Enter reason, draft definition and/or examples",
           "validations": [
             {
               "name": "required",

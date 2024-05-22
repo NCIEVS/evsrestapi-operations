@@ -127,7 +127,7 @@
         },
         {
           "name": "reason",
-          "label": "Reason for suggestion/Any additional information",
+          "label": "Reason for suggestion or any additional information",
           "type": "textarea",
           "value": "",
           "placeholder": "Enter reason for suggestion or any additional information that may help us"
