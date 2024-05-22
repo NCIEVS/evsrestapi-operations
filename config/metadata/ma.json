@@ -1,5 +1,5 @@
 {
-	"uiLabel": "MA: Anatomical Dictionary for the Adult Mouse",
+	"uiLabel": "Mouse Anatomy: Anatomical Dictionary for the Adult Mouse",
 	"code": "oboInOwl:id",
 	"conceptStatus": "owl:deprecated",
 	"retiredStatusValue": "true",
