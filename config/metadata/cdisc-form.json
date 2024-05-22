@@ -42,7 +42,7 @@
         },
         {
           "name": "description",
-          "label": "Privacy Notice: For term submission purposes we request business contact information only, not personal information. Any contact information that you enter will be stored on a publicly accessible web site in support of CDISC term submission tracking. NCI-EVS or CDISC personnel may contact you"
+          "label": "Privacy Notice: For term submission purposes we request business contact information only, not personal information.\n Any contact information that you enter will be stored on a publicly accessible web site in support of CDISC term submission tracking.\n NCI-EVS or CDISC personnel may contact you."
         }
       ]
     },
