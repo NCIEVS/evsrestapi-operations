@@ -61,7 +61,7 @@ def checkParamsValid(argv):
     return True
 
 def parentChildProcess(line):
-    uriToProcess = re.findall('"([^"]*)"', line)[0]
+    uriToProcess = re.findall('"([^"]*)"', line)[0].replace("#","")
     if(line.startswith("<rdfs:subClassOf rdf:resource=")):
         if(parentStyle1 == []): # first example of rdf:subClassOf child
             parentStyle1.append((currentClassURI, uriToProcess)) # hold in the parentStyle1 object as tuple
@@ -97,12 +97,17 @@ def checkForNewProperty(line):
     elif("rdf:resource=\"" in line): # grab stuff in quotes
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
-        detail = re.findall(">(.+?)<", line)[0]
+        detail_parts = re.findall(">(.+?)<", line)
+        if detail_parts:
+            detail = re.findall(">(.+?)<", line)[0]
     return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n") # pound sign removal for ndfrt
 
 def handleRestriction(line):
     global newRestriction # grab newRestriction global
     global dataPropertiesList # grab data properties list
+    detail_parts = re.findall('"([^"]*)"', line)
+    if not detail_parts:
+        return
     detail = re.findall('"([^"]*)"', line)[0]
     pathCode = "/".join(currentClassPath) + "~" # prebuild tag stack for restriction
     property = re.split(r'[#/]', detail)[-1] # extract property
@@ -231,7 +236,10 @@ if __name__ == "__main__":
             elif(line.startswith("</owl:ObjectProperty>")):
               inObjectProperty = False
             elif inObjectProperty and line.startswith(termCodeline):
-              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
+              if(not line.endswith(">")): # badly formatted properties
+                  buildingProperty = line
+                  continue
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0].replace("#", "")
               objectProperties[currentClassURI] = uri2Code[currentClassURI]
               
             elif(line.startswith("<owl:AnnotationProperty") and not line.endswith("/>")):
@@ -244,7 +252,10 @@ if __name__ == "__main__":
             elif(line.startswith("</owl:AnnotationProperty>")):
               inAnnotationProperty = False
             elif (inAnnotationProperty and line.startswith(termCodeline)):
-              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
+              if(not line.endswith(">")): # badly formatted properties
+                  buildingProperty = line
+                  continue
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0].replace("#", "")
               annotationProperties[currentClassURI] = uri2Code[currentClassURI]
             elif(line.startswith("<owl:AnnotationProperty")and line.endswith("/>")):
               annotationProperties[line.split("\"")[-2]] = line.split("\"")[-2].split("/")[-1]
@@ -265,7 +276,7 @@ if __name__ == "__main__":
                 hitClass = True
               inClass = True
               propertiesCurrentClass = {} # reset for new class
-              currentClassURI = re.findall('"([^"]*)"', line)[0] # set uri entry in line
+              currentClassURI = re.findall('"([^"]*)"', line)[0].replace("#", "") # set uri entry in line
               currentClassCode = re.split("/|#", currentClassURI)[-1] # set initial class code
               uri2Code[currentClassURI] = currentClassCode # set initial uri code value
               continue
@@ -323,7 +334,7 @@ if __name__ == "__main__":
                   buildingProperty = line
                   continue                 
                 if(line.startswith(termCodeline)): # catch ID to return if it has properties
-                    currentClassCode = re.findall(">(.+?)<", line)[0]
+                    currentClassCode = re.findall(">(.+?)<", line)[0].replace("#", "")
                     classHasCode = True
                     uri2Code[currentClassURI] = currentClassCode # store code for uri
                     continue
