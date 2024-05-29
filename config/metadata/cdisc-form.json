@@ -1,5 +1,5 @@
 {
-  "formName": "CDISC Terminoloy Change Request",
+  "formName": "CDISC Terminology Change Request",
   "formType": "CDISC",
   "recipientEmail": "NciEvsCdiscHelp@mail.nih.gov",
   "sections": [
@@ -110,6 +110,7 @@
           "label": "CDISC Subset",
           "type": "dropdown",
           "value": "",
+          "placeholder": "Select CDISC subset",
           "options": [
             "New",
             "ADaM",
@@ -140,7 +141,7 @@
           "type": "dropdown",
           "multiple": true,
           "value": "",
-          "placeholder": "Select All Codes that Apply",
+          "placeholder": "Select all codes that apply",
           "validations": [
             {
               "name": "required",
@@ -1497,7 +1498,7 @@
           "label": "Term or Codelist Request",
           "type": "textarea",
           "value": "",
-          "placeholder": "Enter the Term or Codelist Request Information",
+          "placeholder": "Enter the term or codelist request information",
           "validations": [
             {
               "name": "required",
@@ -1506,7 +1507,8 @@
             },
             {
               "name": "maxLength",
-              "validator": 200,
+              "validator": "maxlength",
+              "value": 200,
               "message": "Only 200 characters or less allowed"
             }
           ]
@@ -1538,7 +1540,8 @@
             },
             {
               "name": "maxLength",
-              "validator": 200,
+              "validator": "maxlength",
+              "value": 200,
               "message": "Only 200 characters or less allowed"
             }
           ]
