@@ -110,6 +110,7 @@
           "label": "CDISC Subset",
           "type": "dropdown",
           "value": "",
+          "placeholder": "Select CDISC Subset",
           "options": [
             "New",
             "ADaM",
