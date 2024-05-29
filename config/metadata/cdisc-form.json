@@ -1,5 +1,5 @@
 {
-  "formName": "CDISC Terminoloy Change Request",
+  "formName": "CDISC Terminology Change Request",
   "formType": "CDISC",
   "recipientEmail": "NciEvsCdiscHelp@mail.nih.gov",
   "sections": [
@@ -113,11 +113,6 @@
           "options": [
             "New",
             "ADaM",
-            "CDASH",
-            "DDF",
-            "Define-XML",
-            "CDISC Glossary",
-            "MRCT Glossary",
             "Protocol",
             "QRS",
             "SDTM",
