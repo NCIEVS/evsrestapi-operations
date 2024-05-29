@@ -113,6 +113,11 @@
           "options": [
             "New",
             "ADaM",
+            "CDASH",
+            "DDF",
+            "Define-XML",
+            "CDISC Glossary",
+            "MRCT Glossary",
             "Protocol",
             "QRS",
             "SDTM",
