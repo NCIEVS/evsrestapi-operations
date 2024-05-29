@@ -1538,7 +1538,8 @@
             },
             {
               "name": "maxLength",
-              "validator": 200,
+              "validator": "maxlength",
+              "value": 200,
               "message": "Only 200 characters or less allowed"
             }
           ]
