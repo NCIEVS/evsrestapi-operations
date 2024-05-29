@@ -110,7 +110,7 @@
           "label": "CDISC Subset",
           "type": "dropdown",
           "value": "",
-          "placeholder": "Select CDISC Subset",
+          "placeholder": "Select CDISC subset",
           "options": [
             "New",
             "ADaM",
@@ -141,7 +141,7 @@
           "type": "dropdown",
           "multiple": true,
           "value": "",
-          "placeholder": "Select All Codes that Apply",
+          "placeholder": "Select all codes that apply",
           "validations": [
             {
               "name": "required",
@@ -1498,7 +1498,7 @@
           "label": "Term or Codelist Request",
           "type": "textarea",
           "value": "",
-          "placeholder": "Enter the Term or Codelist Request Information",
+          "placeholder": "Enter the term or codelist request information",
           "validations": [
             {
               "name": "required",
