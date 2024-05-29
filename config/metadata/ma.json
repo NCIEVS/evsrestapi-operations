@@ -27,6 +27,7 @@
 	"mapTargetTerminologyVersion": null,
 	"relationshipToTarget": null,
 	"hierarchy": true,
+	"hierarchyRoles": ["part_of"],
 	"detailsColumns": {
 		"synonyms-type": true
 	}
