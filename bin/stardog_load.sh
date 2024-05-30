@@ -100,7 +100,13 @@ extract_zipped_files() {
     fi
     if [[ $dataext == "gz" ]]; then
       echo "    extracting gz file"
-      gunzip "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext"
+      # Based on gz naming convention, assuming the first part of the gz file name is the owl file name.
+      gunzip "$INPUT_DIRECTORY"/f$$."$datafile"
+      dataext=$(get_file_extension "$datafile")
+      datafile=$(get_file_name "$datafile")
+      first_file_datafile="$datafile"
+      first_file_dataext="$dataext"
+      first_file_name="$INPUT_DIRECTORY"/f$$."$first_file_datafile"."$first_file_dataext"
     fi
     if [[ $? -ne 0 ]]; then
         echo "ERROR: Problem unzipping file $1"
