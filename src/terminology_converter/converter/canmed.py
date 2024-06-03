@@ -86,7 +86,7 @@ class Canmed:
         ) = get_output_files(output_directory)
 
     def convert(self):
-        with open(self.hcpcs_file) as hf, open(self.ndconc_file) as nf:
+        with open(self.hcpcs_file, encoding='utf-8-sig') as hf, open(self.ndconc_file, encoding='utf-8-sig') as nf:
             hcpcs_file_reader: list[str] = csv.reader(hf, delimiter=",")
             ndconc_file_reader: list[str] = csv.reader(nf, delimiter=",")
             hcpcs_data = Canmed._handle_hcpcs_file(hcpcs_file_reader)

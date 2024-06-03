@@ -16,12 +16,12 @@ class MedRt:
         ) = get_output_files(output_directory)
 
     def convert(self):
-        with open(self.definition_file) as df, open(
-                self.attribute_file, "w"
-        ) as af, open(self.concepts_file, "w") as cf, open(
-            self.parent_child_file, "w"
+        with open(self.definition_file, encoding='utf-8-sig') as df, open(
+                self.attribute_file, "w", encoding='utf-8-sig'
+        ) as af, open(self.concepts_file, "w", encoding='utf-8-sig') as cf, open(
+            self.parent_child_file, "w", encoding='utf-8-sig'
         ) as pcf, open(
-            self.relationships_file, "w"
+            self.relationships_file, "w", encoding='utf-8-sig'
         ) as rfo:
             definition_file_root: ET = ET.parse(df)
             concept_elements: list[ET] = definition_file_root.findall("./concept")
