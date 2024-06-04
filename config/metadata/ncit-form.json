@@ -124,7 +124,13 @@
       "name": "additionalInfo",
       "label": "Additional Information",
       "fields": [
-
+        {
+          "name": "project",
+          "label": "Project/Product term needed for",
+          "type": "textarea",
+          "value": "",
+          "placeholder": "Enter project/product term"
+        },
         {
           "name": "reason",
           "label": "Reason for suggestion or any additional information",
