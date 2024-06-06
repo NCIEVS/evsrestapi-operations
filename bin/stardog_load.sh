@@ -97,6 +97,9 @@ extract_zipped_files() {
     if [[ $dataext == "zip" ]]; then
       echo "    extracting zip file"
       unzip "$1" -d "$INPUT_DIRECTORY"
+      first_file_name=$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" | head -n 1)
+      first_file_datafile=$(get_file_name "$first_file_name")
+      first_file_dataext=$(get_file_extension "$first_file_name")
     fi
     if [[ $dataext == "gz" ]]; then
       echo "    extracting gz file"
