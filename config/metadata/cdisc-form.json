@@ -109,6 +109,7 @@
           "name": "subset",
           "label": "CDISC Subset",
           "type": "dropdown",
+          "multiple": true,
           "value": "",
           "placeholder": "Select CDISC subset",
           "options": [
