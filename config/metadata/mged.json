@@ -11,7 +11,9 @@
 	"synonymSource": null,
 	"synonymCode": null,
 	"synonymSubSource": null,
-	"definition": [],
+	"definition": [
+		"rdfs:comment"
+	],
 	"definitionSource": null,
 	"map": null,
 	"mapRelation": null,
