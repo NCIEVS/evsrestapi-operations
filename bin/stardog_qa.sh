@@ -57,6 +57,10 @@ if [[ $terminology == "ncit" ]]; then
     echo "A non-weekly NCIT file is run as a weekly load. NCIT version:${version}"
     error=1
   fi
+  if [[ "$ncit_last_char" =~ [^de] && "$weekly" -eq 0 ]]; then
+    echo "A non-montly NCIT file is run as a monthly load. NCIT version:${version}"
+    error=1
+  fi
 	echo "    Verify each owl:Class has an NHC0 property"
     perl -ne 'if (/<owl:Class /) { $x = 0; $code=$_;}
               if (/<owl:Class/) { $oc++;}
