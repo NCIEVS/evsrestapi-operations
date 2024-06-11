@@ -6,7 +6,9 @@
 	"retiredStatusValue": null,
 	"preferredName": "Preferred_Name",
 	"synonym": [
-		"Generic_Name","Brand_Name"
+		"Generic_Name",
+		"Brand_Name",
+		"Preferred_Name"
 	],
 	"definition": [
 		"Description"
