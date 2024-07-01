@@ -5,7 +5,7 @@ import sys
 import xml.etree.ElementTree as ET
 from typing import Union
 import logging
-from datetime import datetime
+from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 
@@ -237,7 +237,7 @@ class OwlConverter:
     def create_element(self, element_name: str, label: str):
         return ET.Element(
             f"{OWL_PREFIX}:{element_name}",
-            {f"{RDF_PREFIX}:about": f"{self.base_url}#{label}"},
+            {f"{RDF_PREFIX}:about": f"{self.append_base_url(label)}"},
         )
 
     def create_element_with_resource(
@@ -245,7 +245,7 @@ class OwlConverter:
     ):
         return ET.Element(
             f"{element_prefix}:{element_name}",
-            {f"{RDF_PREFIX}:resource": f"{self.base_url}#{label}"},
+            {f"{RDF_PREFIX}:resource": f"{self.append_base_url(label)}"},
         )
 
     def append_class_element(
@@ -274,7 +274,7 @@ class OwlConverter:
     def create_element_with_label(self, element_name: str, label: str):
         element: ET.Element = ET.Element(
             f"{OWL_PREFIX}:{element_name}",
-            {f"{RDF_PREFIX}:about": f"{self.base_url}#{label}"},
+            {f"{RDF_PREFIX}:about": f"{self.append_base_url(label)}"},
         )
         self.append_label_element(element, label)
         return element
@@ -283,6 +283,9 @@ class OwlConverter:
         label_element = ET.Element(f"{RDFS_PREFIX}:label")
         label_element.text = label
         element.append(label_element)
+
+    def append_base_url(self, label: str):
+        return label if is_uri(label) else f"{self.base_url}#{label}"
 
 
 def process_args(argv):
@@ -338,6 +341,14 @@ def process_args(argv):
 
 def transform_attribute_type(attribute_type: str) -> str:
     return attribute_type.replace(" ", "_")
+
+
+def is_uri(string):
+    try:
+        result = urlparse(string)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
 
 
 if __name__ == "__main__":
