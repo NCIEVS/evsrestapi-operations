@@ -20,9 +20,9 @@ class Hgnc:
 
     def convert(self):
         with open(self.definition_file, encoding='utf-8-sig') as df, open(
-            self.attribute_file, "w", encoding='utf-8-sig'
-        ) as af, open(self.concepts_file, "w", encoding='utf-8-sig') as cf, open(
-            self.parent_child_file, "w", encoding='utf-8-sig'
+            self.attribute_file, "w"
+        ) as af, open(self.concepts_file, "w") as cf, open(
+            self.parent_child_file, "w"
         ) as pcf:
             definition_file_reader: list[str] = csv.reader(df, delimiter="\t")
             concepts = []
