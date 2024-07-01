@@ -29,11 +29,11 @@ class UmlsSemanticNetwork:
         with open(self.definition_file, encoding='utf-8-sig') as def_file, open(self.inferred_relationship_file,
                                                                                 encoding='utf-8-sig') as inf_rel_file, open(
                 self.stated_relationship_file, encoding='utf-8-sig') as sta_ref_file, open(
-            self.attribute_file, "w", encoding='utf-8-sig'
-        ) as af, open(self.concepts_file, "w", encoding='utf-8-sig') as cf, open(
-            self.parent_child_file, "w", encoding='utf-8-sig'
+            self.attribute_file, "w"
+        ) as af, open(self.concepts_file, "w") as cf, open(
+            self.parent_child_file, "w"
         ) as pcf, open(
-            self.relationships_file, "w", encoding='utf-8-sig'
+            self.relationships_file, "w"
         ) as rfo:
             definition_file_reader = csv.reader(def_file, delimiter="|")
             inferred_relationship_file_reader = csv.reader(inf_rel_file, delimiter="|")
