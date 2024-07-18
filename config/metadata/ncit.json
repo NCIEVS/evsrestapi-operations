@@ -126,6 +126,7 @@
 		"FB": "Foreign brand name, which may be trademarked",
 		"LLT": "Lower level term",
 		"HD": "*Header (groups concepts, but not used for coding data)",
+		"HT": "Hierarchical term",
 		"PT": "*Preferred term",
 		"SN": "Chemical structure name",
 		"SY": "Synonym"
