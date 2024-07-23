@@ -1,4 +1,4 @@
-VERSION=1.0.0
+VERSION=1.10.0
 BUILD_DIR=./build
 
 build:
