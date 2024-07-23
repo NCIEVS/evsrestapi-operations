@@ -97,6 +97,7 @@
 		"PCDC": "Pediatric Cancer Data Commons",
 		"PI-RADS": "Prostate Imaging-Reporting and Data System",
 		"PID": "NCI Nature Pathway Interaction Database",
+		"PRO-CTCAE": "PRO-CTCAE (Patient Reported Outcomes version of Common Terminology Criteria for Adverse Events)",
 		"PQCMC": "Pharmaceutical Quality/Chemistry, Manufacturing, and Controls",
 		"RENI": "Registry Nomenclature Information System",
 		"SEER": "Surveillance, Epidemiology, and End Results Program",
@@ -125,6 +126,7 @@
 		"FB": "Foreign brand name, which may be trademarked",
 		"LLT": "Lower level term",
 		"HD": "*Header (groups concepts, but not used for coding data)",
+		"HT": "Hierarchical term",
 		"PT": "*Preferred term",
 		"SN": "Chemical structure name",
 		"SY": "Synonym"

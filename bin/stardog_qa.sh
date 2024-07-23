@@ -9,20 +9,22 @@ while [[ "$#" -gt 0 ]]; do case $1 in
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
-if [ ${#arr[@]} -ne 2 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 [--help] <terminology> <data file>"
+if [ ${#arr[@]} -ne 3 ] || [ $help -eq 1 ]; then
+    echo "Usage: $0 [--help] <terminology> <data file> <weekly flag>"
     echo "  e.g. $0 ncit ./Thesaurus.owl"
     exit 1
 fi
 
 terminology=${arr[0]}
 file=${arr[1]}
+weekly=${arr[2]}
 
 echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"
 echo "--------------------------------------------------"
 echo "terminology = $terminology"
 echo "file = $file"
+echo "weekly = $weekly"
 
 if [[ ! -e $file ]]; then
     echo "ERROR: $file does not exist"
@@ -41,9 +43,24 @@ fi
 
 error=0
 
+get_ncit_last_char() {
+  file_name=$(echo "$file" |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;')
+  echo "${file_name: -1}"
+}
+
 # NCI Thesaurus checks
 if [[ $terminology == "ncit" ]]; then
-
+  version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  ncit_last_char=${version: -1}
+  # If the last character of the NCIT version is a, b or c and if the script is run as weekly, we want to fail
+  if [[ "$ncit_last_char" =~ [^abc] && "$weekly" -eq 1 ]]; then
+    echo "A non-weekly NCIT file is run as a weekly load. NCIT version:${version}"
+    error=1
+  fi
+  if [[ "$ncit_last_char" =~ [^de] && "$weekly" -eq 0 ]]; then
+    echo "A non-montly NCIT file is run as a monthly load. NCIT version:${version}"
+    error=1
+  fi
 	echo "    Verify each owl:Class has an NHC0 property"
     perl -ne 'if (/<owl:Class /) { $x = 0; $code=$_;}
               if (/<owl:Class/) { $oc++;}

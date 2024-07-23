@@ -1,6 +1,5 @@
 {
-	"uiLabel": "ChEBI: Chemical Entities of Biological Interest",
-	"description": "Chemical Entities of Biological Interest (ChEBI) is a freely available dictionary of molecular entities focused on 'small' chemical compounds.",
+	"uiLabel": "Mouse Anatomy: Anatomical Dictionary for the Adult Mouse",
 	"code": "oboInOwl:id",
 	"conceptStatus": "owl:deprecated",
 	"retiredStatusValue": "true",
@@ -28,9 +27,8 @@
 	"mapTargetTerminologyVersion": null,
 	"relationshipToTarget": null,
 	"hierarchy": true,
+	"hierarchyRoles": ["part_of"],
 	"detailsColumns": {
-		"synonyms-type": true,
-		"synonyms-termType": true
-	},
-	"sparqlPrefix": "PREFIX :<http://purl.obolibrary.org/obo/chebi.owl#> PREFIX base:<http://purl.obolibrary.org/obo/chebi.owl#> PREFIX chebi:<http://purl.obolibrary.org/obo/chebi/> PREFIX CHEBI:<http://purl.obolibrary.org/obo/chebi/> PREFIX obo:<http://purl.obolibrary.org/obo>"
+		"synonyms-type": true
+	}
 }

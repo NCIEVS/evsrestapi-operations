@@ -19,7 +19,7 @@ class Hgnc:
         ) = get_output_files(output_directory)
 
     def convert(self):
-        with open(self.definition_file) as df, open(
+        with open(self.definition_file, encoding='utf-8-sig') as df, open(
             self.attribute_file, "w"
         ) as af, open(self.concepts_file, "w") as cf, open(
             self.parent_child_file, "w"

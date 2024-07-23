@@ -1,0 +1,18 @@
+{
+	"uiLabel": "ICD-10: International Classification of Diseases, Tenth Revision",
+	"licenseText": "The World Health Organization allows use of ICD-10 in NCI Enterprise Vocabulary Services, but requires licensing for other purposes (see http://www.who.int/classifications/icd/en/).",
+	"maxVersions": 1,
+	"metaConceptField": "CODE",
+	"preferredTermTypes": [
+		"PT",
+		"HT",
+		"PSC",
+		"LV",
+		"CON"
+	],
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-source": true,
+		"synonyms-termType": true
+	}
+}

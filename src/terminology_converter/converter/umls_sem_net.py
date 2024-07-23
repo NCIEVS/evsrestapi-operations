@@ -26,8 +26,9 @@ class UmlsSemanticNetwork:
         ) = get_output_files(output_directory)
 
     def convert(self):
-        with open(self.definition_file) as def_file, open(self.inferred_relationship_file) as inf_rel_file, open(
-                self.stated_relationship_file) as sta_ref_file, open(
+        with open(self.definition_file, encoding='utf-8-sig') as def_file, open(self.inferred_relationship_file,
+                                                                                encoding='utf-8-sig') as inf_rel_file, open(
+                self.stated_relationship_file, encoding='utf-8-sig') as sta_ref_file, open(
             self.attribute_file, "w"
         ) as af, open(self.concepts_file, "w") as cf, open(
             self.parent_child_file, "w"

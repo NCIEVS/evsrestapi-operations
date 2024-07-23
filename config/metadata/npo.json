@@ -1,0 +1,30 @@
+{
+	"uiLabel": "NPO: NanoParticle Ontology",
+	"code": "code",
+	"conceptStatus": "owl:deprecated",
+	"retiredStatusValue": "true",
+	"preferredName": "preferred_Name",
+	"synonym": [
+		"rdfs:label",
+		"npo:preferred_Name"
+	],
+	"synonymTermType": "oboInOwl:hasSynonymType",
+	"synonymSource": null,
+	"synonymCode": null,
+	"synonymSubSource": null,
+	"definition": [
+		"npo:definition"
+	],
+	"definitionSource": null,
+	"map": null,
+	"mapRelation": null,
+	"mapTarget": null,
+	"mapTargetTermType": null,
+	"mapTargetTerminology": null,
+	"mapTargetTerminologyVersion": null,
+	"relationshipToTarget": null,
+	"hierarchy": true,
+	"detailsColumns": {
+		"synonyms-type": true
+	}
+}

@@ -41,6 +41,13 @@ newRestriction = "" # restriction code
 hitClass = False # ignore axioms and stuff before hitting any classes
 termCodeline = "" # terminology Code identifier line
 uniquePropertiesList = [] # store potential synonym/definition metadata values
+dataPropertiesList = [] # hold list of data properties
+inComplexProperty = 0 # skip complex properties
+buildingProperty = "" # catch for badly formatted multi line properties
+termJSONObject = "" # terminology properties
+inComplexAxiom = False # complex axiom handling (skipping)
+inIndividuals = False # skip individuals section
+inDataProperties = False # get data properties to skip
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -54,7 +61,7 @@ def checkParamsValid(argv):
     return True
 
 def parentChildProcess(line):
-    uriToProcess = re.findall('"([^"]*)"', line)[0]
+    uriToProcess = re.findall('"([^"]*)"', line)[0].replace("#","")
     if(line.startswith("<rdfs:subClassOf rdf:resource=")):
         if(parentStyle1 == []): # first example of rdf:subClassOf child
             parentStyle1.append((currentClassURI, uriToProcess)) # hold in the parentStyle1 object as tuple
@@ -74,6 +81,8 @@ def parentChildProcess(line):
     return
 
 def checkForNewProperty(line):
+    if(line.endswith("/>") and not re.search(r'>.*?<', line) and not "owl:disjointWith" in line): # check for non-picked single-line properties
+      return ""
     splitLine = re.split("[<>= \"]", line.strip()) # split by special characters
     splitLine = [x for x in splitLine if x != ''] # remove empty entries for consistency
     if(oboPrefix and splitLine[0].startswith(oboPrefix)):
@@ -83,17 +92,23 @@ def checkForNewProperty(line):
     detail = ""
     if(splitLine[0].startswith(terminology + ":")):
       splitLine[0] = splitLine[0].removeprefix(terminology + ":")
-    if("rdf:resource=\"" in line): # grab stuff in quotes
+    if("rdf:resource=" in line and "http" in line): # grab link in quotes
+        detail = re.findall('"([^"]*)"', line)[0]
+    elif("rdf:resource=\"" in line): # grab stuff in quotes
         detail = re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])[-1] # the code is the relevant part
     else: # grab stuff in tag
         detail = re.findall(">(.+?)<", line)[0]
-    return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n")
+    return (splitLine[0], currentClassURI + "\t" + currentClassCode + "\t" + splitLine[0] + "\t" + detail + "\n") # pound sign removal for ndfrt
 
 def handleRestriction(line):
     global newRestriction # grab newRestriction global
+    global dataPropertiesList # grab data properties list
     detail = re.findall('"([^"]*)"', line)[0]
     pathCode = "/".join(currentClassPath) + "~" # prebuild tag stack for restriction
     property = re.split(r'[#/]', detail)[-1] # extract property
+    #print(dataPropertiesList)
+    if(property in dataPropertiesList): # ignore anything in dataPropertiesList
+      return
     if(line.startswith("<owl:onProperty")): # property code
       if(detail in uri2Code):
         newRestriction = uri2Code[detail]
@@ -103,13 +118,14 @@ def handleRestriction(line):
     elif(line.startswith("<owl:someValuesFrom")): # value code
       if(newRestriction == "" or pathCode + newRestriction in uriRestrictions2Code): # duplicate
         return
-      propertiesCurrentClass[pathCode+newRestriction] = currentClassURI + "\t" + currentClassCode + "\t" + pathCode+newRestriction + "\t" + detail + "\n" # add code/path to properties
+      propertiesCurrentClass[pathCode+newRestriction] = currentClassURI + "\t" + currentClassCode + "\t" + pathCode+newRestriction + "\t" + detail.strip("#") + "\n" # add code/path to properties
       uriRestrictions2Code[pathCode+newRestriction] = newRestriction
       newRestriction = "" # saved code now used, reset to empty
             
 def handleAxiom(line):
     global currentClassURI # grab globals
     global currentClassCode
+    global inComplexAxiom
     if(line.startswith("<owl:annotatedSource")): # get source uri and code
         currentClassURI = re.findall('"([^"]*)"', line)[0]
     elif(line.startswith("<owl:annotatedProperty")): # get property code
@@ -120,6 +136,9 @@ def handleAxiom(line):
           axiomInfo.append("qualifier-" + re.split(r'[/]', sourceProperty)[-1].replace("rdf-schema#", "rdfs:") + "~")
         else:
           axiomInfo.append("qualifier-" + re.split(r'[#/]', sourceProperty)[-1] + "~")
+    elif(line.startswith("<owl:annotatedTarget>")): # skip complex axiom
+        inComplexAxiom = True
+        return
     elif(line.startswith("<owl:annotatedTarget")): # get target code
         axiomInfo.append(re.findall(">(.+?)<", line)[0] + "~")
     elif(not line.startswith("<owl:annotated") and len(re.split(r'[< >]', line)) > 1 and len(re.findall(">(.+?)<", line)) > 0 and axiomInfo[0] + re.split(r'[< >]', line)[1] + "~" + re.findall(">(.+?)<", line)[0] not in axiomProperties): # get connected properties
@@ -148,28 +167,65 @@ if __name__ == "__main__":
       termJSONObject = json.load(termJSONFile)
       if(not termJSONObject["code"]):
         print("terminology json file does not have ID entry")
-        exit(1)
-      termCodeline = "<" + termJSONObject["code"] # data lines all start with #
+        termCodeline = "<owl:Class rdf:about"
+      else:
+        termCodeline = "<" + termJSONObject["code"] # data lines all start with #
       if("synonymSource" in termJSONObject): # get unique properties list (the ones we want to track all possible properties of for sampling)
         uniquePropertiesList.append(termJSONObject["synonymSource"])
       if("synonymTermType" in termJSONObject):
         uniquePropertiesList.append(termJSONObject["synonymTermType"])
       if("definitionSource" in termJSONObject):
         uniquePropertiesList.append(termJSONObject["definitionSource"])
+      if("preferredName" in termJSONObject):
+        uniquePropertiesList.append(termJSONObject["preferredName"])
       
     
     with open(terminology + "-samples.txt", "w") as termFile:
         for index, line in enumerate(ontoLines): # get index just in case
+            #print(line + " " + str(index))
             lastSpaces = spaces # previous line's number of leading spaces (for comparison)
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
             line = line.strip() # no need for leading spaces anymore
             if(line.startswith("// Annotations")): # skip ending annotation
                 hitClass = False
-                
+                continue
+            elif(inDataProperties and line.startswith("<!--") and not line.endswith(" -->")):
+              inDataProperties = False
+              continue
+            elif(inDataProperties):
+              if(line.startswith("<owl:DatatypeProperty ")):
+                dataPropertiesList.append(line.split('/')[-1].split('"')[0])
+              continue
+            elif(line.startswith("// Data properties")):
+              inDataProperties = True
+              continue
+            elif(line.startswith("<!--") or line.startswith("-->")): # skip concept titles
+              continue
             elif(line.startswith("<owl:deprecated>false")):
               continue
+            elif(buildingProperty != ""): # handling badly formatted multi-line properties
+              buildingProperty += (" " + line)
+              if(line.endswith(">")):
+                line = buildingProperty
+                buildingProperty = "" # end of the property
+              else:
+                continue
+            elif(line.startswith("// Individuals") or inIndividuals): # skip everything past individuals
+              inIndividuals = True
+              continue
+            # skipping complex properties
+            elif(inComplexProperty > 0 and (line.startswith("</owl:someValuesFrom>") or line.startswith("</owl:disjointWith>") or (line.startswith("</owl:Class>") or (line.startswith("</owl:allValuesFrom>")) and (inEquivalentClass or inSubclass)))):
+              inComplexProperty -= 1
+              continue
+            elif(line.startswith("<owl:someValuesFrom>") or line.startswith("<owl:disjointWith>") or (line.startswith("<owl:Class>") or (line.startswith("<owl:allValuesFrom>")) and (inEquivalentClass or inSubclass))):
+              inComplexProperty += 1
+              continue
+            elif(inComplexProperty > 0):
+              continue
+            
+            # end of skipping complex properties
                 
-            elif(line.startswith("<owl:ObjectProperty")):
+            elif(line.startswith("<owl:ObjectProperty") and not line.endswith("/>")):
               inObjectProperty = True;
               currentClassURI = re.findall('"([^"]*)"', line)[0]
             elif(line.startswith("</owl:ObjectProperty>")):
@@ -178,7 +234,11 @@ if __name__ == "__main__":
               uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               objectProperties[currentClassURI] = uri2Code[currentClassURI]
               
-            elif(line.startswith("<owl:AnnotationProperty")and not line.endswith("/>")):
+            elif(line.startswith("<owl:AnnotationProperty") and not line.endswith("/>")):
+              if(not line.endswith(">")): # badly formatted properties
+                  buildingProperty = line
+                  inAnnotationProperty = True;
+                  continue   
               inAnnotationProperty = True;
               currentClassURI = re.findall('"([^"]*)"', line)[0]
             elif(line.startswith("</owl:AnnotationProperty>")):
@@ -200,7 +260,7 @@ if __name__ == "__main__":
             elif(line.startswith("<owl:deprecated")): # track deprecated but still used classes for root filtering
                 deprecated[currentClassURI] = False;
                 
-            elif(line.startswith("<owl:Class ") and not inEquivalentClass):
+            elif(line.startswith("<owl:Class ") and not inEquivalentClass and not line.endswith("/>")):
               if not hitClass:
                 hitClass = True
               inClass = True
@@ -223,7 +283,8 @@ if __name__ == "__main__":
                 elif(lastSpaces > spaces): # remove from stack based on spacing (less/up level)
                     currentClassPath.pop()
                 else: # replace in stack based on spacing (unchanged)
-                    currentClassPath.pop()
+                    if(len(currentClassPath) > 0):
+                      currentClassPath.pop()
                     currentClassPath.append(re.split(">| ", line)[0][1:])
 
             if((line.startswith("<rdfs:subClassOf>") and not line.endswith("//>\n"))): # find complex subclass            
@@ -234,10 +295,12 @@ if __name__ == "__main__":
             elif line.startswith("<owl:Axiom>") and hitClass: # find complex subclass            
                 inAxiom = True
             elif line.startswith("</owl:Axiom>"):
+                inComplexAxiom = False
                 inAxiom = False
                 axiomInfo = [] # empty the info list for the previous axiom
             elif inAxiom:
-                handleAxiom(line)
+                if(not inComplexAxiom):
+                    handleAxiom(line)
  
             elif(line.startswith("<owl:equivalentClass>")): # tag equivalentClass (necessary for restrictions)
                 inEquivalentClass = True
@@ -256,6 +319,9 @@ if __name__ == "__main__":
                 handleRestriction(line)
 
             elif(inClass and not inSubclass and not inEquivalentClass): # default property not in complex part of class
+                if(not line.endswith(">")):
+                  buildingProperty = line
+                  continue                 
                 if(line.startswith(termCodeline)): # catch ID to return if it has properties
                     currentClassCode = re.findall(">(.+?)<", line)[0]
                     classHasCode = True
@@ -306,7 +372,6 @@ if __name__ == "__main__":
         for numParents in sorted(parentCount.keys()): # sort for writing to file
             termFile.write(parentCount[numParents] + "\t" + uri2Code[parentCount[numParents]] + "\t" + "parent-count" + str(numParents) + "\n")
             
-        print((list(annotationProperties.items())[:10]))
         for code in uri2Code: # write out roots (all codes with no parents)
             if code not in allParents and code not in deprecated and code not in objectProperties and code not in annotationProperties.keys(): # deprecated codes, object properties, and annotation properties are fake roots
                 termFile.write(code + "\t" + uri2Code[code] + "\t" + "root" + "\n")

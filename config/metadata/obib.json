@@ -1,0 +1,36 @@
+{
+  "uiLabel": "OBIB: The ontology for Biobanking",
+  "description": "OBIB: The ontology for Biobanking (OBIB) is an ontology built for annotation and modeling of biobank repository and biobanking administration.",
+  "code": "",
+  "conceptStatus": "owl:deprecated",
+  "retiredStatusValue": "true",
+  "preferredName": "rdfs:label",
+  "synonym": [
+    "rdfs:label",
+    "DUO_0000041",
+    "oboInOwl:hasExactSynonym",
+    "oboInOwl:hasRelatedSynonym",
+    "oboInOwl:hasNarrowSynonym",
+    "oboInOwl:hasBroadSynonym"
+  ],
+  "synonymTermType": "oboInOwl:hasSynonymType",
+  "synonymSource": null,
+  "synonymCode": null,
+  "synonymSubSource": null,
+  "definition": [
+    "IAO_0000115",
+    "IAO_0000232"
+  ],
+  "definitionSource": null,
+  "map": null,
+  "mapRelation": null,
+  "mapTarget": null,
+  "mapTargetTermType": null,
+  "mapTargetTerminology": null,
+  "mapTargetTerminologyVersion": null,
+  "relationshipToTarget": null,
+  "hierarchy": true,
+  "detailsColumns": {
+    "synonyms-type": true
+  }
+}
