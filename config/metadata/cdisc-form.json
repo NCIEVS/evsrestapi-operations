@@ -1495,7 +1495,7 @@
           ]
         },
         {
-          "name": "requestInfo",
+          "name": "term",
           "label": "Term or Codelist Request",
           "type": "textarea",
           "value": "",
