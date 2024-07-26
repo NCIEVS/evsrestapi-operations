@@ -139,7 +139,7 @@
         {
           "name": "codelist",
           "label": "CDISC Codelist",
-          "type": "datalist",
+          "type": "dropdown",
           "multiple": true,
           "value": "",
           "placeholder": "Select all codesist(s) that apply",
