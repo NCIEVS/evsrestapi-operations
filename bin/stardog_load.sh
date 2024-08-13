@@ -79,12 +79,6 @@ echo "data = $data"
 echo "force = $force"
 echo "weekly = $weekly"
 
-if [[ $data == "optimize" ]]; then
-  optimize_stardog_dbs
-  print_completion
-  exit 0
-fi
-
 # Setup configuration
 echo "  Setup configuration"
 if [[ $config -eq 1 ]]; then
@@ -111,6 +105,12 @@ fi
 
 echo "    STARDOG_HOME = $STARDOG_HOME"
 echo ""
+
+if [[ $data == "optimize" ]]; then
+  optimize_stardog_dbs
+  print_completion
+  exit 0
+fi
 
 setup() {
   echo "Setting up input and output directories"
