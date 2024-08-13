@@ -34,6 +34,28 @@ fi
 
 data=${arr[0]}
 
+optimize_stardog_dbs(){
+    optimize_stardog_db "NCIT2"
+    optimize_stardog_db "CTRP"
+}
+
+optimize_stardog_db(){
+  optimize_db=$1
+  echo "  Optimize database ($optimize_db) ...`/bin/date`"
+  $STARDOG_HOME/bin/stardog-admin db optimize -n $optimize_db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+  if [[ $? -ne 0 ]]; then
+      echo "ERROR: Problem optimizing stardog ($optimize_db)"
+      cleanup 1
+  fi
+}
+
+print_completion(){
+  echo ""
+  echo "--------------------------------------------------"
+  echo "Finished ...`/bin/date`"
+  echo "--------------------------------------------------"
+}
+
 # Verify jq installed
 jq --help >> /dev/null 2>&1
 if [[ $? -eq 0 ]]; then
@@ -56,6 +78,12 @@ echo "DIR = $DIR"
 echo "data = $data"
 echo "force = $force"
 echo "weekly = $weekly"
+
+if [[ $data == "optimize" ]]; then
+  optimize_stardog_dbs
+  print_completion
+  exit 0
+fi
 
 # Setup configuration
 echo "  Setup configuration"
@@ -452,26 +480,12 @@ for of in "${owl_files[@]:1}"; do
   fi
 done
 
-echo "  Optimize database ($db) ...`/bin/date`"
-$STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
-if [[ $? -ne 0 ]]; then
-    echo "ERROR: Problem optimizing stardog ($db)"
-    cleanup 1
-fi
-
 # For monthly ncit, also load into CTRP db
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
-    db=CTRP
-    echo "  Load data ($db) ...`/bin/date`"
-    $STARDOG_HOME/bin/stardog data add $db -g $graph $file -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+    echo "  Load data (CTRP) ...`/bin/date`"
+    $STARDOG_HOME/bin/stardog data add "CTRP" -g $graph $file -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
     if [[ $? -ne 0 ]]; then
-        echo "ERROR: Problem loading stardog ($db)"
-        cleanup 1
-    fi
-    echo "  Optimize database ($db) ...`/bin/date`"
-    $STARDOG_HOME/bin/stardog-admin db optimize -n $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: Problem optimizing stardog ($db)"
+        echo "ERROR: Problem loading stardog (CTRP)"
         cleanup 1
     fi
 fi
@@ -497,11 +511,14 @@ do
   remove_graph "$graph_to_remove" "CTRP"
 done
 
+optimize_stardog_db $db
+# For monthly ncit, also loaded into CTRP db. So optimize
+if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
+  optimize_stardog_db "CTRP"
+fi
+
 # Cleanup
 echo "  Cleanup...`/bin/date`"
 cleanup
 
-echo ""
-echo "--------------------------------------------------"
-echo "Finished ...`/bin/date`"
-echo "--------------------------------------------------"
+print_completion
