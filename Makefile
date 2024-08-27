@@ -1,4 +1,4 @@
-VERSION=1.10.0
+VERSION=1.10.1
 BUILD_DIR=./build
 
 build:
@@ -14,6 +14,10 @@ clean:
 tag:
 	git tag -a "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE" -m "Release `/bin/date +%Y-%m-%d`"
 	git push origin "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE"
+
+release-tag:
+	git tag -a "${VERSION}-RC-`/bin/date +%Y-%m-%d`" -m "Release ${VERSION}-RC-`/bin/date +%Y-%m-%d`"
+	git push origin "${VERSION}-RC-`/bin/date +%Y-%m-%d`"
 
 rmtag:
 	git tag -d "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE"
