@@ -218,17 +218,20 @@ if __name__ == "__main__":
             elif(line.startswith("// Individuals") or inIndividuals): # skip everything past individuals
               inIndividuals = True
               continue
-            # skipping complex properties
+            # complex properties
             elif(inComplexProperty > 0 and (line.startswith("</owl:someValuesFrom>") or line.startswith("</owl:disjointWith>") or (line.startswith("</owl:Class>") or (line.startswith("</owl:allValuesFrom>")) and (inEquivalentClass or inSubclass)))):
               inComplexProperty -= 1
               continue
             elif(line.startswith("<owl:someValuesFrom>") or line.startswith("<owl:disjointWith>") or (line.startswith("<owl:Class>") or (line.startswith("<owl:allValuesFrom>")) and (inEquivalentClass or inSubclass))):
               inComplexProperty += 1
               continue
+            # some parent relationships in complex properties
+            elif(line.startswith("<rdfs:subClassOf ") or (line.startswith("<rdf:Description ") and inEquivalentClass)): # catch either example of parent/child relationship
+                parentChildProcess(line)
             elif(inComplexProperty > 0):
               continue
             
-            # end of skipping complex properties
+            # end of complex properties
                 
             elif(line.startswith("<owl:ObjectProperty") and not line.endswith("/>")):
               inObjectProperty = True;
