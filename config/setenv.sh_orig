@@ -4,15 +4,15 @@
 #
 
 # Path to stardog installation
-export STARDOG_HOME=/local/content/stardog/current
+export GRAPH_DB_HOME=/local/content/stardog/current
 
 # Credentials with write permissions needed
-export STARDOG_USERNAME=admin
-export STARDOG_PASSWORD=admin
-export STARDOG_SCHEME=http
-export STARDOG_HOST=localhost
-export STARDOG_PORT=5820
-export STARDOG_URL=${STARDOG_SCHEME}://${STARDOG_HOST}:${STARDOG_PORT}
+export GRAPH_DB_USERNAME=admin
+export GRAPH_DB_PASSWORD=admin
+export GRAPH_DB_SCHEME=http
+export GRAPH_DB_HOST=localhost
+export GRAPH_DB_PORT=5820
+export GRAPH_DB_URL=${GRAPH_DB_SCHEME}://${GRAPH_DB_HOST}:${GRAPH_DB_PORT}
 
 #
 # Elasticsearch config

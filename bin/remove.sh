@@ -1,26 +1,32 @@
-#!/bin/sh -f
+#!/bin/bash -f
 #
 # Used to remove indexes for a particular terminology/version.
 #
 help=0
 config=1
 ncflag=""
-stardog=0
+graph_db=0
 es=0
+
+l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
+l_graph_db_home=""
+l_graph_db_username=""
+l_graph_db_password=""
+
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     # use environment variable config (dev env)
     --noconfig) config=0; ncflag="--noconfig";;
-    # remove stardog data
-    --stardog) stardog=1;;
+    # remove graph_db data
+    --graph_db) graph_db=1;;
     # remove es data
     --es) es=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
 if [ ${#arr[@]} -ne 2 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 [--noconfig] [--help] [--stardog] [--es] <terminology> <version>"
-    echo "  e.g. $0 ncit 20.09d --stardog"
+    echo "Usage: $0 [--noconfig] [--help] [--graph_db] [--es] <terminology> <version>"
+    echo "  e.g. $0 ncit 20.09d --graph_db"
     echo "  e.g. $0 ncim 202102 --es"
     exit 1
 fi
@@ -44,66 +50,106 @@ echo ""
 
 # Setup configuration
 echo "  Setup configuration"
-if [[ $config -eq 1 ]]; then
+setup_configuration() {
+  if [[ $config -eq 1 ]]; then
     APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
     CONFIG_DIR=${APP_HOME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
     if [[ -e $CONFIG_ENV_FILE ]]; then
-        echo "    config = $CONFIG_ENV_FILE"
-        . $CONFIG_ENV_FILE
+      echo "    config = $CONFIG_ENV_FILE"
+      . $CONFIG_ENV_FILE
     else
-        echo "ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-        exit 1
+      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
+      exit 1
     fi
-elif [[ -z $STARDOG_HOST ]]; then
-    echo "ERROR: STARDOG_HOST is not set"
-    exit 1
-elif [[ -z $STARDOG_PORT ]]; then
-    echo "ERROR: STARDOG_PORT is not set"
-    exit 1
-elif [[ -z $STARDOG_USERNAME ]]; then
-    echo "ERROR: STARDOG_USERNAME is not set"
-    exit 1
-elif [[ -z $STARDOG_PASSWORD ]]; then
-    echo "ERROR: STARDOG_PASSWORD is not set"
-    exit 1
-elif [[ -z $ES_SCHEME ]]; then
+  fi
+}
+
+validate_configuration() {
+  if [[ -z $ES_SCHEME ]]; then
     echo "ERROR: ES_SCHEME is not set"
     exit 1
-elif [[ -z $ES_HOST ]]; then
+  elif [[ -z $ES_HOST ]]; then
     echo "ERROR: ES_HOST is not set"
     exit 1
-elif [[ -z $ES_PORT ]]; then
+  elif [[ -z $ES_PORT ]]; then
     echo "ERROR: ES_PORT is not set"
     exit 1
-else
-    ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
-fi
+  fi
+}
 
-echo "    stardog = http://${STARDOG_HOST}:${STARDOG_PORT}"
+validate_setup() {
+  if [[ $l_graph_db_type == "stardog" ]]; then
+    if [[ -n "$GRAPH_DB_HOME" ]]; then
+      l_graph_db_home="$GRAPH_DB_HOME"
+    elif [[ -n "$STARDOG_HOME" ]]; then
+      l_graph_db_home="$STARDOG_HOME"
+    else
+      echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+      exit 1
+    fi
+    if [[ -n "$GRAPH_DB_USERNAME" ]]; then
+      l_graph_db_username="$GRAPH_DB_USERNAME"
+    elif [[ -n "$STARDOG_USERNAME" ]]; then
+      l_graph_db_username="$STARDOG_USERNAME"
+    else
+      echo "Error: Both GRAPH_DB_USERNAME and STARDOG_USERNAME are not set."
+      exit 1
+    fi
+        if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
+      l_graph_db_password="$GRAPH_DB_PASSWORD"
+    elif [[ -n "$STARDOG_PASSWORD" ]]; then
+      l_graph_db_password="$STARDOG_PASSWORD"
+    else
+      echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
+      exit 1
+    fi
+  elif [[ $l_graph_db_type == "jena" ]]; then
+    if [[ -z $GRAPH_DB_HOME ]]; then
+      echo "    ERROR: GRAPH_DB_HOME is not set"
+      exit 1
+    else
+      l_graph_db_home="$GRAPH_DB_HOME"
+    fi
+  fi
+}
+
+validate_arguments() {
+# Require specifying --es or --graph_db so you don't accidentally delete from both
+if [[ $graph_db -eq 0 ]] && [[ $es -eq 0 ]]; then
+    echo "Must specify --es and/or --graph_db"
+    exit 1
+fi
+}
+
+setup_configuration
+validate_configuration
+validate_setup
+validate_arguments
+
+ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
+
+echo "    graph_db_type = ${l_graph_db_type}"
 echo "    elasticsearch = ${ES}"
 echo ""
 
-# Require specifying --es or --stardog so you don't accidentally delte from both
-if [[ $stardog -eq 0 ]] && [[ $es -eq 0 ]]; then
-    echo "Must specify --es and/or --stardog"
-    exit 1
-fi
+if [[ $graph_db -eq 1 ]]; then
 
-if [[ $stardog -eq 1 ]]; then
-
-    echo "  Lookup stardog info ...`/bin/date`"
-    $DIR/list.sh $ncflag --quiet --stardog | perl -pe 's/stardog/    /;' | grep "$terminology|$version" > /tmp/x.$$
+    echo "  Lookup graph_db info ...`/bin/date`"
+    $DIR/list.sh $ncflag --quiet --graph_db | perl -pe 's/$l_graph_db_type/    /;' | grep "$terminology|$version" > /tmp/x.$$
 	ct=`cat /tmp/x.$$ | wc -l`
 	if [[ $ct -eq 1 ]] || [[ $ct -eq 2 ]]; then
-
         for line in `cat /tmp/x.$$`; do
             db=`echo $line | cut -d\| -f 2`
             graph=`echo $line | cut -d\| -f 5`
             echo "  Remove $db graph $graph ...`/bin/date`"
-            $STARDOG_HOME/bin/stardog data remove -g $graph $db -u $STARDOG_USERNAME -p $STARDOG_PASSWORD | sed 's/^/    /'
+            if [[ $l_graph_db_type == "stardog" ]]; then
+              $l_graph_db_home/bin/stardog data remove -g $graph $db -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+            elif [[ $l_graph_db_type == "jena" ]]; then
+              $l_graph_db_home/bin/s-delete $GRAPH_DB_URL/$db $graph | sed 's/^/    /'
+            fi
             if [[ $? -ne 0 ]]; then
-                echo "ERROR: Problem running stardog to remove graph ($db)"
+                echo "ERROR: Problem removing graph ($db)"
                 exit 1
             fi
         done
