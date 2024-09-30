@@ -2,7 +2,7 @@ import json
 import sys
 import os
 
-GRAPH_DB_TYPE = os.environ["GRAPH_DB_TYPE"]
+GRAPH_DB_TYPE = os.environ.get("GRAPH_DB_TYPE", "stardog")
 
 data = json.load(sys.stdin)
 
