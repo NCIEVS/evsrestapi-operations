@@ -11,11 +11,6 @@ config=1
 help=0
 weekly=0
 
-l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
-l_graph_db_home=""
-l_graph_db_username=""
-l_graph_db_password=""
-
 while [[ "$#" -gt 0 ]]; do
   case $1 in
   --help) help=1 ;;
@@ -492,6 +487,10 @@ echo "weekly = $weekly"
 
 echo "  setup_configuration...$(/bin/date)"
 setup_configuration
+l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
+l_graph_db_home=""
+l_graph_db_username=""
+l_graph_db_password=""
 echo "    GRAPH_DB_TYPE = $l_graph_db_type"
 echo ""
 
