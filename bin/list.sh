@@ -12,11 +12,6 @@ quiet=0
 graph_db=1
 es=1
 
-l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
-l_graph_db_host="localhost"
-l_graph_db_port="5820"
-l_graph_db_username=""
-l_graph_db_password=""
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 while [[ "$#" -gt 0 ]]; do case $1 in
@@ -128,9 +123,16 @@ validate_setup() {
 
 setup_configuration
 validate_setup
+l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
+l_graph_db_host="localhost"
+l_graph_db_port="5820"
+l_graph_db_username=""
+l_graph_db_password=""
+
 ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 
 if [[ $quiet -eq 0 ]]; then
+    echo "    graph_db_type = ${l_graph_db_type}"
     echo "    graph_db = http://${l_graph_db_host}:${l_graph_db_port}"
     echo "    elasticsearch = ${ES}"
     echo ""
