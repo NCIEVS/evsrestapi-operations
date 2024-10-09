@@ -146,9 +146,9 @@ fi
 create_database(){
   echo "    Creating $1"
   if [[ $l_graph_db_type = "stardog" ]]; then
-    $curl_cmd -X POST -F root="{\"dbname\":\"$1\"}"  "http://${STARDOG_HOST}:${STARDOG_PORT}/admin/databases" > /dev/null
+    $curl_cmd -X POST -F root="{\"dbname\":\"$1\"}"  "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" > /dev/null
   elif [[ $l_graph_db_type = "jena" ]]; then
-    $curl_cmd -X POST -d "dbName=$1&dbType=tdb2" "http://${STARDOG_HOST}:${STARDOG_PORT}/$/datasets" > /dev/null
+    $curl_cmd -X POST -d "dbName=$1&dbType=tdb2" "http://${l_graph_db_host}:${l_graph_db_port}/$/datasets" > /dev/null
   fi
   if [[ $? -ne 0 ]]; then
       echo "Error occurred when creating database $1. Response:$_"
