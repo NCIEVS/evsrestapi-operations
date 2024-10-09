@@ -11,6 +11,7 @@ help=0
 quiet=0
 graph_db=1
 es=1
+databases=("NCIT2" "CTRP")
 
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
@@ -142,6 +143,19 @@ if [[ $quiet -eq 0 ]]; then
     echo "  Lookup graph_db info ...`/bin/date`"
 fi
 
+create_database(){
+  echo "    Creating $1"
+  if [[ $l_graph_db_type = "stardog" ]]; then
+    $curl_cmd -X POST -F root="{\"dbname\":\"$1\"}"  "http://${STARDOG_HOST}:${STARDOG_PORT}/admin/databases" > /dev/null
+  elif [[ $l_graph_db_type = "jena" ]]; then
+    $curl_cmd -X POST -d "dbName=$1&dbType=tdb2" "http://${STARDOG_HOST}:${STARDOG_PORT}/$/datasets" > /dev/null
+  fi
+  if [[ $? -ne 0 ]]; then
+      echo "Error occurred when creating database $1. Response:$_"
+      exit 1
+  fi
+}
+
 get_databases(){
   if [[ $l_graph_db_type == "stardog" ]]; then
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
@@ -159,6 +173,18 @@ get_databases(){
   if [[ $quiet -eq 0 ]]; then
       echo "    databases = " `cat /tmp/db.$$.txt`
   fi
+  for db in "${databases[@]}"; do
+    exists=0
+    for current_db in `cat /tmp/db.$$.txt`; do
+      if [ "$db" = "$current_db" ]; then
+          exists=1
+          break
+      fi
+    done
+    if [[ $exists -eq 0 ]]; then
+      create_database "$db"
+    fi
+  done
   ct=`cat /tmp/db.$$.txt | wc -l`
   if [[ $ct -eq 0 ]]; then
       echo "ERROR: no graph databases, this is unexpected"
