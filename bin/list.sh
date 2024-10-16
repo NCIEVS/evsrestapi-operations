@@ -270,8 +270,8 @@ fi
 for x in `cat /tmp/y.$$.txt`; do
     version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(.*)/[a-zA-Z]+.owl#$1#;'`
     db=`echo $x | cut -d\| -f 2`
-    uri=`echo $x | cut -d\| -f 3`
-    graph_uri=`echo $x | cut -d\| -f 4`
+    uri=`echo $x | cut -d\| -f 4`
+    graph_uri=`echo $x | cut -d\| -f 3`
     term=$(get_terminology "$uri")
     if [[ $quiet -eq 1 ]]; then
         echo "$l_graph_db_type|$db|$term|$version|$graph_uri"

@@ -13,6 +13,7 @@ weekly=0
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
+l_graph_db_url=""
 l_graph_db_username=""
 l_graph_db_password=""
 
@@ -112,11 +113,11 @@ validate_setup() {
       exit 1
     fi
   elif [[ $l_graph_db_type == "jena" ]]; then
-    if [[ -z $GRAPH_DB_HOME ]]; then
-      echo "    ERROR: GRAPH_DB_HOME is not set"
+    if [[ -z $GRAPH_DB_URL ]]; then
+      echo "    ERROR: GRAPH_DB_URL is not set"
       exit 1
     else
-      l_graph_db_home="$GRAPH_DB_HOME"
+      l_graph_db_url="$GRAPH_DB_URL"
     fi
   fi
 }
@@ -366,7 +367,7 @@ remove_graph() {
   if [[ $l_graph_db_type == "stardog" ]]; then
     $l_graph_db_home/bin/stardog data remove -g $1 $2 -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
-    $l_graph_db_home/bin/s-delete $GRAPH_DB_URL/$2 $1 | sed 's/^/    /'
+    curl -s -f "$l_graph_db_url/$2/update" -d"update=DROP GRAPH <$1>" > /dev/null
   fi
   if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem running $l_graph_db_type to remove graph $1($2)"
@@ -388,7 +389,7 @@ load_data() {
   if [[ $l_graph_db_type == "stardog" ]]; then
     $l_graph_db_home/bin/stardog data add $db -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
-    $l_graph_db_home/bin/s-put $GRAPH_DB_URL/$db $graph $file | sed 's/^/    /'
+    curl -s -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
   fi
   if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem loading $l_graph_db_type ($db)"
@@ -400,7 +401,7 @@ load_data() {
     if [[ $l_graph_db_type == "stardog" ]]; then
       $l_graph_db_home/bin/stardog data add "CTRP" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
-      $l_graph_db_home/bin/s-put $GRAPH_DB_URL/$db $graph $file | sed 's/^/    /'
+      curl -s -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: Problem loading $l_graph_db_type (CTRP)"
@@ -417,7 +418,7 @@ load_extra_owl_files() {
     if [[ $l_graph_db_type == "stardog" ]]; then
       $l_graph_db_home/bin/stardog data add $db -g $graph $of -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
-      $l_graph_db_home/bin/s-put $GRAPH_DB_URL/$db $graph $file | sed 's/^/    /'
+      curl -s -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: Problem loading $l_graph_db_type ($db)"
