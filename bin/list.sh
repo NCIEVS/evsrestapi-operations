@@ -11,12 +11,8 @@ help=0
 quiet=0
 graph_db=1
 es=1
+databases=("NCIT2" "CTRP")
 
-l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
-l_graph_db_host="localhost"
-l_graph_db_port="5820"
-l_graph_db_username=""
-l_graph_db_password=""
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 while [[ "$#" -gt 0 ]]; do case $1 in
@@ -128,9 +124,16 @@ validate_setup() {
 
 setup_configuration
 validate_setup
+l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
+l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
+l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
+l_graph_db_username=$GRAPH_DB_USERNAME
+l_graph_db_password=$GRAPH_DB_PASSWORD
+
 ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 
 if [[ $quiet -eq 0 ]]; then
+    echo "    graph_db_type = ${l_graph_db_type}"
     echo "    graph_db = http://${l_graph_db_host}:${l_graph_db_port}"
     echo "    elasticsearch = ${ES}"
     echo ""
@@ -140,14 +143,27 @@ if [[ $quiet -eq 0 ]]; then
     echo "  Lookup graph_db info ...`/bin/date`"
 fi
 
+create_database(){
+  echo "    Creating $1"
+  if [[ $l_graph_db_type = "stardog" ]]; then
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" -X POST -F root="{\"dbname\":\"$1\"}"  "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" > /dev/null
+  elif [[ $l_graph_db_type = "jena" ]]; then
+    curl -s -g -X POST -d "dbName=$1&dbType=tdb2" "http://${l_graph_db_host}:${l_graph_db_port}/$/datasets" > /dev/null
+  fi
+  if [[ $? -ne 0 ]]; then
+      echo "Error occurred when creating database $1. Response:$_"
+      exit 1
+  fi
+}
+
 get_databases(){
   if [[ $l_graph_db_type == "stardog" ]]; then
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
         "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" |\
-        python3 "$DIR/get_databases.py" > /tmp/db.$$.txt
+        python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
   elif [[ $l_graph_db_type == "jena" ]]; then
     curl -s -g "http://${l_graph_db_host}:${l_graph_db_port}/$/server" |\
-        python3 "$DIR/get_databases.py" > /tmp/db.$$.txt
+        python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
   fi
   if [[ $? -ne 0 ]]; then
       echo "ERROR: unexpected problem listing databases"
@@ -157,6 +173,18 @@ get_databases(){
   if [[ $quiet -eq 0 ]]; then
       echo "    databases = " `cat /tmp/db.$$.txt`
   fi
+  for db in "${databases[@]}"; do
+    exists=0
+    for current_db in `cat /tmp/db.$$.txt`; do
+      if [ "$db" = "$current_db" ]; then
+          exists=1
+          break
+      fi
+    done
+    if [[ $exists -eq 0 ]]; then
+      create_database "$db"
+    fi
+  done
   ct=`cat /tmp/db.$$.txt | wc -l`
   if [[ $ct -eq 0 ]]; then
       echo "ERROR: no graph databases, this is unexpected"

@@ -493,6 +493,10 @@ echo "weekly = $weekly"
 
 echo "  setup_configuration...$(/bin/date)"
 setup_configuration
+l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
+l_graph_db_home=$GRAPH_DB_HOME
+l_graph_db_username=$GRAPH_DB_USERNAME
+l_graph_db_password=$GRAPH_DB_PASSWORD
 echo "    GRAPH_DB_TYPE = $l_graph_db_type"
 echo ""
 

@@ -1,8 +1,10 @@
 import json
 import sys
-import os
 
-GRAPH_DB_TYPE = os.environ["GRAPH_DB_TYPE"]
+if len(sys.argv) > 1:
+    GRAPH_DB_TYPE = sys.argv[1]
+else:
+    raise Exception("Expecting graph db type as a script argument")
 
 data = json.load(sys.stdin)
 
