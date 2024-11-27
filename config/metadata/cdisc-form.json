@@ -1,7 +1,7 @@
 {
   "formName": "CDISC Terminology Change Request",
   "formType": "CDISC",
-  "recipientEmail": "agarcia@westcoastinformatics.com",
+  "recipientEmail": "NCIEvsCdiscHelp@mail.nih.gov",
   "sections": [
     {
       "name": "contact",
