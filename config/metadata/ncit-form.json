@@ -1,7 +1,7 @@
 {
   "formName": "NCIt Term Suggestion Request",
   "formType": "NCIT",
-  "recipientEmail": "ncithesaurus@mail.nih.gov",
+  "recipientEmail": "agarcia@westcoastinformatics.com",
   "sections": [
     {
       "name": "contact",
