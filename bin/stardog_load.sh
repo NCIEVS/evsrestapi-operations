@@ -389,6 +389,7 @@ load_data() {
   if [[ $l_graph_db_type == "stardog" ]]; then
     $l_graph_db_home/bin/stardog data add $db -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
+    echo "curl -s -f -X POST -H \"Content-Type: application/rdf+xml\" -T \"$file\" \"$l_graph_db_url/$db/data?graph=$graph\""
     curl -s -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
   fi
   if [[ $? -ne 0 ]]; then
@@ -401,7 +402,8 @@ load_data() {
     if [[ $l_graph_db_type == "stardog" ]]; then
       $l_graph_db_home/bin/stardog data add "CTRP" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
-      curl -s -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
+      echo "curl -s -f -X POST -H \"Content-Type: application/rdf+xml\" -T \"$file\" \"$l_graph_db_url/CTRP/data?graph=$graph\""
+      curl -s -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/CTRP/data?graph=$graph" > /dev/null
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: Problem loading $l_graph_db_type (CTRP)"

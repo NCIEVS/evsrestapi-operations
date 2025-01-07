@@ -158,6 +158,8 @@ create_database(){
 
 get_databases(){
   if [[ $l_graph_db_type == "stardog" ]]; then
+    # print the curl command to stdout
+    echo "    curl -s -g -u \"${l_graph_db_username}:$l_graph_db_password\" \"http://${l_graph_db_host}:${l_graph_db_port}/admin/databases\""
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
         "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" |\
         python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
