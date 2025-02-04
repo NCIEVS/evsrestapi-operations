@@ -241,15 +241,50 @@ if [[ $es -eq 1 ]]; then
 if [[ $quiet -eq 0 ]]; then
     echo "  List elasticsearch indexes ...`/bin/date`"
 fi
-if [[ $quiet -eq 0 ]]; then
-# TODO: this doesn't work without "jq" installed
+
 curl -s "$ES/evs_metadata/_search?size=10000"  |\
    $jq | grep terminologyVersion | perl -pe 's/(?<!snomedct)_/ /; s/.*"\: ?"//; s/".*//' |\
-   sort | sed 's/^/    /'
+   sort -u -o /tmp/x.txt
+
+if [[ $quiet -eq 0 ]]; then
+
+sort /tmp/x.txt| sed 's/^/    /'
+
+# Fix up versions for compare
+curl -s "$ES/_cat/indices" | grep concept_ | cut -d\  -f 3 | perl -pe 's/concept_//; s/_/ /; s/ us_/_us /;' |\
+   perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
+   sort -u -o /tmp/y.txt
+
+curl -s "$ES/_cat/indices" | grep evs_object_ | cut -d\  -f 3 | perl -pe 's/evs_object_//; s/_/ /; s/ us_/_us /;' |\
+   perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
+   sort -u -o /tmp/z.txt
+
+ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | wc -l`
+if [ $ct -ne 0 ]; then
+    echo "WARNING: evs_metadata entries without concept indexes"
+    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | sed 's/^/    /'
+fi
+
+ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | wc -l`
+if [ $ct -ne 0 ]; then
+    echo "WARNING: concept indexes without evs_metadata entries"
+    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | sed 's/^/    /'
+fi
+
+ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | wc -l`
+if [ $ct -ne 0 ]; then
+    echo "WARNING: evs_metadata entries without evs_object indexes"
+    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | sed 's/^/    /'
+fi
+
+ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | wc -l`
+if [ $ct -ne 0 ]; then
+    echo "WARNING: evs_object indexes without evs_metadata entries"
+    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | sed 's/^/    /'
+fi
+
 else
-curl -s "$ES/evs_metadata/_search?size=10000"  |\
-   $jq | grep terminologyVersion | perl -pe 's/(?<!snomedct)_/|/; s/.*"\: ?"//; s/".*//' |\
-   sort | sed 's/^/es|/'
+sort /tmp/x.txt| sed 's/^/es|/'
 fi
 if [[ $? -ne 0 ]]; then
     echo "ERROR: problem looking up indexes"
@@ -259,7 +294,7 @@ fi
 fi
 
 # Cleanup
-/bin/rm -f /tmp/db.$$.txt /tmp/[xy].$$.txt
+/bin/rm -f /tmp/db.$$.txt /tmp/[xyz].$$.txt
 
 if [[ $quiet -eq 0 ]]; then
     echo ""
