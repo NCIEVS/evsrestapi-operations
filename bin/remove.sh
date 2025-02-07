@@ -5,7 +5,7 @@
 help=0
 config=1
 ncflag=""
-graph_db=0
+graphdb=0
 es=0
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
@@ -17,16 +17,16 @@ while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     # use environment variable config (dev env)
     --noconfig) config=0; ncflag="--noconfig";;
-    # remove graph_db data
-    --graph_db) graph_db=1;;
+    # remove graphdb data
+    --graphdb) graphdb=1;;
     # remove es data
     --es) es=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
 if [ ${#arr[@]} -ne 2 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 [--noconfig] [--help] [--graph_db] [--es] <terminology> <version>"
-    echo "  e.g. $0 ncit 20.09d --graph_db"
+    echo "Usage: $0 [--noconfig] [--help] [--graphdb] [--es] <terminology> <version>"
+    echo "  e.g. $0 ncit 20.09d --graphdb"
     echo "  e.g. $0 ncim 202102 --es"
     exit 1
 fi
@@ -115,9 +115,9 @@ validate_setup() {
 }
 
 validate_arguments() {
-# Require specifying --es or --graph_db so you don't accidentally delete from both
-if [[ $graph_db -eq 0 ]] && [[ $es -eq 0 ]]; then
-    echo "Must specify --es and/or --graph_db"
+# Require specifying --es or --graphdb so you don't accidentally delete from both
+if [[ $graphdb -eq 0 ]] && [[ $es -eq 0 ]]; then
+    echo "Must specify --es and/or --graphdb"
     exit 1
 fi
 }
@@ -129,14 +129,14 @@ validate_arguments
 
 ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 
-echo "    graph_db_type = ${l_graph_db_type}"
+echo "    graphdb type = ${l_graph_db_type}"
 echo "    elasticsearch = ${ES}"
 echo ""
 
-if [[ $graph_db -eq 1 ]]; then
+if [[ $graphdb -eq 1 ]]; then
 
-    echo "  Lookup graph_db info ...`/bin/date`"
-    $DIR/list.sh $ncflag --quiet --graph_db | perl -pe 's/$l_graph_db_type/    /;' | grep "$terminology|$version" > /tmp/x.$$
+    echo "  Lookup graphdb info ...`/bin/date`"
+    $DIR/list.sh $ncflag --quiet --graphdb | perl -pe 's/$l_graph_db_type/    /;' | grep "$terminology|$version" > /tmp/x.$$
 	ct=`cat /tmp/x.$$ | wc -l`
 	if [[ $ct -eq 1 ]] || [[ $ct -eq 2 ]]; then
         for line in `cat /tmp/x.$$`; do

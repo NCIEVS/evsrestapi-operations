@@ -9,7 +9,7 @@ config=1
 ncflag=""
 help=0
 quiet=0
-graph_db=1
+graphdb=1
 es=1
 databases=("NCIT2" "CTRP")
 
@@ -22,9 +22,9 @@ while [[ "$#" -gt 0 ]]; do case $1 in
     # avoid printing header/footer
     --quiet) quiet=1;;
     # show graph DB data only
-    --graph_db) es=0;;
+    --graphdb) es=0;;
     # show es data only
-    --es) graph_db=0;;
+    --es) graphdb=0;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
@@ -133,14 +133,14 @@ l_graph_db_password=$GRAPH_DB_PASSWORD
 ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 
 if [[ $quiet -eq 0 ]]; then
-    echo "    graph_db_type = ${l_graph_db_type}"
-    echo "    graph_db = http://${l_graph_db_host}:${l_graph_db_port}"
+    echo "    graphdb type = ${l_graph_db_type}"
+    echo "    graphdb = http://${l_graph_db_host}:${l_graph_db_port}"
     echo "    elasticsearch = ${ES}"
     echo ""
 fi
 
 if [[ $quiet -eq 0 ]]; then
-    echo "  Lookup graph_db info ...`/bin/date`"
+    echo "  Lookup graphdb info ...`/bin/date`"
 fi
 
 create_database(){
@@ -267,7 +267,7 @@ get_terminology(){
   fi
 }
 
-if [[ $graph_db -eq 1 ]]; then
+if [[ $graphdb -eq 1 ]]; then
 echo "  Getting databases"
 get_databases
 get_graphs
