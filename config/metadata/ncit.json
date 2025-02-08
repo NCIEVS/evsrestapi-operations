@@ -34,6 +34,11 @@
 	"subset": [
 		"C54443"
 	],
+	"extraSubsets": {
+		"C6283": "C143048",
+		"C190573": "C6283",
+		"C4005": "C6283"
+	},
 	"sources": {
 		"ACC": "American College of Cardiology",
 		"ACC/AHA": "American College of Cardiology / American Heart Association",
@@ -128,6 +133,7 @@
 		"HD": "*Header (groups concepts, but not used for coding data)",
 		"HT": "Hierarchical term",
 		"PT": "*Preferred term",
+		"RT": "Related term",
 		"SN": "Chemical structure name",
 		"SY": "Synonym"
 	},
