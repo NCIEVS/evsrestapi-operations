@@ -3,16 +3,17 @@
 # Stardog config
 #
 
-# Path to stardog installation
-export GRAPH_DB_HOME=/local/content/stardog/current
+# Path to jena installation
+export GRAPH_DB_HOME=/local/content/apache-jena-fuseki-5.1.0
 
 # Credentials with write permissions needed
-export GRAPH_DB_TYPE=stardog
+export GRAPH_DB_TYPE=jena
+export GRAPH_DB_DB=NCIT2
 export GRAPH_DB_USERNAME=admin
 export GRAPH_DB_PASSWORD=admin
 export GRAPH_DB_SCHEME=http
 export GRAPH_DB_HOST=localhost
-export GRAPH_DB_PORT=5820
+export GRAPH_DB_PORT=3030
 export GRAPH_DB_URL=${GRAPH_DB_SCHEME}://${GRAPH_DB_HOST}:${GRAPH_DB_PORT}
 
 #
