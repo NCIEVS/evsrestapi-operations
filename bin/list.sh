@@ -23,6 +23,8 @@ while [[ "$#" -gt 0 ]]; do case $1 in
     --quiet) quiet=1;;
     # show graph DB data only
     --graphdb) es=0;;
+    --stardog) es=0;;
+    --jena) es=0;;
     # show es data only
     --es) graphdb=0;;
     *) arr=( "${arr[@]}" "$1" );;
@@ -122,13 +124,12 @@ validate_setup() {
   fi
 }
 
-setup_configuration
-validate_setup
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
 l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
-l_graph_db_username=$GRAPH_DB_USERNAME
-l_graph_db_password=$GRAPH_DB_PASSWORD
+export GRAPH_DB_TYPE=$l_graph_db_type
+setup_configuration
+validate_setup
 
 ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 

@@ -9,9 +9,10 @@ graphdb=0
 es=0
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
+l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
+l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
 l_graph_db_home=""
-l_graph_db_username=""
-l_graph_db_password=""
+export GRAPH_DB_TYPE=$l_graph_db_type
 
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
@@ -19,6 +20,8 @@ while [[ "$#" -gt 0 ]]; do case $1 in
     --noconfig) config=0; ncflag="--noconfig";;
     # remove graphdb data
     --graphdb) graphdb=1;;
+    --stardog) graphdb=1;;
+    --jena) graphdb=1;;
     # remove es data
     --es) es=1;;
     *) arr=( "${arr[@]}" "$1" );;
