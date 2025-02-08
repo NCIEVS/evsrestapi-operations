@@ -75,52 +75,38 @@ setup_configuration() {
 }
 
 validate_setup() {
-  if [[ $l_graph_db_type == "stardog" ]]; then
-    if [[ -n "$GRAPH_DB_HOST" ]]; then
-      l_graph_db_host="$GRAPH_DB_HOST"
-    elif [[ -n "$STARDOG_HOST" ]]; then
-      l_graph_db_host="$STARDOG_HOST"
-    else
-      echo "Error: Both GRAPH_DB_HOST and STARDOG_HOST are not set."
-      exit 1
-    fi
-    if [[ -n "$GRAPH_DB_PORT" ]]; then
-      l_graph_db_port="$GRAPH_DB_PORT"
-    elif [[ -n "$STARDOG_PORT" ]]; then
-      l_graph_db_port="$STARDOG_PORT"
-    else
-      echo "Both GRAPH_DB_PORT and STARDOG_PORT are not set. Using default"
-      l_graph_db_port="5820"
-    fi
-    if [[ -n "$GRAPH_DB_USERNAME" ]]; then
-      l_graph_db_username="$GRAPH_DB_USERNAME"
-    elif [[ -n "$STARDOG_USERNAME" ]]; then
-      l_graph_db_username="$STARDOG_USERNAME"
-    else
-      echo "Error: Both GRAPH_DB_HOME and STARDOG_USERNAME are not set."
-      exit 1
-    fi
-    if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
-      l_graph_db_password="$GRAPH_DB_PASSWORD"
-    elif [[ -n "$STARDOG_PASSWORD" ]]; then
-      l_graph_db_password="$STARDOG_PASSWORD"
-    else
-      echo "Error: Both GRAPH_DB_HOME and STARDOG_PASSWORD are not set."
-      exit 1
-    fi
-  elif [[ $l_graph_db_type == "jena" ]]; then
-    if [[ -z $GRAPH_DB_HOST ]]; then
-      echo "    ERROR: $GRAPH_DB_HOST is not set"
-      exit 1
-    else
-      l_graph_db_host="$GRAPH_DB_HOST"
-    fi
-    if [[ -z $GRAPH_DB_PORT ]]; then
-      echo "    $GRAPH_DB_PORT is not set. Setting default"
-      l_graph_db_port="3030"
-    else
-      l_graph_db_port="$GRAPH_DB_PORT"
-    fi
+  if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
+    l_graph_db_password="$GRAPH_DB_PASSWORD"
+  elif [[ -n "$STARDOG_PASSWORD" ]]; then
+    l_graph_db_password="$STARDOG_PASSWORD"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_PASSWORD are not set."
+    exit 1
+  fi
+  
+  if [[ -n "$GRAPH_DB_HOST" ]]; then
+    l_graph_db_host="$GRAPH_DB_HOST"
+  elif [[ -n "$STARDOG_HOST" ]]; then
+    l_graph_db_host="$STARDOG_HOST"
+  else
+    echo "Error: Both GRAPH_DB_HOST and STARDOG_HOST are not set."
+    exit 1
+  fi
+  if [[ -n "$GRAPH_DB_PORT" ]]; then
+    l_graph_db_port="$GRAPH_DB_PORT"
+  elif [[ -n "$STARDOG_PORT" ]]; then
+    l_graph_db_port="$STARDOG_PORT"
+  else
+    echo "Both GRAPH_DB_PORT and STARDOG_PORT are not set. Using default"
+    l_graph_db_port="5820"
+  fi
+  if [[ -n "$GRAPH_DB_USERNAME" ]]; then
+    l_graph_db_username="$GRAPH_DB_USERNAME"
+  elif [[ -n "$STARDOG_USERNAME" ]]; then
+    l_graph_db_username="$STARDOG_USERNAME"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_USERNAME are not set."
+    exit 1
   fi
 }
 

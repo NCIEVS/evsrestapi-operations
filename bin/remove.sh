@@ -82,32 +82,31 @@ validate_configuration() {
 }
 
 validate_setup() {
-  if [[ $l_graph_db_type == "stardog" ]]; then
-    if [[ -n "$GRAPH_DB_HOME" ]]; then
-      l_graph_db_home="$GRAPH_DB_HOME"
-    elif [[ -n "$STARDOG_HOME" ]]; then
-      l_graph_db_home="$STARDOG_HOME"
-    else
-      echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
-      exit 1
-    fi
-    if [[ -n "$GRAPH_DB_USERNAME" ]]; then
-      l_graph_db_username="$GRAPH_DB_USERNAME"
-    elif [[ -n "$STARDOG_USERNAME" ]]; then
-      l_graph_db_username="$STARDOG_USERNAME"
-    else
-      echo "Error: Both GRAPH_DB_USERNAME and STARDOG_USERNAME are not set."
-      exit 1
-    fi
-        if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
-      l_graph_db_password="$GRAPH_DB_PASSWORD"
-    elif [[ -n "$STARDOG_PASSWORD" ]]; then
-      l_graph_db_password="$STARDOG_PASSWORD"
-    else
-      echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
-      exit 1
-    fi
-  elif [[ $l_graph_db_type == "jena" ]]; then
+  if [[ -n "$GRAPH_DB_HOME" ]]; then
+    l_graph_db_home="$GRAPH_DB_HOME"
+  elif [[ -n "$STARDOG_HOME" ]]; then
+    l_graph_db_home="$STARDOG_HOME"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+    exit 1
+  fi
+  if [[ -n "$GRAPH_DB_USERNAME" ]]; then
+    l_graph_db_username="$GRAPH_DB_USERNAME"
+  elif [[ -n "$STARDOG_USERNAME" ]]; then
+    l_graph_db_username="$STARDOG_USERNAME"
+  else
+    echo "Error: Both GRAPH_DB_USERNAME and STARDOG_USERNAME are not set."
+    exit 1
+  fi
+      if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
+    l_graph_db_password="$GRAPH_DB_PASSWORD"
+  elif [[ -n "$STARDOG_PASSWORD" ]]; then
+    l_graph_db_password="$STARDOG_PASSWORD"
+  else
+    echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
+    exit 1
+  fi
+  if [[ $graphdb -eq 1 ]]; then
     if [[ -z $GRAPH_DB_HOME ]]; then
       echo "    ERROR: GRAPH_DB_HOME is not set"
       exit 1
