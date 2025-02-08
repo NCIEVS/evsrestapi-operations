@@ -82,13 +82,15 @@ validate_configuration() {
 }
 
 validate_setup() {
-  if [[ -n "$GRAPH_DB_HOME" ]]; then
-    l_graph_db_home="$GRAPH_DB_HOME"
-  elif [[ -n "$STARDOG_HOME" ]]; then
-    l_graph_db_home="$STARDOG_HOME"
-  else
-    echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
-    exit 1
+  if [[ $graphdb -eq 1 ]]; then
+    if [[ -n "$GRAPH_DB_HOME" ]]; then
+      l_graph_db_home="$GRAPH_DB_HOME"
+    elif [[ -n "$STARDOG_HOME" ]]; then
+      l_graph_db_home="$STARDOG_HOME"
+    else
+      echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+      exit 1
+    fi
   fi
   if [[ -n "$GRAPH_DB_USERNAME" ]]; then
     l_graph_db_username="$GRAPH_DB_USERNAME"
@@ -105,14 +107,6 @@ validate_setup() {
   else
     echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
     exit 1
-  fi
-  if [[ $graphdb -eq 1 ]]; then
-    if [[ -z $GRAPH_DB_HOME ]]; then
-      echo "    ERROR: GRAPH_DB_HOME is not set"
-      exit 1
-    else
-      l_graph_db_home="$GRAPH_DB_HOME"
-    fi
   fi
 }
 
