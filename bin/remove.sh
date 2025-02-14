@@ -12,7 +12,9 @@ l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
 l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
 l_graph_db_home=""
-export GRAPH_DB_TYPE=$l_graph_db_type
+l_graph_db_username=""
+l_graph_db_password=""
+l_graph_db_url=""
 
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
@@ -83,30 +85,42 @@ validate_configuration() {
 
 validate_setup() {
   if [[ $graphdb -eq 1 ]]; then
-    if [[ -n "$GRAPH_DB_HOME" ]]; then
-      l_graph_db_home="$GRAPH_DB_HOME"
-    elif [[ -n "$STARDOG_HOME" ]]; then
-      l_graph_db_home="$STARDOG_HOME"
+    if [[ $l_graph_db_type == "stardog" ]]; then
+      if [[ -n "$GRAPH_DB_HOME" ]]; then
+        l_graph_db_home="$GRAPH_DB_HOME"
+      elif [[ -n "$STARDOG_HOME" ]]; then
+        l_graph_db_home="$STARDOG_HOME"
+      else
+        echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+        exit 1
+      fi
+      if [[ -n "$GRAPH_DB_USERNAME" ]]; then
+        l_graph_db_username="$GRAPH_DB_USERNAME"
+      elif [[ -n "$STARDOG_USERNAME" ]]; then
+        l_graph_db_username="$STARDOG_USERNAME"
+      else
+        echo "Error: Both GRAPH_DB_USERNAME and STARDOG_USERNAME are not set."
+        exit 1
+      fi
+      if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
+        l_graph_db_password="$GRAPH_DB_PASSWORD"
+      elif [[ -n "$STARDOG_PASSWORD" ]]; then
+        l_graph_db_password="$STARDOG_PASSWORD"
+      else
+        echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
+        exit 1
+      fi
+    elif [[ $l_graph_db_type == "jena" ]]; then
+      if [[ -z $GRAPH_DB_URL ]]; then
+        echo "    ERROR: GRAPH_DB_URL is not set"
+        exit 1
+      else
+        l_graph_db_url="$GRAPH_DB_URL"
+      fi
     else
-      echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+      echo "Error: GRAPH_DB_TYPE is not set."
       exit 1
     fi
-  fi
-  if [[ -n "$GRAPH_DB_USERNAME" ]]; then
-    l_graph_db_username="$GRAPH_DB_USERNAME"
-  elif [[ -n "$STARDOG_USERNAME" ]]; then
-    l_graph_db_username="$STARDOG_USERNAME"
-  else
-    echo "Error: Both GRAPH_DB_USERNAME and STARDOG_USERNAME are not set."
-    exit 1
-  fi
-      if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
-    l_graph_db_password="$GRAPH_DB_PASSWORD"
-  elif [[ -n "$STARDOG_PASSWORD" ]]; then
-    l_graph_db_password="$STARDOG_PASSWORD"
-  else
-    echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
-    exit 1
   fi
 }
 
@@ -140,9 +154,11 @@ if [[ $graphdb -eq 1 ]]; then
             graph=`echo $line | cut -d\| -f 5`
             echo "  Remove $db graph $graph ...`/bin/date`"
             if [[ $l_graph_db_type == "stardog" ]]; then
+              echo "    $l_graph_db_home/bin/stardog data remove -g $graph $db -u $l_graph_db_username -p $l_graph_db_password"
               $l_graph_db_home/bin/stardog data remove -g $graph $db -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
             elif [[ $l_graph_db_type == "jena" ]]; then
-              $l_graph_db_home/bin/s-delete $GRAPH_DB_URL/$db $graph | sed 's/^/    /'
+              echo "    curl -s -f $l_graph_db_url/$db/update -d\"update=DROP GRAPH <$graph>\" > /dev/null"
+              curl -s -f "$l_graph_db_url/$db/update" -d"update=DROP GRAPH <$graph>" > /dev/null
             fi
             if [[ $? -ne 0 ]]; then
                 echo "ERROR: Problem removing graph ($db)"
