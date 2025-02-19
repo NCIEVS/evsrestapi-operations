@@ -110,12 +110,13 @@ validate_setup() {
   fi
 }
 
+setup_configuration
+validate_setup
+
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
 l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
 export GRAPH_DB_TYPE=$l_graph_db_type
-setup_configuration
-validate_setup
 
 ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 
