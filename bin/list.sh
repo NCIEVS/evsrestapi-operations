@@ -135,7 +135,7 @@ create_database(){
   if [[ $l_graph_db_type = "stardog" ]]; then
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" -X POST -F root="{\"dbname\":\"$1\"}"  "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" > /dev/null
   elif [[ $l_graph_db_type = "jena" ]]; then
-    curl -s -g -X POST -d "dbName=$1&dbType=tdb2" "http://${l_graph_db_host}:${l_graph_db_port}/$/datasets" > /dev/null
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" -X POST -d "dbName=$1&dbType=tdb2" "http://${l_graph_db_host}:${l_graph_db_port}/$/datasets" > /dev/null
   fi
   if [[ $? -ne 0 ]]; then
       echo "Error occurred when creating database $1. Response:$_"
@@ -151,7 +151,7 @@ get_databases(){
         "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" |\
         python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
   elif [[ $l_graph_db_type == "jena" ]]; then
-    curl -s -g "http://${l_graph_db_host}:${l_graph_db_port}/$/server" |\
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" "http://${l_graph_db_host}:${l_graph_db_port}/$/server" |\
         python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
   fi
   if [[ $? -ne 0 ]]; then
