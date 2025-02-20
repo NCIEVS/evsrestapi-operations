@@ -10,6 +10,7 @@ force=0
 config=1
 help=0
 weekly=0
+print_env=0
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
@@ -29,6 +30,7 @@ while [[ "$#" -gt 0 ]]; do
   --force) force=1 ;;
   # weekly not monthly
   --weekly) weekly=1 ;;
+  --printenv) print_env=1 ;;
   *) arr=("${arr[@]}" "$1") ;;
   esac
   shift
@@ -46,6 +48,18 @@ if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
 fi
 
 data=${arr[0]}
+
+print_env(){
+  echo "GRAPH_DB_TYPE=$GRAPH_DB_TYPE"
+  echo "GRAPH_DB_HOME=$GRAPH_DB_HOME"
+  echo "GRAPH_DB_URL=$GRAPH_DB_URL"
+  echo "GRAPH_DB_USERNAME=$GRAPH_DB_USERNAME"
+  echo "GRAPH_DB_PASSWORD=$GRAPH_DB_PASSWORD"
+  echo "STARDOG_HOME=$STARDOG_HOME"
+  echo "STARDOG_USERNAME=$STARDOG_USERNAME"
+  echo "STARDOG_PASSWORD=$STARDOG_PASSWORD"
+  #print where
+}
 
 optimize_stardog_dbs() {
   optimize_stardog_db "NCIT2"
