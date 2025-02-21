@@ -49,6 +49,7 @@ fi
 data=${arr[0]}
 
 print_env(){
+  echo "Printing Environment"
   echo "GRAPH_DB_TYPE=$GRAPH_DB_TYPE"
   echo "GRAPH_DB_HOME=$GRAPH_DB_HOME"
   echo "GRAPH_DB_URL=$GRAPH_DB_URL"
@@ -57,7 +58,7 @@ print_env(){
   echo "STARDOG_HOME=$STARDOG_HOME"
   echo "STARDOG_USERNAME=$STARDOG_USERNAME"
   echo "STARDOG_PASSWORD=$STARDOG_PASSWORD"
-  echo "Java version:$(java -version)"
+  java -version
   if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -n $GRAPH_DB_URL ]]; then
       success=$(curl -s -f -o /dev/null -w "%{http_code}" "$GRAPH_DB_URL/$/server" | grep -q "200")
