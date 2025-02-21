@@ -10,7 +10,6 @@ force=0
 config=1
 help=0
 weekly=0
-print_env=0
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
@@ -30,21 +29,20 @@ while [[ "$#" -gt 0 ]]; do
   --force) force=1 ;;
   # weekly not monthly
   --weekly) weekly=1 ;;
-  --printenv) print_env=1 ;;
   *) arr=("${arr[@]}" "$1") ;;
   esac
   shift
 done
 
 if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
-  echo "Usage: $0 [--noconfig] [--force] [--weekly] [--printenv] [--help] <data>"
+  echo "Usage: $0 [--noconfig] [--force] [--weekly] [--help] <data>"
   echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly --force"
   echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
   echo "  e.g. $0 https://evs.nci.nih.gov/ftp1/upload/ThesaurusInferred_forTS.zip"
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
-  echo "  e.g. $0 --printenv"
+  echo "  e.g. $0 printenv"
   exit 1
 fi
 
@@ -536,7 +534,7 @@ fi
 echo "  setup...$(/bin/date)"
 setup
 validate_setup
-if [[ $print_env -eq 1 ]]; then
+if [[ $data == "print_env" ]]; then
   print_env
   print_completion
   exit 0
