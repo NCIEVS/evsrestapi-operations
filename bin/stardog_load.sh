@@ -37,13 +37,14 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
-  echo "Usage: $0 [--noconfig] [--force] [--weekly] [--help] <data>"
+  echo "Usage: $0 [--noconfig] [--force] [--weekly] [--printenv] [--help] <data>"
   echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly --force"
   echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
   echo "  e.g. $0 https://evs.nci.nih.gov/ftp1/upload/ThesaurusInferred_forTS.zip"
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
+  echo "  e.g. $0 --printenv"
   exit 1
 fi
 
@@ -58,6 +59,17 @@ print_env(){
   echo "STARDOG_HOME=$STARDOG_HOME"
   echo "STARDOG_USERNAME=$STARDOG_USERNAME"
   echo "STARDOG_PASSWORD=$STARDOG_PASSWORD"
+  echo "Java version:$(java -version)"
+  if [[ $l_graph_db_type == "jena" ]]; then
+    if [[ -n $GRAPH_DB_URL ]]; then
+      success=$(curl -s -f -o /dev/null -w "%{http_code}" "$GRAPH_DB_URL/$/server" | grep -q "200")
+      if [[ $success -eq 0 ]]; then
+        echo "Jena server is running"
+      else
+        echo "Jena server is not running"
+      fi
+    fi
+  fi
   #print where
 }
 
@@ -524,6 +536,11 @@ fi
 echo "  setup...$(/bin/date)"
 setup
 validate_setup
+if [[ $print_env -eq 1 ]]; then
+  print_env
+  print_completion
+  exit 0
+fi
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
 datafile=$(get_file_name $data)
