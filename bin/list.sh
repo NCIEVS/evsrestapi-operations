@@ -265,6 +265,7 @@ query=`cat /tmp/x.$$.txt`
 /bin/rm -f /tmp/y.$$.txt
 touch /tmp/y.$$.txt
 for db in `cat /tmp/db.$$.txt`; do
+    db=$(echo "$db" | tr -d '[:space:]' | tr -d '\r')
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
         http://${l_graph_db_host}:${l_graph_db_port}/$db/query \
         --data-urlencode "$query" -H "Accept: application/sparql-results+json" |\
