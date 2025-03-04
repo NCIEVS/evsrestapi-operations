@@ -415,7 +415,7 @@ load_data() {
   if [[ $l_graph_db_type == "stardog" ]]; then
     $l_graph_db_home/bin/stardog data add $db -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
-    echo "    curl -i -s -u ${l_graph_db_username}:$l_graph_db_password -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/$db/data?graph=$graph"
+    echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/$db/data?graph=$graph"
     curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph"
   fi
   if [[ $? -ne 0 ]]; then
