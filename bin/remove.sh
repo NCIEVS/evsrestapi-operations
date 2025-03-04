@@ -154,7 +154,7 @@ if [[ $graphdb -eq 1 ]]; then
             graph=`echo $line | cut -d\| -f 5`
             echo "  Remove $db graph $graph ...`/bin/date`"
             if [[ $l_graph_db_type == "stardog" ]]; then
-              echo "    $l_graph_db_home/bin/stardog data remove -g $graph $db -u $l_graph_db_username -p $l_graph_db_password"
+              echo "    $l_graph_db_home/bin/stardog data remove -g $graph $db -u $l_graph_db_username -p ****"
               $l_graph_db_home/bin/stardog data remove -g $graph $db -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
             elif [[ $l_graph_db_type == "jena" ]]; then
               echo "    curl -s -f $l_graph_db_url/$db/update -d\"update=DROP GRAPH <$graph>\" > /dev/null"
