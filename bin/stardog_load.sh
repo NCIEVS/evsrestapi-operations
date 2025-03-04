@@ -54,10 +54,10 @@ print_env(){
   echo "GRAPH_DB_HOME=$GRAPH_DB_HOME"
   echo "GRAPH_DB_URL=$GRAPH_DB_URL"
   echo "GRAPH_DB_USERNAME=$GRAPH_DB_USERNAME"
-  echo "GRAPH_DB_PASSWORD=$GRAPH_DB_PASSWORD"
+  echo "GRAPH_DB_PASSWORD=****"
   echo "STARDOG_HOME=$STARDOG_HOME"
   echo "STARDOG_USERNAME=$STARDOG_USERNAME"
-  echo "STARDOG_PASSWORD=$STARDOG_PASSWORD"
+  echo "STARDOG_PASSWORD=****"
   java -version
   if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -n $GRAPH_DB_URL ]]; then
