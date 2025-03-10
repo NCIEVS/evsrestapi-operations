@@ -42,10 +42,35 @@ if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
+  echo "  e.g. $0 printenv"
   exit 1
 fi
 
 data=${arr[0]}
+
+print_env(){
+  echo "Printing Environment"
+  echo "GRAPH_DB_TYPE=$GRAPH_DB_TYPE"
+  echo "GRAPH_DB_HOME=$GRAPH_DB_HOME"
+  echo "GRAPH_DB_URL=$GRAPH_DB_URL"
+  echo "GRAPH_DB_USERNAME=$GRAPH_DB_USERNAME"
+  echo "GRAPH_DB_PASSWORD=****"
+  echo "STARDOG_HOME=$STARDOG_HOME"
+  echo "STARDOG_USERNAME=$STARDOG_USERNAME"
+  echo "STARDOG_PASSWORD=****"
+  java -version
+  if [[ $l_graph_db_type == "jena" ]]; then
+    if [[ -n $GRAPH_DB_URL ]]; then
+      success=$(curl -s -f -o /dev/null -w "%{http_code}" "$GRAPH_DB_URL/$/server" | grep -q "200")
+      if [[ $success -eq 0 ]]; then
+        echo "Jena server is running"
+      else
+        echo "Jena server is not running"
+      fi
+    fi
+  fi
+  #print where
+}
 
 optimize_stardog_dbs() {
   optimize_stardog_db "NCIT2"
@@ -368,7 +393,7 @@ remove_graph() {
   if [[ $l_graph_db_type == "stardog" ]]; then
     $l_graph_db_home/bin/stardog data remove -g $1 $2 -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
-    curl -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$2/update" -d"update=DROP GRAPH <$1>" > /dev/null
+    curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$2/update" -d"update=DROP GRAPH <$1>"
   fi
   if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem running $l_graph_db_type to remove graph $1($2)"
@@ -390,7 +415,8 @@ load_data() {
   if [[ $l_graph_db_type == "stardog" ]]; then
     $l_graph_db_home/bin/stardog data add $db -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
-    curl -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
+    echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/$db/data?graph=$graph"
+    curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph"
   fi
   if [[ $? -ne 0 ]]; then
     echo "ERROR: Problem loading $l_graph_db_type ($db)"
@@ -402,7 +428,8 @@ load_data() {
     if [[ $l_graph_db_type == "stardog" ]]; then
       $l_graph_db_home/bin/stardog data add "CTRP" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
-      curl -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/CTRP/data?graph=$graph" > /dev/null
+      echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/CTRP/data?graph=$graph"
+      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/CTRP/data?graph=$graph"
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: Problem loading $l_graph_db_type (CTRP)"
@@ -419,7 +446,8 @@ load_extra_owl_files() {
     if [[ $l_graph_db_type == "stardog" ]]; then
       $l_graph_db_home/bin/stardog data add $db -g $graph $of -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
-      curl -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
+      echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $of $l_graph_db_url/$db/data?graph=$graph"
+      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: Problem loading $l_graph_db_type ($db)"
@@ -510,6 +538,11 @@ fi
 echo "  setup...$(/bin/date)"
 setup
 validate_setup
+if [[ $data == "print_env" ]]; then
+  print_env
+  print_completion
+  exit 0
+fi
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
 datafile=$(get_file_name $data)
