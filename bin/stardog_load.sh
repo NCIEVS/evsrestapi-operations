@@ -75,7 +75,7 @@ print_env(){
 list(){
     # call list.sh to check DBs exist. If not, that script will create them.
     # Note that there is a security restriction in Fuseki that only allows localhost host name to call admin endpoints.
-    GRAPH_HOST=localhost "$DIR"/list.sh "$ncflag"
+    GRAPH_HOST=localhost "$DIR"/list.sh "$ncflag" --quiet --graphdb
 }
 
 optimize_stardog_dbs() {
