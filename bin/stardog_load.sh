@@ -72,6 +72,16 @@ print_env(){
   #print where
 }
 
+list(){
+    # call list.sh to check DBs exist. If not, that script will create them.
+    # Note that there is a security restriction in Fuseki that only allows localhost host name to call admin endpoints.
+    if [[ $config -eq 1 ]]; then
+      GRAPH_HOST=localhost "$DIR"/list.sh
+    else
+      GRAPH_HOST=localhost "$DIR"/list.sh --noconfig
+    fi
+}
+
 optimize_stardog_dbs() {
   optimize_stardog_db "NCIT2"
   optimize_stardog_db "CTRP"
@@ -88,6 +98,22 @@ optimize_stardog_db() {
     fi
   elif [[ $l_graph_db_type == "jena" ]]; then
     echo "    no optimize for jena"
+  fi
+}
+
+compact_dbs() {
+  compact_db "NCIT2"
+  compact_db "CTRP"
+}
+
+compact_db(){
+  if [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
+    echo "  compact jena ...$(/bin/date)"
+    curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
+    if [[ $? -ne 0 ]]; then
+      echo "    ERROR: Problem compacting ($db)"
+      cleanup 1
+    fi
   fi
 }
 
@@ -543,6 +569,11 @@ if [[ $data == "print_env" ]]; then
   print_completion
   exit 0
 fi
+if [[ $data == "list" ]]; then
+  list
+  exit 0
+fi
+
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
 datafile=$(get_file_name $data)
@@ -587,6 +618,7 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
+#compact_dbs
 # For monthly ncit, also loaded into CTRP db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
   optimize_stardog_db "CTRP"
