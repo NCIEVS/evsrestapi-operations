@@ -173,6 +173,7 @@ get_databases(){
     done
     if [[ $exists -eq 0 ]]; then
       create_database "$db"
+      echo "$db" >> /tmp/db.$$.txt
     fi
   done
   ct=`cat /tmp/db.$$.txt | wc -l`
