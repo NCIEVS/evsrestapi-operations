@@ -201,7 +201,7 @@ class OwlConverter:
 
     def write_class(self, root: ET.Element):
         for concept in self.concepts:
-            print(f"Processing {concept}")
+            #print(f"Processing {concept}")
             class_element: ET.Element = self.create_element("Class", concept.code)
             parent_children_for_code = self.parent_children.get(concept.code, [])
             attributes = self.attributes.get(concept.code, [])
