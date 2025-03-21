@@ -109,7 +109,7 @@ compact_dbs() {
 compact_db(){
   if [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
     echo "  compact jena ...$(/bin/date)"
-    curl -i -s -u -X POST "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
+    curl -i -s -X POST -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
     if [[ $? -ne 0 ]]; then
       echo "    ERROR: Problem compacting ($db)"
       cleanup 1
