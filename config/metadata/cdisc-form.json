@@ -142,7 +142,7 @@
           "type": "dropdown",
           "multiple": true,
           "value": "",
-          "placeholder": "Select all codesist(s) that apply",
+          "placeholder": "Select all codelist(s) that apply",
           "validations": [
             {
               "name": "required",
