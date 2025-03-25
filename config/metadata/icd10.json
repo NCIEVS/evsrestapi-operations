@@ -1,5 +1,7 @@
 {
 	"uiLabel": "ICD-10: International Classification of Diseases, Tenth Revision",
+        "fhirUri": "http://hl7.org/fhir/sid/icd-10",
+        "fhirPublisher": "World Health Organization",
 	"licenseText": "The World Health Organization allows use of ICD-10 in NCI Enterprise Vocabulary Services, but requires licensing for other purposes (see http://www.who.int/classifications/icd/en/).",
 	"maxVersions": 1,
 	"metaConceptField": "CODE",

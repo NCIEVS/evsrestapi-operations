@@ -1,5 +1,7 @@
 {
 	"uiLabel": "MED-RT",
+        "fhirUri": "http://va.gov/terminology/medrt",
+        "fhirPublisher": "National Library of Medicine",
 	"description": "MEDRT",
 	"code": "Code",
 	"conceptStatus": null,

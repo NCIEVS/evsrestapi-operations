@@ -1,5 +1,7 @@
 {
 	"uiLabel": "ICD-10-CM: The International Classification of Diseases, Tenth Revision, Clinical Modification",
+        "fhirUri": "http://hl7.org/fhir/sid/icd-10-cm",
+        "fhirPublisher": "NCHS",
 	"maxVersions": 1,
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [
