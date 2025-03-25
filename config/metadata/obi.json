@@ -1,5 +1,7 @@
 {
   "uiLabel": "OBI: Ontology for Biomedical Investigations",
+  "fhirUri": "https://obi-ontology.org/",
+  "fhirPublisher": "Ontology for Biomedical Investigations",
   "description": "OBI: (Ontology for Biomedical Investigations) is an integrated ontology for the description of biological and clinical investigations.",
   "code": "",
   "conceptStatus": "owl:deprecated",

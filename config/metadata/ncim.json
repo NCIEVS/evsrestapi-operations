@@ -1,5 +1,7 @@
 {
 	"uiLabel": "NCI Metathesaurus",
+        "fhirUri": "https://ncim.nci.nih.gov/ncimbrowser/",
+        "fhirPublisher": "National Cancer Institute Enterprise Vocabulary Services",
 	"description": "NCI Metathesaurus. Bethesda, MD: National Cancer Institute.",
 	"licenseText": "The NCI Metathesaurus (NCIm) includes various sources, some of which are proprietary and included, by permission, for non-commercial use only. By accepting this, you agree to the specified terms.",
 	"codeLabel": "CUI",

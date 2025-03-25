@@ -1,5 +1,7 @@
 {
 	"uiLabel": "RadLex: Radiology Lexicon",
+        "fhirUri": "http://radlex.org/",
+        "fhirPublisher": "RSNA (Radiological Society of North America)",
 	"maxVersions": 1,
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [

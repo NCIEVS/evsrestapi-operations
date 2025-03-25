@@ -1,5 +1,7 @@
 {
   "uiLabel": "OBIB: The ontology for Biobanking",
+  "fhirUri": "https://obofoundry.org/ontology/obib.html",
+  "fhirPublisher": "Ontology for Biobanking",
   "description": "OBIB: The ontology for Biobanking (OBIB) is an ontology built for annotation and modeling of biobank repository and biobanking administration.",
   "code": "",
   "conceptStatus": "owl:deprecated",

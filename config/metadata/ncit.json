@@ -1,5 +1,7 @@
 {
 	"uiLabel": "NCI Thesaurus",
+        "fhirUri": "http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl",
+        "fhirPublisher": "NCI",
 	"maxVersions": 3,
 	"code": "NHC0",
 	"codeLabel": "NCI Thesaurus Code",
