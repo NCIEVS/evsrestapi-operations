@@ -72,6 +72,15 @@ print_env(){
   #print where
 }
 
+print_disk_usage(){
+  df -h
+  # if l_graph_db_home exists
+  if [[ -n $l_graph_db_home ]]; then
+    echo "Disk usage of $l_graph_db_home"
+    du -h "$l_graph_db_home"/run/databases/ 2>/dev/null | sort -h
+  fi
+}
+
 list(){
     # call list.sh to check DBs exist. If not, that script will create them.
     # Note that there is a security restriction in Fuseki that only allows localhost host name to call admin endpoints.
@@ -138,22 +147,21 @@ setup() {
 }
 
 validate_setup() {
-  if [[ $l_graph_db_type == "stardog" ]]; then
-    if [[ -n "$GRAPH_DB_HOME" ]]; then
-      l_graph_db_home="$GRAPH_DB_HOME"
-    elif [[ -n "$STARDOG_HOME" ]]; then
-      l_graph_db_home="$STARDOG_HOME"
-    else
-      echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
-      exit 1
-    fi
-  elif [[ $l_graph_db_type == "jena" ]]; then
+  if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -z $GRAPH_DB_URL ]]; then
       echo "    ERROR: GRAPH_DB_URL is not set"
       exit 1
     else
       l_graph_db_url="$GRAPH_DB_URL"
     fi
+  fi
+  if [[ -n "$GRAPH_DB_HOME" ]]; then
+    l_graph_db_home="$GRAPH_DB_HOME"
+  elif [[ -n "$STARDOG_HOME" ]]; then
+    l_graph_db_home="$STARDOG_HOME"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+    exit 1
   fi
 
   if [[ -n "$GRAPH_DB_USERNAME" ]]; then
@@ -554,7 +562,7 @@ l_graph_db_username=$GRAPH_DB_USERNAME
 l_graph_db_password=$GRAPH_DB_PASSWORD
 echo "    GRAPH_DB_TYPE = $l_graph_db_type"
 echo ""
-
+print_disk_usage
 if [[ $data == "optimize" ]]; then
   optimize_stardog_dbs
   print_completion
