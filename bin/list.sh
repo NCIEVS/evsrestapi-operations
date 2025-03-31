@@ -1,7 +1,7 @@
 #!/bin/bash -f
 #
 # This script lists databases, terminologies, versions, graphs
-# available in the configured stardog and elasticsearch.
+# available in the configured graph db and elasticsearch.
 # The --noconfig flag is for running in the dev environment
 # where the setenv.sh file does not exist.
 #
@@ -9,26 +9,32 @@ config=1
 ncflag=""
 help=0
 quiet=0
-stardog=1
+graphdb=1
 es=1
+databases=("NCIT2" "CTRP")
+
+DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     # use environment variable config (dev env)
     --noconfig) config=0; ncflag="--noconfig";;
     # avoid printing header/footer
     --quiet) quiet=1;;
-    # show stardog data only
+    # show graph DB data only
+    --graphdb) es=0;;
     --stardog) es=0;;
+    --jena) es=0;;
     # show es data only
-    --es) stardog=0;;
+    --es) graphdb=0;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
 if [ ${#arr[@]} -ne 0 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 [--noconfig] [--quiet] [--stardog] [--es] [--help]"
+    echo "Usage: $0 [--noconfig] [--quiet] [--graphdb] [--es] [--help]"
     echo "  e.g. $0 --noconfig"
-    echo "  e.g. $0 --noconfig --stardog"
-    echo "  e.g. $0 --noconfig --quiet --stardog"
+    echo "  e.g. $0 --noconfig --graphdb"
+    echo "  e.g. $0 --noconfig --quiet --graphdb"
     echo "  e.g. $0 --noconfig --es"
     echo "  e.g. $0 --noconfig --quiet --es"
     exit 1
@@ -52,71 +58,130 @@ fi
 if [[ $quiet -eq 0 ]]; then
     echo "  Setup configuration"
 fi
-if [[ $config -eq 1 ]]; then
+
+setup_configuration() {
+  if [[ $config -eq 1 ]]; then
     APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
     CONFIG_DIR=${APP_HOME}/config
     CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
     if [[ -e $CONFIG_ENV_FILE ]]; then
-        echo "    config = $CONFIG_ENV_FILE"
-        . $CONFIG_ENV_FILE
+      echo "    config = $CONFIG_ENV_FILE"
+      . $CONFIG_ENV_FILE
     else
-        echo "ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-        exit 1
+      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
+      exit 1
     fi
-elif [[ -z $STARDOG_HOST ]]; then
-    echo "ERROR: STARDOG_HOST is not set"
+  fi
+}
+
+validate_setup() {
+  if [[ -n "$GRAPH_DB_PASSWORD" ]]; then
+    l_graph_db_password="$GRAPH_DB_PASSWORD"
+  elif [[ -n "$STARDOG_PASSWORD" ]]; then
+    l_graph_db_password="$STARDOG_PASSWORD"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_PASSWORD are not set."
     exit 1
-elif [[ -z $STARDOG_PORT ]]; then
-    echo "ERROR: STARDOG_PORT is not set"
+  fi
+  
+  if [[ -n "$GRAPH_DB_HOST" ]]; then
+    l_graph_db_host="$GRAPH_DB_HOST"
+  elif [[ -n "$STARDOG_HOST" ]]; then
+    l_graph_db_host="$STARDOG_HOST"
+  else
+    echo "Error: Both GRAPH_DB_HOST and STARDOG_HOST are not set."
     exit 1
-elif [[ -z $STARDOG_USERNAME ]]; then
-    echo "ERROR: STARDOG_USERNAME is not set"
+  fi
+  if [[ -n "$GRAPH_DB_PORT" ]]; then
+    l_graph_db_port="$GRAPH_DB_PORT"
+  elif [[ -n "$STARDOG_PORT" ]]; then
+    l_graph_db_port="$STARDOG_PORT"
+  else
+    echo "Both GRAPH_DB_PORT and STARDOG_PORT are not set. Using default"
+    l_graph_db_port="5820"
+  fi
+  if [[ -n "$GRAPH_DB_USERNAME" ]]; then
+    l_graph_db_username="$GRAPH_DB_USERNAME"
+  elif [[ -n "$STARDOG_USERNAME" ]]; then
+    l_graph_db_username="$STARDOG_USERNAME"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_USERNAME are not set."
     exit 1
-elif [[ -z $STARDOG_PASSWORD ]]; then
-    echo "ERROR: STARDOG_PASSWORD is not set"
-    exit 1
-elif [[ -z $ES_SCHEME ]]; then
-    echo "ERROR: ES_SCHEME is not set"
-    exit 1
-elif [[ -z $ES_HOST ]]; then
-    echo "ERROR: ES_HOST is not set"
-    exit 1
-elif [[ -z $ES_PORT ]]; then
-    echo "ERROR: ES_PORT is not set"
-    exit 1
-else
-    ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
-fi
+  fi
+}
+
+setup_configuration
+validate_setup
+
+l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
+l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
+l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
+export GRAPH_DB_TYPE=$l_graph_db_type
+
+ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 
 if [[ $quiet -eq 0 ]]; then
-    echo "    stardog = http://${STARDOG_HOST}:${STARDOG_PORT}"
+    echo "    graphdb type = ${l_graph_db_type}"
+    echo "    graphdb = http://${l_graph_db_host}:${l_graph_db_port}"
     echo "    elasticsearch = ${ES}"
     echo ""
 fi
 
 if [[ $quiet -eq 0 ]]; then
-    echo "  Lookup stardog info ...`/bin/date`"
+    echo "  Lookup graphdb info ...`/bin/date`"
 fi
 
-if [[ $stardog -eq 1 ]]; then
+create_database(){
+  echo "    Creating $1"
+  if [[ $l_graph_db_type = "stardog" ]]; then
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" -X POST -F root="{\"dbname\":\"$1\"}"  "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" > /dev/null
+  elif [[ $l_graph_db_type = "jena" ]]; then
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" -X POST -d "dbName=$1&dbType=tdb2" "http://${l_graph_db_host}:${l_graph_db_port}/$/datasets" > /dev/null
+  fi
+  if [[ $? -ne 0 ]]; then
+      echo "Error occurred when creating database $1. Response:$_"
+      exit 1
+  fi
+}
 
-curl -s -g -u "${STARDOG_USERNAME}:$STARDOG_PASSWORD" \
-    "http://${STARDOG_HOST}:${STARDOG_PORT}/admin/databases" |\
-    $jq | perl -ne 's/\r//; $x=0 if /\]/; if ($x) { s/.* "//; s/",?$//; print "$_"; };
-                    $x=1 if/\[/;' > /tmp/db.$$.txt
-if [[ $? -ne 0 ]]; then
-    echo "ERROR: unexpected problem listing databases"
-    exit 1
-fi
+get_databases(){
+  if [[ $l_graph_db_type == "stardog" ]]; then
+    # print the curl command to stdout
+    echo "    curl -s -g -u \"${l_graph_db_username}:****\" \"http://${l_graph_db_host}:${l_graph_db_port}/admin/databases\""
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
+        "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" |\
+        python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
+  elif [[ $l_graph_db_type == "jena" ]]; then
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" "http://${l_graph_db_host}:${l_graph_db_port}/$/server" |\
+        python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
+  fi
+  if [[ $? -ne 0 ]]; then
+      echo "ERROR: unexpected problem listing databases"
+      exit 1
+  fi
 
-if [[ $quiet -eq 0 ]]; then
-    echo "    databases = " `cat /tmp/db.$$.txt`
-fi
-ct=`cat /tmp/db.$$.txt | wc -l`
-if [[ $ct -eq 0 ]]; then
-    echo "ERROR: no stardog databases, this is unexpected"
-    exit 1
-fi
+  if [[ $quiet -eq 0 ]]; then
+      echo "    databases = " `cat /tmp/db.$$.txt`
+  fi
+  for db in "${databases[@]}"; do
+    exists=0
+    for current_db in `cat /tmp/db.$$.txt`; do
+      if [ "$db" = "$current_db" ]; then
+          exists=1
+          break
+      fi
+    done
+    if [[ $exists -eq 0 ]]; then
+      create_database "$db"
+      echo "$db" >> /tmp/db.$$.txt
+    fi
+  done
+  ct=`cat /tmp/db.$$.txt | wc -l`
+  if [[ $ct -eq 0 ]]; then
+      echo "ERROR: no graph databases, this is unexpected"
+      exit 1
+  fi
+}
 
 get_ignored_sources(){
   if [ -f "../config/metadata/ignore-source.txt" ]; then
@@ -125,6 +190,8 @@ get_ignored_sources(){
     echo ""
   fi
 }
+
+get_graphs(){
 ignored_sources=$(get_ignored_sources)
 echo "    Ignored source URLs:${ignored_sources}"
 if [ -n "$ignored_sources" ];then
@@ -176,40 +243,8 @@ select distinct ?source ?graphName ?version where {
 }
 EOF
 fi
-query=`cat /tmp/x.$$.txt`
+}
 
-# Run the query against each of the databases
-/bin/rm -f /tmp/y.$$.txt
-touch /tmp/y.$$.txt
-for db in `cat /tmp/db.$$.txt`; do
-    curl -s -g -u "${STARDOG_USERNAME}:$STARDOG_PASSWORD" \
-        http://${STARDOG_HOST}:${STARDOG_PORT}/$db/query \
-        --data-urlencode "$query" -H "Accept: application/sparql-results+json" |\
-        $jq | perl -ne '
-            chop; $x="version" if /"version"/;
-            $x="source" if /"source"/;
-            $x="graphName" if /"graphName"/; 
-            $x=0 if /\}/; 
-            if ($x && /"value"/) { 
-                s/.* "//; s/".*//;
-                ${$x} = $_;                
-                print "$version|'$db'|$source|$graphName\n" if $x eq "version"; 
-            } ' >> /tmp/y.$$.txt
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: unexpected problem obtaining $db versions from stardog"
-        exit 1
-    fi    
-done
-
-# Sort by version then reverse by DB (NCIT2 goes before CTRP)
-# this is because we need "monthly" to be indexed from the "monthlyDb"
-# defined in ncit.json
-sort -t\| -k 1,1 -k 2,2r -o /tmp/y.$$.txt /tmp/y.$$.txt
-
-if [[ $quiet -eq 0 ]]; then
-    echo "  List stardog graphs ...`/bin/date`"
-fi
-# Here determine the parts for each case
 get_terminology(){
   lower_terminology=$(basename "$1" | sed 's/.owl//g; s/Ontology//; s/-//;' | tr '[:upper:]' '[:lower:]')
   if [[ $lower_terminology =~ "thesaurus" ]]; then
@@ -221,14 +256,46 @@ get_terminology(){
   fi
 }
 
+if [[ $graphdb -eq 1 ]]; then
+echo "  Getting databases"
+get_databases
+get_graphs
+query=`cat /tmp/x.$$.txt`
+
+# Run the query against each of the databases
+/bin/rm -f /tmp/y.$$.txt
+touch /tmp/y.$$.txt
+for db in `cat /tmp/db.$$.txt`; do
+    # Remove any whitespace or carriage returns for dos/unix compatibility
+    db=$(echo "$db" | tr -d '[:space:]' | tr -d '\r')
+    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
+        http://${l_graph_db_host}:${l_graph_db_port}/$db/query \
+        --data-urlencode "$query" -H "Accept: application/sparql-results+json" |\
+        python3 "$DIR/get_graphs.py" "$db" >> /tmp/y.$$.txt
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: unexpected problem obtaining $db versions from $l_graph_db_type"
+        exit 1
+    fi
+done
+
+# Sort by version then reverse by DB (NCIT2 goes before CTRP)
+# this is because we need "monthly" to be indexed from the "monthlyDb"
+# defined in ncit.json
+sort -t\| -k 1,1 -k 2,2r -o /tmp/y.$$.txt /tmp/y.$$.txt
+
+if [[ $quiet -eq 0 ]]; then
+    echo "  List $l_graph_db_type graphs ...`/bin/date`"
+fi
+# Here determine the parts for each case
+
 for x in `cat /tmp/y.$$.txt`; do
     version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(.*)/[a-zA-Z]+.owl#$1#;'`
     db=`echo $x | cut -d\| -f 2`
-    uri=`echo $x | cut -d\| -f 3`
-    graph_uri=`echo $x | cut -d\| -f 4`
+    uri=`echo $x | cut -d\| -f 4`
+    graph_uri=`echo $x | cut -d\| -f 3`
     term=$(get_terminology "$uri")
     if [[ $quiet -eq 1 ]]; then
-        echo "stardog|$db|$term|$version|$graph_uri"
+        echo "$l_graph_db_type|$db|$term|$version|$graph_uri"
     else
         echo "    $db $term $version $graph_uri"
     fi

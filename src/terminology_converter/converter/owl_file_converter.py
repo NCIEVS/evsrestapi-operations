@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 
 log = logging.getLogger(__name__)
+THING_URI = "http://www.w3.org/2002/07/owl#Thing"
 
 from terminology_converter.models.terminology import (
     Concept,
@@ -200,7 +201,7 @@ class OwlConverter:
 
     def write_class(self, root: ET.Element):
         for concept in self.concepts:
-            print(f"Processing {concept}")
+            #print(f"Processing {concept}")
             class_element: ET.Element = self.create_element("Class", concept.code)
             parent_children_for_code = self.parent_children.get(concept.code, [])
             attributes = self.attributes.get(concept.code, [])
@@ -245,7 +246,7 @@ class OwlConverter:
     ):
         return ET.Element(
             f"{element_prefix}:{element_name}",
-            {f"{RDF_PREFIX}:resource": f"{self.base_url}#{label}"},
+            {f"{RDF_PREFIX}:resource": f"{self.base_url}#{label}" if not label == THING_URI else THING_URI},
         )
 
     def append_class_element(
