@@ -1,5 +1,7 @@
 {
 	"uiLabel": "Mouse Anatomy: Anatomical Dictionary for the Adult Mouse",
+        "fhirUri": "http://purl.obolibrary.org/obo/emap.owl",
+        "fhirPublisher": "National Cancer Institute",
 	"code": "oboInOwl:id",
 	"conceptStatus": "owl:deprecated",
 	"retiredStatusValue": "true",

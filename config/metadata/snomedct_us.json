@@ -1,5 +1,7 @@
 {
 	"uiLabel": "SNOMED CT: SNOMED Clinical Terms",
+        "fhirUri": "http://snomed.info/sct",
+        "fhirPublisher": "National Library of Medicine",
 	"maxVersions": 1,
 	"licenseText": "SNOMED International allows use of SNOMED CT in NCI Enterprise Vocabulary Services, but requires licensing for other purposes (see http://www.nlm.nih.gov/research/umls/knowledge_sources/metathesaurus/release/license_agreement_snomed.html).",
 	"metaConceptField": "CODE",

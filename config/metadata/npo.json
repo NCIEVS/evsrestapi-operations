@@ -1,5 +1,7 @@
 {
 	"uiLabel": "NPO: NanoParticle Ontology",
+        "fhirUri": "http://purl.bioontology.org/ontology/npo",
+        "fhirPublisher": "National Cancer Institute",
 	"code": "code",
 	"conceptStatus": "owl:deprecated",
 	"retiredStatusValue": "true",

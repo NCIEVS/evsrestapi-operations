@@ -1,5 +1,7 @@
 {
 	"uiLabel": "LOINC: Logical Observation Identifier Names and Codes",
+        "fhirUri": "http://loinc.org",
+        "fhirPublisher": "LOINC and Health Data Standards, Regenstrief Institute, Inc.",
 	"maxVersions": 1,
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [
