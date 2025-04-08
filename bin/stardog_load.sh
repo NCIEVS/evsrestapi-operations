@@ -59,6 +59,10 @@ print_env(){
   echo "STARDOG_USERNAME=$STARDOG_USERNAME"
   echo "STARDOG_PASSWORD=****"
   java -version
+  if [[ $config -eq 1 ]]; then
+    echo "Printing config file: $CONFIG_ENV_FILE"
+    cat "$CONFIG_ENV_FILE"
+  fi
   if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -n $GRAPH_DB_URL ]]; then
       success=$(curl -s -f -o /dev/null -w "%{http_code}" "$GRAPH_DB_URL/$/server" | grep -q "200")
@@ -69,7 +73,8 @@ print_env(){
       fi
     fi
   fi
-  #print where
+  evsrestapi_operations_version=$(head -1 "$DIR"/../Makefile | perl -pe 's/.*=(.*)/\1/')
+  echo "evsrestapi_operations_version=$evsrestapi_operations_version"
 }
 
 print_disk_usage(){
@@ -518,10 +523,11 @@ cleanup() {
   # cleanup log files
   local code=$1
   /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log >/dev/null 2>&1
-  /bin/rm -rf "$WORK_DIRECTORY"
 
   if [ "$code" != "" ]; then
     exit $code
+  else
+    /bin/rm -rf "$WORK_DIRECTORY"
   fi
 }
 
@@ -542,7 +548,7 @@ fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-WORK_DIRECTORY=$DIR/work
+WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
 
