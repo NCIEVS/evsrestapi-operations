@@ -632,7 +632,7 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
-#compact_dbs
+compact_dbs
 # For monthly ncit, also loaded into CTRP db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
   optimize_stardog_db "CTRP"
