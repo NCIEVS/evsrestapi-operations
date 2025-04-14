@@ -1,5 +1,7 @@
 {
   "uiLabel": "HL7V3.0: Health Level 7 Vocabulary (V3)",
+  "fhirUri": "https://www.nlm.nih.gov/research/umls/sourcereleasedocs/current/HL7V3.0/index.html",
+  "fhirPublisher": "Health Level 7 International",
   "description": "The Reference Information Model (RIM) is the cornerstone of the HL7 Version 3 development process.",
   "maxVersions": 1,
   "metaConceptField": "CODE",

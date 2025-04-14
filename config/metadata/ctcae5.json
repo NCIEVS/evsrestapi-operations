@@ -1,5 +1,7 @@
 {
 	"uiLabel": "CTCAE 5",
+        "fhirUri": "http://hl7.org/fhir/us/ctcae",
+        "fhirPublisher": "NCI",
 	"description": "Common Terminology Criteria for Adverse Events ",
 	"code": "NCIt_Code",
 	"conceptStatus": "owl:deprecated",

@@ -1,5 +1,7 @@
 {
 	"uiLabel": "UMLS Semantic Network",
+        "fhirUri": "http://www.nlm.nih.gov/research/umls/umlssemnet.owl",
+        "fhirPublisher": "National Library of Medicine",
 	"description": "UMLS Semantic Network",
 	"licenseText": "Government information at NLM Web sites is in the public domain. Public domain information may be freely distributed and copied, but it is requested that in any subsequent use the National Library of Medicine (NLM) be given appropriate acknowledgement as specified at https://lhncbc.nlm.nih.gov/semanticnetwork/terms.html",
 	"code": "Code",

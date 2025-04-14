@@ -1,5 +1,7 @@
 {
   "uiLabel": "DUO: Data Use Ontology",
+  "fhirUri": "https://obofoundry.org/ontology/duo.html",
+  "fhirPublisher": "Data Use Ontology",
   "description": "DUO (Data Use Ontology) is an ontology which represents data use conditions.",
   "code": "",
   "conceptStatus": "owl:deprecated",
