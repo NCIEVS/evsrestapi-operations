@@ -59,6 +59,10 @@ print_env(){
   echo "STARDOG_USERNAME=$STARDOG_USERNAME"
   echo "STARDOG_PASSWORD=****"
   java -version
+  if [[ $config -eq 1 ]]; then
+    echo "Printing config file: $CONFIG_ENV_FILE"
+    cat "$CONFIG_ENV_FILE"
+  fi
   if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -n $GRAPH_DB_URL ]]; then
       success=$(curl -s -f -o /dev/null -w "%{http_code}" "$GRAPH_DB_URL/$/server" | grep -q "200")
@@ -69,7 +73,17 @@ print_env(){
       fi
     fi
   fi
-  #print where
+  evsrestapi_operations_version=$(head -1 "$DIR"/../Makefile | perl -pe 's/.*=(.*)/\1/')
+  echo "evsrestapi_operations_version=$evsrestapi_operations_version"
+}
+
+print_disk_usage(){
+  df -h
+  # if l_graph_db_home exists
+  if [[ -n $l_graph_db_home ]]; then
+    echo "Disk usage of $l_graph_db_home"
+    du -h "$l_graph_db_home"/run/databases/ 2>/dev/null | sort -h
+  fi
 }
 
 list(){
@@ -109,7 +123,7 @@ compact_dbs() {
 compact_db(){
   if [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
     echo "  compact jena ...$(/bin/date)"
-    curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
+    curl -XPOST -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
     if [[ $? -ne 0 ]]; then
       echo "    ERROR: Problem compacting ($db)"
       cleanup 1
@@ -138,22 +152,21 @@ setup() {
 }
 
 validate_setup() {
-  if [[ $l_graph_db_type == "stardog" ]]; then
-    if [[ -n "$GRAPH_DB_HOME" ]]; then
-      l_graph_db_home="$GRAPH_DB_HOME"
-    elif [[ -n "$STARDOG_HOME" ]]; then
-      l_graph_db_home="$STARDOG_HOME"
-    else
-      echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
-      exit 1
-    fi
-  elif [[ $l_graph_db_type == "jena" ]]; then
+  if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -z $GRAPH_DB_URL ]]; then
       echo "    ERROR: GRAPH_DB_URL is not set"
       exit 1
     else
       l_graph_db_url="$GRAPH_DB_URL"
     fi
+  fi
+  if [[ -n "$GRAPH_DB_HOME" ]]; then
+    l_graph_db_home="$GRAPH_DB_HOME"
+  elif [[ -n "$STARDOG_HOME" ]]; then
+    l_graph_db_home="$STARDOG_HOME"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+    exit 1
   fi
 
   if [[ -n "$GRAPH_DB_USERNAME" ]]; then
@@ -510,10 +523,11 @@ cleanup() {
   # cleanup log files
   local code=$1
   /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log >/dev/null 2>&1
-  /bin/rm -rf "$WORK_DIRECTORY"
 
   if [ "$code" != "" ]; then
     exit $code
+  else
+    /bin/rm -rf "$WORK_DIRECTORY"
   fi
 }
 
@@ -534,7 +548,7 @@ fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-WORK_DIRECTORY=$DIR/work
+WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
 
@@ -554,7 +568,7 @@ l_graph_db_username=$GRAPH_DB_USERNAME
 l_graph_db_password=$GRAPH_DB_PASSWORD
 echo "    GRAPH_DB_TYPE = $l_graph_db_type"
 echo ""
-
+print_disk_usage
 if [[ $data == "optimize" ]]; then
   optimize_stardog_dbs
   print_completion
@@ -618,7 +632,7 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
-#compact_dbs
+compact_dbs
 # For monthly ncit, also loaded into CTRP db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
   optimize_stardog_db "CTRP"
