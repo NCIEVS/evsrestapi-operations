@@ -5,10 +5,13 @@
 # (e.g., patches/2.2.0/fhir_transforms.zip when run from patches/2.2.0/)
 
 # Define the directory where fhir_transforms.zip is expected
+
 SCRIPT_DIR=$(dirname "$0")
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+BIN_DIR="$DIR/../.."
 ZIP_FILE="$SCRIPT_DIR/fhir_transforms.zip"
-UNZIP_DIR="$SCRIPT_DIR/fhir_transforms"
-UPDATE_SCRIPT="$UNZIP_DIR/fhir_transforms/fhirMetadataUpdates.sh"
+UNZIP_DIR="$BIN_DIR"
+UPDATE_SCRIPT="$BIN_DIR/fhir_transforms/fhirMetadataUpdates.sh"
 
 # Check if fhir_transforms.zip exists in the expected directory
 if [ -f "$ZIP_FILE" ]; then
@@ -28,12 +31,14 @@ if [ -f "$ZIP_FILE" ]; then
       # Make the update script executable
       chmod +x "$UPDATE_SCRIPT"
 
-      # Run fhirMetadataUpdates.sh
-      bash "$UPDATE_SCRIPT"
-      if [ $? -eq 0 ]; then
+      # Run fhirMetadataUpdates.sh and pipe its output to the console
+      "$UPDATE_SCRIPT" "$BIN_DIR"
+      UPDATE_SCRIPT_EXIT_CODE=$?
+
+      if [ "$UPDATE_SCRIPT_EXIT_CODE" -eq 0 ]; then
         echo "Successfully executed $UPDATE_SCRIPT"
       else
-        echo "Error: Failed to execute $UPDATE_SCRIPT"
+        echo "Error: Failed to execute $UPDATE_SCRIPT (exit code: $UPDATE_SCRIPT_EXIT_CODE)"
         exit 1 # Exit with an error code
       fi
     else
