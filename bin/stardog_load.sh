@@ -364,7 +364,7 @@ apply_transformations() {
       transformation_script=$DIR/transforms/"$terminology_lower".sh
       if [[ -e $transformation_script ]]; then
         echo "    Applying transformations for $terminology"
-        script_output=$("$transformation_script" "$file")
+        script_output=$("$transformation_script" "$file" $$)
         set_transformed_owl "$terminology" "$script_output"
         set_load_variables_of_transform
         break
