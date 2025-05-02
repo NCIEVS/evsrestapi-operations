@@ -34,7 +34,7 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
+if [[ "${arr[0]}" == "remove" && ${#arr[@]} -gt 4 ]] || [[ "${arr[0]}" == "remove" && ${#arr[@]} -gt 2 ]] || [[ "${arr[0]}" != "remove" && "${arr[0]}" != "patch" && ${#arr[@]} -ne 1 ]] || [ $help -eq 1 ]; then
   echo "Usage: $0 [--noconfig] [--force] [--weekly] [--help] <data>"
   echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly --force"
   echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
@@ -42,7 +42,11 @@ if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
-  echo "  e.g. $0 printenv"
+  echo "  e.g. $0 print_env"
+  echo "  e.g. $0 list"
+  echo "  e.g. $0 remove ncit 20.09d --graphdb"
+  echo "  e.g. $0 remove ncim 202102 --es"
+  echo "  e.g. $0 patch 2.2.0"
   exit 1
 fi
 
@@ -75,6 +79,8 @@ print_env(){
   fi
   evsrestapi_operations_version=$(head -1 "$DIR"/../Makefile | perl -pe 's/.*=(.*)/\1/')
   echo "evsrestapi_operations_version=$evsrestapi_operations_version"
+  print_completion
+  exit 0
 }
 
 print_disk_usage(){
@@ -86,14 +92,20 @@ print_disk_usage(){
   fi
 }
 
-list(){
+run_list_command(){
     # call list.sh to check DBs exist. If not, that script will create them.
     # Note that there is a security restriction in Fuseki that only allows localhost host name to call admin endpoints.
     if [[ $config -eq 1 ]]; then
-      GRAPH_HOST=localhost "$DIR"/list.sh
+      GRAPH_HOST=localhost "$DIR"/list.sh 2>&1
     else
-      GRAPH_HOST=localhost "$DIR"/list.sh --noconfig
+      GRAPH_HOST=localhost "$DIR"/list.sh --noconfig 2>&1
     fi
+    if [[ $? -ne 0 ]]; then
+      echo "ERROR: problem running list.sh"
+      cleanup 1
+    fi
+    print_completion
+    exit 0
 }
 
 optimize_stardog_dbs() {
@@ -538,6 +550,74 @@ print_completion() {
   echo "--------------------------------------------------"
 }
 
+run_remove_command(){
+    echo "  Running remove.sh ...$(/bin/date)"
+
+    for token in "${arr[@]}"; do
+      if [[ $token == "remove" ]]; then
+        continue
+      fi
+      # add the token to the remove arguments array
+      remove_args+=("$token")
+    done
+    # print all remove args
+    "$DIR/remove.sh" $ncflag "${remove_args[@]}" 2>&1
+    exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+      echo "ERROR: remove.sh failed with exit code $exit_code"
+      cleanup $exit_code
+    fi
+    print_completion
+    exit 0
+}
+
+run_patch_command(){
+    echo "  Running patch run.sh ...$(/bin/date)"
+
+    for token in "${arr[@]}"; do
+      if [[ $token == "patch" ]]; then
+        continue
+      fi
+      # add the token to the remove arguments array
+      patch_args+=("$token")
+    done
+    if [[ ${#patch_args[@]} -lt 1 ]]; then
+      echo "ERROR: No patch version specified"
+      cleanup 1
+    fi
+    l_patches_directory=$PATCHES_DIRECTORY/${patch_args[0]}
+    # check if patches directory exists
+    if [[ ! -d "$l_patches_directory" ]]; then
+      echo "ERROR: Patches directory ${l_patches_directory} does not exist"
+      cleanup 1
+    fi
+    # call run.sh in patches directory.
+    "$l_patches_directory/run.sh" $ncflag "${remove_args[@]:1}" 2>&1
+    exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+      echo "ERROR: $l_patches_directory/run.sh failed with exit code $exit_code"
+      cleanup $exit_code
+    fi
+    print_completion
+    exit 0
+}
+
+run_commands(){
+  echo "Data:$data"
+  if [[ $data == "print_env" ]]; then
+    print_env
+  fi
+  if [[ $data == "list" ]]; then
+    run_list_command
+  fi
+  if [[ $data =~ "remove" ]]; then
+    run_remove_command
+  fi
+  if [[ $data =~ "patch" ]]; then
+    run_patch_command
+  fi
+}
+
 # Verify jq installed
 jq --help >>/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
@@ -551,7 +631,7 @@ DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
-
+PATCHES_DIRECTORY=$DIR/patches
 echo "--------------------------------------------------"
 echo "Starting ...$(/bin/date)"
 echo "--------------------------------------------------"
@@ -578,15 +658,7 @@ fi
 echo "  setup...$(/bin/date)"
 setup
 validate_setup
-if [[ $data == "print_env" ]]; then
-  print_env
-  print_completion
-  exit 0
-fi
-if [[ $data == "list" ]]; then
-  list
-  exit 0
-fi
+run_commands
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
