@@ -34,7 +34,7 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-if [[ "${arr[0]}" == "remove" && ${#arr[@]} -gt 4 ]] || [[ "${arr[0]}" == "remove" && ${#arr[@]} -gt 2 ]] || [[ "${arr[0]}" != "remove" && "${arr[0]}" != "patch" && ${#arr[@]} -ne 1 ]] || [ $help -eq 1 ]; then
+print_help(){
   echo "Usage: $0 [--noconfig] [--force] [--weekly] [--help] <data>"
   echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly --force"
   echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
@@ -48,6 +48,14 @@ if [[ "${arr[0]}" == "remove" && ${#arr[@]} -gt 4 ]] || [[ "${arr[0]}" == "remov
   echo "  e.g. $0 remove ncim 202102 --es"
   echo "  e.g. $0 patch 2.2.0"
   exit 1
+}
+
+if [[ "${arr[0]}" != "remove" && "${arr[0]}" != "patch" && "${arr[0]}" != "metadata" ]]; then
+  if [[ ${#arr[@]} -ne 1 ]]; then
+    print_help
+  fi
+elif [[ $help -eq 1 ]]; then
+  print_help
 fi
 
 data=${arr[0]}
@@ -552,6 +560,12 @@ print_completion() {
 
 run_remove_command(){
     echo "  Running remove.sh ...$(/bin/date)"
+    if [ ${#arr[@]} -ne 4 ]; then
+        echo "Usage: $0 [--noconfig] [--help] [--graphdb] [--es] <terminology> <version>"
+        echo "  e.g. $0 remove ncit 20.09d --graphdb"
+        echo "  e.g. $0 remove ncim 202102 --es"
+        exit 1
+    fi
 
     for token in "${arr[@]}"; do
       if [[ $token == "remove" ]]; then
@@ -565,6 +579,33 @@ run_remove_command(){
     exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
       echo "ERROR: remove.sh failed with exit code $exit_code"
+      cleanup $exit_code
+    fi
+    print_completion
+    exit 0
+}
+
+run_metadata_command(){
+    echo "  Running metadata.sh ...$(/bin/date)"
+    if [ ${#arr[@]} -ne 4 ]; then
+        echo "Usage: $0 [--noconfig] [--help] metadata <terminology> <version> <config>"
+        echo "  e.g. $0 metadata ncit 2106e ../path/to/ncit.json"
+        echo "  e.g. $0 metadata ncit 2106e https://example.com/path/to/ncit.json"
+        echo "  e.g. $0 metadata ncim 202102 ../path/to/ncim.json"
+        cleanup 1
+    fi
+    for token in "${arr[@]}"; do
+      if [[ $token == "metadata" ]]; then
+        continue
+      fi
+      # add the token to the metadata arguments array
+      metadata_args+=("$token")
+    done
+    # print all remove args
+    "$DIR/metadata.sh" $ncflag "${metadata_args[@]}" 2>&1
+    exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+      echo "ERROR: metadata.sh failed with exit code $exit_code"
       cleanup $exit_code
     fi
     print_completion
@@ -592,13 +633,23 @@ run_patch_command(){
       cleanup 1
     fi
     # call run.sh in patches directory.
-    "$l_patches_directory/run.sh" $ncflag "${remove_args[@]:1}" 2>&1
+    "$l_patches_directory/run.sh" $ncflag "${patch_args[@]:1}" 2>&1
     exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
       echo "ERROR: $l_patches_directory/run.sh failed with exit code $exit_code"
       cleanup $exit_code
     fi
     print_completion
+    exit 0
+}
+
+run_drop_ctrp_db() {
+    echo "    Dropping CTRP DB ...`/bin/date`"
+    curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X DELETE "${l_graph_db_url}/$/datasets/CTRP" > /dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        echo "Error occurred when dropping CTRP database. Response:$_"
+        exit 1
+    fi
     exit 0
 }
 
@@ -615,6 +666,12 @@ run_commands(){
   fi
   if [[ $data =~ "patch" ]]; then
     run_patch_command
+  fi
+  if [[ $data == "drop_ctrp_db" ]]; then
+    run_drop_ctrp_db
+  fi
+  if [[ $data == "metadata" ]]; then
+    run_metadata_command
   fi
 }
 
