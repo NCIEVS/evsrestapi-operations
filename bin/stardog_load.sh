@@ -47,6 +47,8 @@ print_help(){
   echo "  e.g. $0 remove ncit 20.09d --graphdb"
   echo "  e.g. $0 remove ncim 202102 --es"
   echo "  e.g. $0 patch 2.2.0"
+  echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
+  echo "  e.g. $0 drop_ctrp_db"
   exit 1
 }
 
