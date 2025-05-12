@@ -10,6 +10,7 @@ force=0
 config=1
 help=0
 weekly=0
+commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
@@ -100,22 +101,6 @@ print_disk_usage(){
     echo "Disk usage of $l_graph_db_home"
     du -h "$l_graph_db_home"/run/databases/ 2>/dev/null | sort -h
   fi
-}
-
-run_list_command(){
-    # call list.sh to check DBs exist. If not, that script will create them.
-    # Note that there is a security restriction in Fuseki that only allows localhost host name to call admin endpoints.
-    if [[ $config -eq 1 ]]; then
-      GRAPH_HOST=localhost "$DIR"/list.sh 2>&1
-    else
-      GRAPH_HOST=localhost "$DIR"/list.sh --noconfig 2>&1
-    fi
-    if [[ $? -ne 0 ]]; then
-      echo "ERROR: problem running list.sh"
-      cleanup 1
-    fi
-    print_completion
-    exit 0
 }
 
 optimize_stardog_dbs() {
@@ -546,6 +531,8 @@ cleanup() {
   local code=$1
   /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log >/dev/null 2>&1
 
+  # if there are work* directories in $DIR then remove an directories that are older than 30 days
+  find "$DIR" -maxdepth 1 -type d -name "work*" -mtime +30 -exec /bin/rm -rf {} \; >/dev/null 2>&1
   if [ "$code" != "" ]; then
     exit $code
   else
@@ -560,121 +547,25 @@ print_completion() {
   echo "--------------------------------------------------"
 }
 
-run_remove_command(){
-    echo "  Running remove.sh ...$(/bin/date)"
-    if [ ${#arr[@]} -ne 4 ]; then
-        echo "Usage: $0 [--noconfig] [--help] [--graphdb] [--es] <terminology> <version>"
-        echo "  e.g. $0 remove ncit 20.09d --graphdb"
-        echo "  e.g. $0 remove ncim 202102 --es"
-        exit 1
-    fi
-
-    for token in "${arr[@]}"; do
-      if [[ $token == "remove" ]]; then
-        continue
-      fi
-      # add the token to the remove arguments array
-      remove_args+=("$token")
-    done
-    # print all remove args
-    "$DIR/remove.sh" $ncflag "${remove_args[@]}" 2>&1
-    exit_code=$?
-    if [[ $exit_code -ne 0 ]]; then
-      echo "ERROR: remove.sh failed with exit code $exit_code"
-      cleanup $exit_code
-    fi
-    print_completion
-    exit 0
-}
-
-run_metadata_command(){
-    echo "  Running metadata.sh ...$(/bin/date)"
-    if [ ${#arr[@]} -ne 4 ]; then
-        echo "Usage: $0 [--noconfig] [--help] metadata <terminology> <version> <config>"
-        echo "  e.g. $0 metadata ncit 2106e ../path/to/ncit.json"
-        echo "  e.g. $0 metadata ncit 2106e https://example.com/path/to/ncit.json"
-        echo "  e.g. $0 metadata ncim 202102 ../path/to/ncim.json"
-        cleanup 1
-    fi
-    for token in "${arr[@]}"; do
-      if [[ $token == "metadata" ]]; then
-        continue
-      fi
-      # add the token to the metadata arguments array
-      metadata_args+=("$token")
-    done
-    # print all remove args
-    "$DIR/metadata.sh" $ncflag "${metadata_args[@]}" 2>&1
-    exit_code=$?
-    if [[ $exit_code -ne 0 ]]; then
-      echo "ERROR: metadata.sh failed with exit code $exit_code"
-      cleanup $exit_code
-    fi
-    print_completion
-    exit 0
-}
-
-run_patch_command(){
-    echo "  Running patch run.sh ...$(/bin/date)"
-
-    for token in "${arr[@]}"; do
-      if [[ $token == "patch" ]]; then
-        continue
-      fi
-      # add the token to the remove arguments array
-      patch_args+=("$token")
-    done
-    if [[ ${#patch_args[@]} -lt 1 ]]; then
-      echo "ERROR: No patch version specified"
-      cleanup 1
-    fi
-    l_patches_directory=$PATCHES_DIRECTORY/${patch_args[0]}
-    # check if patches directory exists
-    if [[ ! -d "$l_patches_directory" ]]; then
-      echo "ERROR: Patches directory ${l_patches_directory} does not exist"
-      cleanup 1
-    fi
-    # call run.sh in patches directory.
-    "$l_patches_directory/run.sh" $ncflag "${patch_args[@]:1}" 2>&1
-    exit_code=$?
-    if [[ $exit_code -ne 0 ]]; then
-      echo "ERROR: $l_patches_directory/run.sh failed with exit code $exit_code"
-      cleanup $exit_code
-    fi
-    print_completion
-    exit 0
-}
-
-run_drop_ctrp_db() {
-    echo "    Dropping CTRP DB ...`/bin/date`"
-    curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X DELETE "${l_graph_db_url}/$/datasets/CTRP" > /dev/null 2>&1
-    if [[ $? -ne 0 ]]; then
-        echo "Error occurred when dropping CTRP database. Response:$_"
-        exit 1
-    fi
-    exit 0
-}
-
 run_commands(){
   echo "Data:$data"
-  if [[ $data == "print_env" ]]; then
-    print_env
-  fi
-  if [[ $data == "list" ]]; then
-    run_list_command
-  fi
-  if [[ $data =~ "remove" ]]; then
-    run_remove_command
-  fi
-  if [[ $data =~ "patch" ]]; then
-    run_patch_command
-  fi
-  if [[ $data == "drop_ctrp_db" ]]; then
-    run_drop_ctrp_db
-  fi
-  if [[ $data == "metadata" ]]; then
-    run_metadata_command
-  fi
+  # if $data starts with any command in $commands then call run_command.sh with all the arguments
+  for command in "${commands[@]}"; do
+    if [[ $data == $command* ]]; then
+      echo "running command $data"
+      if [[ $ncflag == 0 ]]; then
+        $DIR/run_command.sh "${arr[@]}" 2>&1
+      else
+        $DIR/run_command.sh --noconfig "${arr[@]}" 2>&1
+      fi
+
+      exit_code=$?
+      if [[ $exit_code -ne 0 ]]; then
+        echo "ERROR: run_command.sh failed with exit code $exit_code"
+      fi
+      cleanup $exit_code
+    fi
+  done
 }
 
 # Verify jq installed
