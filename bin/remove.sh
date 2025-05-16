@@ -168,6 +168,7 @@ if [[ $graphdb -eq 1 ]]; then
     else
         cat /tmp/x.$$ | sed 's/^/    /'
         echo "ERROR: unexpected number of matching graphs = $ct"
+        exit 1
     fi
 
 fi
