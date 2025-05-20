@@ -68,7 +68,6 @@ run_list_command(){
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: problem running list.sh"
-      cleanup 1
     fi
     print_completion
     exit 0
@@ -95,7 +94,7 @@ run_remove_command(){
     exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
       echo "ERROR: remove.sh failed with exit code $exit_code"
-      cleanup $exit_code
+      exit $exit_code
     fi
     print_completion
     exit 0
@@ -108,7 +107,7 @@ run_metadata_command(){
         echo "  e.g. $0 metadata ncit 2106e ../path/to/ncit.json"
         echo "  e.g. $0 metadata ncit 2106e https://example.com/path/to/ncit.json"
         echo "  e.g. $0 metadata ncim 202102 ../path/to/ncim.json"
-        cleanup 1
+        exit 1
     fi
     for token in "${arr[@]}"; do
       if [[ $token == "metadata" ]]; then
@@ -122,7 +121,7 @@ run_metadata_command(){
     exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
       echo "ERROR: metadata.sh failed with exit code $exit_code"
-      cleanup $exit_code
+      exit $exit_code
     fi
     print_completion
     exit 0
@@ -140,20 +139,20 @@ run_patch_command(){
     done
     if [[ ${#patch_args[@]} -lt 1 ]]; then
       echo "ERROR: No patch version specified"
-      cleanup 1
+      exit 1
     fi
     l_patches_directory=$PATCHES_DIRECTORY/${patch_args[0]}
     # check if patches directory exists
     if [[ ! -d "$l_patches_directory" ]]; then
       echo "ERROR: Patches directory ${l_patches_directory} does not exist"
-      cleanup 1
+      exit 1
     fi
     # call run.sh in patches directory.
     "$l_patches_directory/run.sh" $ncflag "${patch_args[@]:1}" 2>&1
     exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
       echo "ERROR: $l_patches_directory/run.sh failed with exit code $exit_code"
-      cleanup $exit_code
+      exit $exit_code
     fi
     print_completion
     exit 0
@@ -170,7 +169,6 @@ run_drop_ctrp_db() {
 }
 
 run_commands(){
-  echo "Data:$data"
   if [[ $data == "print_env" ]]; then
     print_env
   fi
