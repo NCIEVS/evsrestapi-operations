@@ -8,9 +8,6 @@ ncflag=""
 graphdb=0
 es=0
 
-l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
-l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
-l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
 l_graph_db_home=""
 l_graph_db_username=""
 l_graph_db_password=""
@@ -133,6 +130,7 @@ fi
 }
 
 setup_configuration
+l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 validate_configuration
 validate_setup
 validate_arguments
