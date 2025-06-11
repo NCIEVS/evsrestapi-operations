@@ -10,7 +10,7 @@ force=0
 config=1
 help=0
 weekly=0
-commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db")
+commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db" "tasks")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
@@ -123,6 +123,17 @@ optimize_stardog_db() {
 }
 
 compact_dbs() {
+  # check if there are any compaction tasks that are running
+  response=$(curl -s -f "$GRAPH_DB_URL/$/tasks")
+  if [[ $? -ne 0 ]]; then
+    echo "    ERROR: Unable to get tasks"
+    return 0
+  fi
+  # count number of tasks that are running
+  if echo "$response" | jq -e '.[] | select(.task == "Compact" and .finished == null)' >/dev/null; then
+    echo "There are Compact tasks still running. Not compacting now."
+    return 0
+  fi  
   compact_db "NCIT2"
   compact_db "CTRP"
 }
@@ -133,7 +144,7 @@ compact_db(){
     curl -XPOST -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
     if [[ $? -ne 0 ]]; then
       echo "    ERROR: Problem compacting ($db)"
-      cleanup 1
+      return 0
     fi
   fi
 }

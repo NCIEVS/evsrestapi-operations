@@ -168,6 +168,11 @@ run_drop_ctrp_db() {
     exit 0
 }
 
+run_tasks_command(){
+  echo "  Listing tasks ...$(/bin/date)"
+  curl -i -s -f "$GRAPH_DB_URL/$/tasks"
+}
+
 run_commands(){
   if [[ $data == "print_env" ]]; then
     print_env
@@ -186,6 +191,9 @@ run_commands(){
   fi
   if [[ $data == "metadata" ]]; then
     run_metadata_command
+  fi
+  if [[ $data == "tasks" ]]; then
+    run_tasks_command
   fi
 }
 
