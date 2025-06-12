@@ -1,5 +1,6 @@
 config=1
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+PATCHES_DIRECTORY=$DIR/patches
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in

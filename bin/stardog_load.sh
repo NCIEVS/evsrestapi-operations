@@ -581,7 +581,6 @@ DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
-PATCHES_DIRECTORY=$DIR/patches
 echo "--------------------------------------------------"
 echo "Starting ...$(/bin/date)"
 echo "--------------------------------------------------"
