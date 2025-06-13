@@ -1,10 +1,11 @@
 #!/bin/bash
 TERMINOLOGY="hgnc"
 TERMINOLOGY_URL="${3:-http://ncicb.nci.nih.gov/genenames.org/HGNC.owl}"
+PID=$2
 dir=$(pwd | perl -pe 's#/cygdrive/c#C:#;')
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 EVS_OPS_HOME=$DIR/../..
-WORK_DIRECTORY=$EVS_OPS_HOME/bin/work
+WORK_DIRECTORY=$EVS_OPS_HOME/bin/work_$PID
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
 VENV_DIRECTORY=$WORK_DIRECTORY/venv

@@ -1,11 +1,11 @@
-VERSION=2.1.0
+VERSION=2.1.2
 BUILD_DIR=./build
 
 build:
 	@echo "Creating ${BUILD_DIR} directory if it does not exist"
 	@mkdir -p ${BUILD_DIR}
 	@echo "Creating zip file. Version: ${VERSION}"
-	@zip -r ${BUILD_DIR}/evsrestapi-operations-${VERSION}.zip ./bin ./config ./lib ./src ./poetry.lock ./pyproject.toml -x ".gitignore"
+	@zip -r ${BUILD_DIR}/evsrestapi-operations-${VERSION}.zip ./bin ./config ./lib ./src ./poetry.lock ./pyproject.toml ./Makefile -x ".gitignore"
 
 clean:
 	@echo "Cleaning ${BUILD_DIR} directory if it exists"
