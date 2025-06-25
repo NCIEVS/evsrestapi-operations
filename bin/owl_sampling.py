@@ -61,7 +61,7 @@ def checkParamsValid(argv):
     return True
 
 def parentChildProcess(line):
-    uriToProcess = re.findall('"([^"]*)"', line)[0].replace("#","")
+    uriToProcess = re.findall('"([^"]*)"', line)[0]
     if(line.startswith("<rdfs:subClassOf rdf:resource=")):
         if(parentStyle1 == []): # first example of rdf:subClassOf child
             parentStyle1.append((currentClassURI, uriToProcess)) # hold in the parentStyle1 object as tuple
@@ -70,12 +70,14 @@ def parentChildProcess(line):
             parentStyle2.append((currentClassURI, uriToProcess)) # hold in the parentStyle2 object as tuple
             
     if(currentClassURI in allParents): # process parent relationship
-        allParents[currentClassURI].append(uriToProcess)
+        if(uriToProcess not in allParents[currentClassURI]): # avoid duplicates
+            allParents[currentClassURI].append(uriToProcess)
     else:
         allParents[currentClassURI] = [uriToProcess]
         
     if(uriToProcess in allChildren): # process child relationship
-        allChildren[uriToProcess].append(currentClassURI)
+        if(currentClassURI not in allChildren[uriToProcess]): # avoid duplicates
+            allChildren[uriToProcess].append(currentClassURI)
     else:
         allChildren[uriToProcess] = [currentClassURI]
     return
@@ -168,7 +170,7 @@ if __name__ == "__main__":
     with open (sys.argv[1], "r", encoding='utf-8') as owlFile:
         ontoLines = owlFile.readlines()
     terminology = sys.argv[2].split("/")[-1].split(".")[0]
-    with open(sys.argv[2]) as termJSONFile: # import id identifier line for terminology
+    with open(sys.argv[2], "r", encoding='utf-8') as termJSONFile: # import id identifier line for terminology
       termJSONObject = json.load(termJSONFile)
       if(not termJSONObject["code"]):
         print("terminology json file does not have ID entry")
@@ -242,7 +244,7 @@ if __name__ == "__main__":
               if(not line.endswith(">")): # badly formatted properties
                   buildingProperty = line
                   continue
-              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0].replace("#", "")
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               objectProperties[currentClassURI] = uri2Code[currentClassURI]
               
             elif(line.startswith("<owl:AnnotationProperty") and not line.endswith("/>")):
@@ -258,7 +260,7 @@ if __name__ == "__main__":
               if(not line.endswith(">")): # badly formatted properties
                   buildingProperty = line
                   continue
-              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0].replace("#", "")
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               annotationProperties[currentClassURI] = uri2Code[currentClassURI]
             elif(line.startswith("<owl:AnnotationProperty")and line.endswith("/>")):
               annotationProperties[line.split("\"")[-2]] = line.split("\"")[-2].split("/")[-1]
@@ -279,7 +281,7 @@ if __name__ == "__main__":
                 hitClass = True
               inClass = True
               propertiesCurrentClass = {} # reset for new class
-              currentClassURI = re.findall('"([^"]*)"', line)[0].replace("#", "") # set uri entry in line
+              currentClassURI = re.findall('"([^"]*)"', line)[0] # set uri entry in line
               currentClassCode = re.split("/|#", currentClassURI)[-1] # set initial class code
               uri2Code[currentClassURI] = currentClassCode # set initial uri code value
               continue
@@ -337,7 +339,7 @@ if __name__ == "__main__":
                   buildingProperty = line
                   continue                 
                 if(line.startswith(termCodeline)): # catch ID to return if it has properties
-                    currentClassCode = re.findall(">(.+?)<", line)[0].replace("#", "")
+                    currentClassCode = re.findall(">(.+?)<", line)[0]
                     classHasCode = True
                     uri2Code[currentClassURI] = currentClassCode # store code for uri
                     continue
