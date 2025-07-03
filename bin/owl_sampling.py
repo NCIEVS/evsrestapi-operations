@@ -48,6 +48,7 @@ termJSONObject = "" # terminology properties
 inComplexAxiom = False # complex axiom handling (skipping)
 inIndividuals = False # skip individuals section
 inDataProperties = False # get data properties to skip
+inNoCodeClass = False # no code class handling (skipping)
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -194,8 +195,12 @@ if __name__ == "__main__":
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
             line = line.strip() # no need for leading spaces anymore
             if(line.startswith("// Annotations")): # skip ending annotation
-                hitClass = False
-                continue
+              hitClass = False
+              continue
+            elif(inNoCodeClass): # skip no code class
+              if(line.startswith("</owl:Class>")):
+                inNoCodeClass = False
+              continue
             elif(inDataProperties and line.startswith("<!--") and not line.endswith(" -->")):
               inDataProperties = False
               continue
@@ -275,7 +280,9 @@ if __name__ == "__main__":
                 deprecated[currentClassURI] = True
             elif(line.startswith("<owl:deprecated")): # track deprecated but still used classes for root filtering
                 deprecated[currentClassURI] = False;
-                
+            # if no code after the pound sign, then there's no code and we skip it
+            elif(line.startswith("<owl:Class ") and not inEquivalentClass and re.findall(r'"(.*?)"', line)[0].endswith("#")):
+              inNoCodeClass = True # no code class
             elif(line.startswith("<owl:Class ") and not inEquivalentClass and not line.endswith("/>")):
               if not hitClass:
                 hitClass = True
