@@ -4,3 +4,4 @@
 /build/
 .settings
 /config/setenv.sh
+owls/*
