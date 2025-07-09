@@ -114,7 +114,6 @@ def handleRestriction(line):
     detail = re.findall('"([^"]*)"', line)[0]
     pathCode = "/".join(currentClassPath) + "~" # prebuild tag stack for restriction
     property = re.split(r'[#/]', detail)[-1] # extract property
-    #print(dataPropertiesList)
     if(property in dataPropertiesList): # ignore anything in dataPropertiesList
       return
     if(line.startswith("<owl:onProperty")): # property code
@@ -294,6 +293,8 @@ if __name__ == "__main__":
               continue
             elif(line.startswith("</owl:Class>") and not inEquivalentClass):
                 for key, value in propertiesCurrentClass.items(): # replace code entry and write to file
+                    if(key.split("~")[-1] in termJSONObject["hierarchyRoles"]): # check for hierarchy roles
+                      continue # skip hierarchy roles
                     properties[key] = value # add to master list
                 inClass = False
                 classHasCode = False # reset check for next deprecated class
