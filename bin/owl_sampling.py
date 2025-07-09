@@ -293,7 +293,7 @@ if __name__ == "__main__":
               continue
             elif(line.startswith("</owl:Class>") and not inEquivalentClass):
                 for key, value in propertiesCurrentClass.items(): # replace code entry and write to file
-                    if(key.split("~")[-1] in termJSONObject["hierarchyRoles"]): # check for hierarchy roles
+                    if("hierarchyRoles" in termJSONObject and key.split("~")[-1] in termJSONObject["hierarchyRoles"]): # check for hierarchy roles
                       continue # skip hierarchy roles
                     properties[key] = value # add to master list
                 inClass = False
@@ -389,7 +389,6 @@ if __name__ == "__main__":
                 maxChildren = (parent, len(children))
         if(maxChildren[1] > 0): # write that property to the file
             termFile.write(maxChildren[0] + "\t" + uri2Code[maxChildren[0]] + "\t" + "max-children" + "\t" + str(maxChildren[1]) + "\n")
-            
         for child, parents in allParents.items(): # process parent counts
             if(len(parents) not in parentCount): # add new length example
                 parentCount[len(parents)] = child
