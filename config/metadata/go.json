@@ -1,5 +1,7 @@
 {
 	"uiLabel": "GO: Gene Ontology",
+        "fhirUri": "http://purl.obolibrary.org/obo/go.owl",
+        "fhirPublisher": "GO Consortium",
 	"description": "The Gene Ontology (GO) provides a framework and set of concepts for describing the functions of gene products from all organisms.",
 	"code": "oboInOwl:id",
 	"conceptStatus": "owl:deprecated",

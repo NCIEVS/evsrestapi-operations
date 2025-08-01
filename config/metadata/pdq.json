@@ -1,5 +1,7 @@
 {
 	"uiLabel": "PDQ: Physician Data Query",
+        "fhirUri": "https://www.cancer.gov/publications/pdq",
+        "fhirPublisher": "National Cancer Institute",
 	"maxVersions": 1,
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [

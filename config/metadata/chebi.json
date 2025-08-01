@@ -1,5 +1,7 @@
 {
 	"uiLabel": "ChEBI: Chemical Entities of Biological Interest",
+        "fhirUri": "http://www.ebi.ac.uk/chebi/",
+        "fhirPublisher": "Open Biomedical Ontologies - European Bioinformatics Institute",
 	"description": "Chemical Entities of Biological Interest (ChEBI) is a freely available dictionary of molecular entities focused on 'small' chemical compounds.",
 	"code": "oboInOwl:id",
 	"conceptStatus": "owl:deprecated",

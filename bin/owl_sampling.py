@@ -48,6 +48,7 @@ termJSONObject = "" # terminology properties
 inComplexAxiom = False # complex axiom handling (skipping)
 inIndividuals = False # skip individuals section
 inDataProperties = False # get data properties to skip
+inNoCodeClass = False # no code class handling (skipping)
 
 def checkParamsValid(argv):
     if(len(argv) != 3):
@@ -61,7 +62,7 @@ def checkParamsValid(argv):
     return True
 
 def parentChildProcess(line):
-    uriToProcess = re.findall('"([^"]*)"', line)[0].replace("#","")
+    uriToProcess = re.findall('"([^"]*)"', line)[0]
     if(line.startswith("<rdfs:subClassOf rdf:resource=")):
         if(parentStyle1 == []): # first example of rdf:subClassOf child
             parentStyle1.append((currentClassURI, uriToProcess)) # hold in the parentStyle1 object as tuple
@@ -70,12 +71,14 @@ def parentChildProcess(line):
             parentStyle2.append((currentClassURI, uriToProcess)) # hold in the parentStyle2 object as tuple
             
     if(currentClassURI in allParents): # process parent relationship
-        allParents[currentClassURI].append(uriToProcess)
+        if(uriToProcess not in allParents[currentClassURI]): # avoid duplicates
+            allParents[currentClassURI].append(uriToProcess)
     else:
         allParents[currentClassURI] = [uriToProcess]
         
     if(uriToProcess in allChildren): # process child relationship
-        allChildren[uriToProcess].append(currentClassURI)
+        if(currentClassURI not in allChildren[uriToProcess]): # avoid duplicates
+            allChildren[uriToProcess].append(currentClassURI)
     else:
         allChildren[uriToProcess] = [currentClassURI]
     return
@@ -111,7 +114,6 @@ def handleRestriction(line):
     detail = re.findall('"([^"]*)"', line)[0]
     pathCode = "/".join(currentClassPath) + "~" # prebuild tag stack for restriction
     property = re.split(r'[#/]', detail)[-1] # extract property
-    #print(dataPropertiesList)
     if(property in dataPropertiesList): # ignore anything in dataPropertiesList
       return
     if(line.startswith("<owl:onProperty")): # property code
@@ -168,7 +170,7 @@ if __name__ == "__main__":
     with open (sys.argv[1], "r", encoding='utf-8') as owlFile:
         ontoLines = owlFile.readlines()
     terminology = sys.argv[2].split("/")[-1].split(".")[0]
-    with open(sys.argv[2]) as termJSONFile: # import id identifier line for terminology
+    with open(sys.argv[2], "r", encoding='utf-8') as termJSONFile: # import id identifier line for terminology
       termJSONObject = json.load(termJSONFile)
       if(not termJSONObject["code"]):
         print("terminology json file does not have ID entry")
@@ -192,8 +194,12 @@ if __name__ == "__main__":
             spaces = len(line) - len(line.lstrip()) # current number of spaces (for stack level checking)
             line = line.strip() # no need for leading spaces anymore
             if(line.startswith("// Annotations")): # skip ending annotation
-                hitClass = False
-                continue
+              hitClass = False
+              continue
+            elif(inNoCodeClass): # skip no code class
+              if(line.startswith("</owl:Class>")):
+                inNoCodeClass = False
+              continue
             elif(inDataProperties and line.startswith("<!--") and not line.endswith(" -->")):
               inDataProperties = False
               continue
@@ -242,7 +248,7 @@ if __name__ == "__main__":
               if(not line.endswith(">")): # badly formatted properties
                   buildingProperty = line
                   continue
-              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0].replace("#", "")
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               objectProperties[currentClassURI] = uri2Code[currentClassURI]
               
             elif(line.startswith("<owl:AnnotationProperty") and not line.endswith("/>")):
@@ -258,7 +264,7 @@ if __name__ == "__main__":
               if(not line.endswith(">")): # badly formatted properties
                   buildingProperty = line
                   continue
-              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0].replace("#", "")
+              uri2Code[currentClassURI] = re.findall(">(.+?)<", line)[0]
               annotationProperties[currentClassURI] = uri2Code[currentClassURI]
             elif(line.startswith("<owl:AnnotationProperty")and line.endswith("/>")):
               annotationProperties[line.split("\"")[-2]] = line.split("\"")[-2].split("/")[-1]
@@ -273,18 +279,22 @@ if __name__ == "__main__":
                 deprecated[currentClassURI] = True
             elif(line.startswith("<owl:deprecated")): # track deprecated but still used classes for root filtering
                 deprecated[currentClassURI] = False;
-                
+            # if no code after the pound sign, then there's no code and we skip it
+            elif(line.startswith("<owl:Class ") and not inEquivalentClass and re.findall(r'"(.*?)"', line)[0].endswith("#")):
+              inNoCodeClass = True # no code class
             elif(line.startswith("<owl:Class ") and not inEquivalentClass and not line.endswith("/>")):
               if not hitClass:
                 hitClass = True
               inClass = True
               propertiesCurrentClass = {} # reset for new class
-              currentClassURI = re.findall('"([^"]*)"', line)[0].replace("#", "") # set uri entry in line
+              currentClassURI = re.findall('"([^"]*)"', line)[0] # set uri entry in line
               currentClassCode = re.split("/|#", currentClassURI)[-1] # set initial class code
               uri2Code[currentClassURI] = currentClassCode # set initial uri code value
               continue
             elif(line.startswith("</owl:Class>") and not inEquivalentClass):
                 for key, value in propertiesCurrentClass.items(): # replace code entry and write to file
+                    if("hierarchyRoles" in termJSONObject and key.split("~")[-1] in termJSONObject["hierarchyRoles"]): # check for hierarchy roles
+                      continue # skip hierarchy roles
                     properties[key] = value # add to master list
                 inClass = False
                 classHasCode = False # reset check for next deprecated class
@@ -337,7 +347,7 @@ if __name__ == "__main__":
                   buildingProperty = line
                   continue                 
                 if(line.startswith(termCodeline)): # catch ID to return if it has properties
-                    currentClassCode = re.findall(">(.+?)<", line)[0].replace("#", "")
+                    currentClassCode = re.findall(">(.+?)<", line)[0]
                     classHasCode = True
                     uri2Code[currentClassURI] = currentClassCode # store code for uri
                     continue
@@ -379,7 +389,6 @@ if __name__ == "__main__":
                 maxChildren = (parent, len(children))
         if(maxChildren[1] > 0): # write that property to the file
             termFile.write(maxChildren[0] + "\t" + uri2Code[maxChildren[0]] + "\t" + "max-children" + "\t" + str(maxChildren[1]) + "\n")
-            
         for child, parents in allParents.items(): # process parent counts
             if(len(parents) not in parentCount): # add new length example
                 parentCount[len(parents)] = child

@@ -1,5 +1,7 @@
 {
 	"uiLabel": "Zebrafish: Zebrafish Model Organism Database",
+        "fhirUri": "http://purl.obolibrary.org/obo/zfa.owl",
+        "fhirPublisher": "National Cancer Institute",
 	"code": "oboInOwl:id",
 	"conceptStatus": "owl:deprecated",
 	"retiredStatusValue": "true",

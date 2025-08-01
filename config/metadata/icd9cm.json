@@ -1,5 +1,7 @@
 {
 	"uiLabel": "ICD-9-CM: The International Classification of Diseases, Ninth Revision, Clinical Modification",
+        "fhirUri": "http://terminology.hl7.org/CodeSystem/icd9cm",
+        "fhirPublisher": "NCHS",
 	"maxVersions": 1,
 	"metaConceptField": "CODE",
 	"preferredTermTypes": [

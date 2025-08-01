@@ -1,5 +1,7 @@
 {
   "uiLabel": "NDF-RT: National Drug File Reference Terminology",
+  "fhirUri": "https://bioportal.bioontology.org/ontologies/NDF-RT",
+  "fhirPublisher": "Vetarans Health Administration",
   "description": "National Drug File Reference Terminology (NDF-RT) is produced by the Veterans Health Administration (VHA) as an extension of the VHA National Drug File (VANDF) formulary.",
   "code": "rdf:ID",
   "conceptStatus": "owl:deprecated",

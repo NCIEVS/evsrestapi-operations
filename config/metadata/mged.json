@@ -1,5 +1,7 @@
 {
 	"uiLabel": "MGED: Microarray Gene Expression Data Ontology",
+        "fhirUri": "http://mged.sourceforge.net/ontologies/MGEDOntology.owl",
+        "fhirPublisher": "National Cancer Institute",
 	"code": "unique_identifier",
 	"conceptStatus": "owl:deprecated",
 	"retiredStatusValue": "true",
