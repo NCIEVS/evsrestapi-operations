@@ -76,31 +76,58 @@ run_list_command(){
 
 run_remove_command(){
     echo "  Running remove.sh ...$(/bin/date)"
-    if [ ${#arr[@]} -ne 4 ]; then
-        echo "Usage: $0 [--noconfig] [--help] [--graphdb] [--es] <terminology> <version>"
-        echo "  e.g. $0 remove ncit 20.09d --graphdb"
-        echo "  e.g. $0 remove ncim 202102 --es"
-        exit 1
+    
+    # Check if --mapset flag is present
+    mapset_flag=0
+    for token in "${arr[@]}"; do
+        if [[ $token == "--mapset" ]]; then
+            mapset_flag=1
+            break
+        fi
+    done
+    
+
+    # Validate arguments based on mapset flag
+    if [[ $mapset_flag -eq 1 ]]; then
+        # For mapset removal, we need exactly 3 arguments: "remove", "--mapset", "<mapset_code>"
+        if [ ${#arr[@]} -ne 3 ]; then
+            echo "Usage: $0 [--noconfig] [--help] remove --mapset <mapset_code>"
+            echo "  e.g. $0 remove --mapset NCIt_to_HGNC_Mapping"
+            exit 1
+        fi
+    else
+        # For terminology removal, we need exactly 4 arguments: "remove", "<terminology>", "<version>", "<flag>"
+        if [ ${#arr[@]} -ne 4 ]; then
+            echo "Usage: $0 [--noconfig] [--help] remove [--graphdb] [--es] <terminology> <version>"
+            echo "  e.g. $0 remove ncit 20.09d --graphdb"
+            echo "  e.g. $0 remove ncim 202102 --es"
+            exit 1
+        fi
     fi
 
+    # Build the remove arguments array (excluding "remove")
+    remove_args=()
     for token in "${arr[@]}"; do
-      if [[ $token == "remove" ]]; then
-        continue
-      fi
-      # add the token to the remove arguments array
-      remove_args+=("$token")
+        if [[ $token == "remove" ]]; then
+            continue
+        fi
+        # add the token to the remove arguments array
+        remove_args+=("$token")
     done
-    # print all remove args
+    
+    # print all remove args for debugging
+    echo "    remove.sh arguments: ${remove_args[@]}"
+    
+    # Call remove.sh with the arguments
     "$DIR/remove.sh" $ncflag "${remove_args[@]}" 2>&1
     exit_code=$?
     if [[ $exit_code -ne 0 ]]; then
-      echo "ERROR: remove.sh failed with exit code $exit_code"
-      exit $exit_code
+        echo "ERROR: remove.sh failed with exit code $exit_code"
+        exit $exit_code
     fi
     print_completion
     exit 0
 }
-
 run_metadata_command(){
     echo "  Running metadata.sh ...$(/bin/date)"
     if [ ${#arr[@]} -ne 4 ]; then
