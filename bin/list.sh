@@ -11,7 +11,6 @@ help=0
 quiet=0
 graphdb=1
 es=1
-databases=("NCIT2" "CTRP")
 
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
@@ -131,19 +130,6 @@ if [[ $quiet -eq 0 ]]; then
     echo "  Lookup graphdb info ...`/bin/date`"
 fi
 
-create_database(){
-  echo "    Creating $1"
-  if [[ $l_graph_db_type = "stardog" ]]; then
-    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" -X POST -F root="{\"dbname\":\"$1\"}"  "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" > /dev/null
-  elif [[ $l_graph_db_type = "jena" ]]; then
-    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" -X POST -d "dbName=$1&dbType=tdb2" "http://${l_graph_db_host}:${l_graph_db_port}/$/datasets" > /dev/null
-  fi
-  if [[ $? -ne 0 ]]; then
-      echo "Error occurred when creating database $1. Response:$_"
-      exit 1
-  fi
-}
-
 get_databases(){
   if [[ $l_graph_db_type == "stardog" ]]; then
     # print the curl command to stdout
@@ -152,8 +138,13 @@ get_databases(){
         "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" |\
         python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
   elif [[ $l_graph_db_type == "jena" ]]; then
-    curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" "http://${l_graph_db_host}:${l_graph_db_port}/$/server" |\
-        python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
+    # query ES for the databases. The databases are stored in the configuration index. if the index does not exist, print an error and exit
+    # check if the configuration index exists
+    if [[ -z $(curl -s "$ES/configuration/_search?size=1" | jq -r '.hits.hits[0]') ]]; then
+      echo "ERROR: configuration index does not exist"
+      exit 1
+    fi
+    curl -s "$ES/configuration/_search" | jq -r '.hits.hits[]._source.name' > /tmp/db.$$.txt
   fi
   if [[ $? -ne 0 ]]; then
       echo "ERROR: unexpected problem listing databases"
@@ -163,20 +154,8 @@ get_databases(){
   if [[ $quiet -eq 0 ]]; then
       echo "    databases = " `cat /tmp/db.$$.txt`
   fi
-  for db in "${databases[@]}"; do
-    exists=0
-    for current_db in `cat /tmp/db.$$.txt`; do
-      if [ "$db" = "$current_db" ]; then
-          exists=1
-          break
-      fi
-    done
-    if [[ $exists -eq 0 ]]; then
-      create_database "$db"
-      echo "$db" >> /tmp/db.$$.txt
-    fi
-  done
-  ct=`cat /tmp/db.$$.txt | wc -l`
+  # store the content of /tmp/db.$$.txt in an array
+  ct=$(cat /tmp/db.$$.txt | wc -l)
   if [[ $ct -eq 0 ]]; then
       echo "ERROR: no graph databases, this is unexpected"
       exit 1

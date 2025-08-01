@@ -122,9 +122,20 @@ optimize_stardog_db() {
   fi
 }
 
+get_databases() {
+  dbs=$($DIR/list.sh $ncflag | grep "databases = " | sed 's/.*databases = //' | xargs)
+  if [[ $? -ne 0 ]]; then
+    echo "ERROR: problem running list.sh"
+    cleanup 1
+  fi
+}
+
 compact_dbs() {
-  compact_db "NCIT2"
-  compact_db "CTRP"
+  get_databases
+  for db in $dbs; do
+    echo "  compact_db ($db) ...$(/bin/date)"
+    compact_db "$db"
+  done
 }
 
 compact_db(){
@@ -641,7 +652,7 @@ version=$(get_version "$file" "$terminology")
 echo "  Version:$version"
 graph=$(get_graph "$namespace" "$version")
 echo "  Graph:$graph"
-
+get_databases
 db=NCIT2
 validate_weekly
 echo "  qa_owl_file...$(/bin/date)"
