@@ -53,6 +53,7 @@ else
         echo "Usage: $0 [--noconfig] [--help] [--graphdb] [--es] <terminology> <version>"
         echo "  e.g. $0 ncit 20.09d --graphdb"
         echo "  e.g. $0 ncim 202102 --es"
+        echo "  e.g. $0 --mapset NCIt_to_HGNC_Mapping"
         exit 1
     fi
     terminology=${arr[0]}
