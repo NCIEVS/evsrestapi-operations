@@ -187,7 +187,7 @@ if __name__ == "__main__":
         uniquePropertiesList.append(termJSONObject["preferredName"])
       
     
-    with open(terminology + "-samples.txt", "w") as termFile:
+    with open(terminology + "-samples.txt", "w", encoding="utf-8") as termFile:
         for index, line in enumerate(ontoLines): # get index just in case
             #print(line + " " + str(index))
             lastSpaces = spaces # previous line's number of leading spaces (for comparison)
