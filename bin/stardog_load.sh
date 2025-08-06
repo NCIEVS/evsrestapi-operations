@@ -10,6 +10,7 @@ force=0
 config=1
 help=0
 weekly=0
+transform_only=0
 commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
@@ -30,6 +31,8 @@ while [[ "$#" -gt 0 ]]; do
   --force) force=1 ;;
   # weekly not monthly
   --weekly) weekly=1 ;;
+  # transform only
+  --transform-only) transform_only=1 ;;
   *) arr=("${arr[@]}" "$1") ;;
   esac
   shift
@@ -43,6 +46,7 @@ print_help(){
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
+  echo "  e.g. $0 /local/content/downloads/canmed_202506.owl --transform-only"
   echo "  e.g. $0 print_env"
   echo "  e.g. $0 list"
   echo "  e.g. $0 remove ncit 20.09d --graphdb"
@@ -641,6 +645,12 @@ version=$(get_version "$file" "$terminology")
 echo "  Version:$version"
 graph=$(get_graph "$namespace" "$version")
 echo "  Graph:$graph"
+
+# Bail if transform only
+if [[ $transform_only -eq 1 ]]; then
+    echo "Transform complete, exiting"
+    exit 0
+fi
 
 db=NCIT2
 validate_weekly
