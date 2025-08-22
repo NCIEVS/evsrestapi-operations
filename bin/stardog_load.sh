@@ -10,6 +10,8 @@ force=0
 config=1
 help=0
 weekly=0
+transform_only=0
+commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
@@ -29,12 +31,14 @@ while [[ "$#" -gt 0 ]]; do
   --force) force=1 ;;
   # weekly not monthly
   --weekly) weekly=1 ;;
+  # transform only
+  --transform-only) transform_only=1 ;;
   *) arr=("${arr[@]}" "$1") ;;
   esac
   shift
 done
 
-if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
+print_help(){
   echo "Usage: $0 [--noconfig] [--force] [--weekly] [--help] <data>"
   echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly --force"
   echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
@@ -42,8 +46,23 @@ if [ ${#arr[@]} -ne 1 ] || [ $help -eq 1 ]; then
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
-  echo "  e.g. $0 printenv"
+  echo "  e.g. $0 /local/content/downloads/canmed_202506.owl --transform-only"
+  echo "  e.g. $0 print_env"
+  echo "  e.g. $0 list"
+  echo "  e.g. $0 remove ncit 20.09d --graphdb"
+  echo "  e.g. $0 remove ncim 202102 --es"
+  echo "  e.g. $0 patch 2.2.0"
+  echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
+  echo "  e.g. $0 drop_ctrp_db"
   exit 1
+}
+
+if [[ "${arr[0]}" != "remove" && "${arr[0]}" != "patch" && "${arr[0]}" != "metadata" ]]; then
+  if [[ ${#arr[@]} -ne 1 ]]; then
+    print_help
+  fi
+elif [[ $help -eq 1 ]]; then
+  print_help
 fi
 
 data=${arr[0]}
@@ -59,6 +78,10 @@ print_env(){
   echo "STARDOG_USERNAME=$STARDOG_USERNAME"
   echo "STARDOG_PASSWORD=****"
   java -version
+  if [[ $config -eq 1 ]]; then
+    echo "Printing config file: $CONFIG_ENV_FILE"
+    cat "$CONFIG_ENV_FILE"
+  fi
   if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -n $GRAPH_DB_URL ]]; then
       success=$(curl -s -f -o /dev/null -w "%{http_code}" "$GRAPH_DB_URL/$/server" | grep -q "200")
@@ -69,17 +92,19 @@ print_env(){
       fi
     fi
   fi
-  #print where
+  evsrestapi_operations_version=$(head -1 "$DIR"/../Makefile | perl -pe 's/.*=(.*)/\1/')
+  echo "evsrestapi_operations_version=$evsrestapi_operations_version"
+  print_completion
+  exit 0
 }
 
-list(){
-    # call list.sh to check DBs exist. If not, that script will create them.
-    # Note that there is a security restriction in Fuseki that only allows localhost host name to call admin endpoints.
-    if [[ $config -eq 1 ]]; then
-      GRAPH_HOST=localhost "$DIR"/list.sh
-    else
-      GRAPH_HOST=localhost "$DIR"/list.sh --noconfig
-    fi
+print_disk_usage(){
+  df -h
+  # if l_graph_db_home exists
+  if [[ -n $l_graph_db_home ]]; then
+    echo "Disk usage of $l_graph_db_home"
+    du -h "$l_graph_db_home"/run/databases/ 2>/dev/null | sort -h
+  fi
 }
 
 optimize_stardog_dbs() {
@@ -109,7 +134,7 @@ compact_dbs() {
 compact_db(){
   if [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
     echo "  compact jena ...$(/bin/date)"
-    curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
+    curl -XPOST -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
     if [[ $? -ne 0 ]]; then
       echo "    ERROR: Problem compacting ($db)"
       cleanup 1
@@ -138,22 +163,21 @@ setup() {
 }
 
 validate_setup() {
-  if [[ $l_graph_db_type == "stardog" ]]; then
-    if [[ -n "$GRAPH_DB_HOME" ]]; then
-      l_graph_db_home="$GRAPH_DB_HOME"
-    elif [[ -n "$STARDOG_HOME" ]]; then
-      l_graph_db_home="$STARDOG_HOME"
-    else
-      echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
-      exit 1
-    fi
-  elif [[ $l_graph_db_type == "jena" ]]; then
+  if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -z $GRAPH_DB_URL ]]; then
       echo "    ERROR: GRAPH_DB_URL is not set"
       exit 1
     else
       l_graph_db_url="$GRAPH_DB_URL"
     fi
+  fi
+  if [[ -n "$GRAPH_DB_HOME" ]]; then
+    l_graph_db_home="$GRAPH_DB_HOME"
+  elif [[ -n "$STARDOG_HOME" ]]; then
+    l_graph_db_home="$STARDOG_HOME"
+  else
+    echo "Error: Both GRAPH_DB_HOME and STARDOG_HOME are not set."
+    exit 1
   fi
 
   if [[ -n "$GRAPH_DB_USERNAME" ]]; then
@@ -351,7 +375,7 @@ apply_transformations() {
       transformation_script=$DIR/transforms/"$terminology_lower".sh
       if [[ -e $transformation_script ]]; then
         echo "    Applying transformations for $terminology"
-        script_output=$("$transformation_script" "$file")
+        script_output=$("$transformation_script" "$file" $$)
         set_transformed_owl "$terminology" "$script_output"
         set_load_variables_of_transform
         break
@@ -510,10 +534,13 @@ cleanup() {
   # cleanup log files
   local code=$1
   /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log >/dev/null 2>&1
-  /bin/rm -rf "$WORK_DIRECTORY"
 
+  # if there are work* directories in $DIR then remove an directories that are older than 30 days
+  find "$DIR" -maxdepth 1 -type d -name "work*" -mtime +30 -exec /bin/rm -rf {} \; >/dev/null 2>&1
   if [ "$code" != "" ]; then
     exit $code
+  else
+    /bin/rm -rf "$WORK_DIRECTORY"
   fi
 }
 
@@ -522,6 +549,27 @@ print_completion() {
   echo "--------------------------------------------------"
   echo "Finished ...$(/bin/date)"
   echo "--------------------------------------------------"
+}
+
+run_commands(){
+  echo "Data:$data"
+  # if $data starts with any command in $commands then call run_command.sh with all the arguments
+  for command in "${commands[@]}"; do
+    if [[ $data == $command* ]]; then
+      echo "running command $data"
+      if [[ $ncflag == 0 ]]; then
+        $DIR/run_command.sh "${arr[@]}" 2>&1
+      else
+        $DIR/run_command.sh --noconfig "${arr[@]}" 2>&1
+      fi
+
+      exit_code=$?
+      if [[ $exit_code -ne 0 ]]; then
+        echo "ERROR: run_command.sh failed with exit code $exit_code"
+      fi
+      cleanup $exit_code
+    fi
+  done
 }
 
 # Verify jq installed
@@ -534,10 +582,9 @@ fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-WORK_DIRECTORY=$DIR/work
+WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
-
 echo "--------------------------------------------------"
 echo "Starting ...$(/bin/date)"
 echo "--------------------------------------------------"
@@ -554,7 +601,7 @@ l_graph_db_username=$GRAPH_DB_USERNAME
 l_graph_db_password=$GRAPH_DB_PASSWORD
 echo "    GRAPH_DB_TYPE = $l_graph_db_type"
 echo ""
-
+print_disk_usage
 if [[ $data == "optimize" ]]; then
   optimize_stardog_dbs
   print_completion
@@ -564,15 +611,7 @@ fi
 echo "  setup...$(/bin/date)"
 setup
 validate_setup
-if [[ $data == "print_env" ]]; then
-  print_env
-  print_completion
-  exit 0
-fi
-if [[ $data == "list" ]]; then
-  list
-  exit 0
-fi
+run_commands
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
@@ -607,6 +646,12 @@ echo "  Version:$version"
 graph=$(get_graph "$namespace" "$version")
 echo "  Graph:$graph"
 
+# Bail if transform only
+if [[ $transform_only -eq 1 ]]; then
+    echo "Transform complete, exiting"
+    exit 0
+fi
+
 db=NCIT2
 validate_weekly
 echo "  qa_owl_file...$(/bin/date)"
@@ -618,7 +663,7 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
-#compact_dbs
+# compact_dbs
 # For monthly ncit, also loaded into CTRP db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
   optimize_stardog_db "CTRP"
