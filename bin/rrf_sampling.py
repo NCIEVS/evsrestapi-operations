@@ -36,14 +36,14 @@ def checkParamsValid(argv):
     
         print(argv[1])
         print("terminology RRF directory path is invalid")
-        print("Usage: rrfSampling.py <terminology RRF file path> <terminology config dir path> <terminology>")
+        print("Usage: rrf_sampling.py <terminology RRF file path> <terminology config dir path> <terminology>")
         return False
         
     elif(os.path.isdir(argv[2]) == False):
     
         print(argv[2])
         print("terminology config file directory path is invalid")
-        print("Usage: rrfSampling.py <terminology RRF file path> <terminology config dir path> <terminology>")
+        print("Usage: rrf_sampling.py <terminology RRF file path> <terminology config dir path> <terminology>")
         return False
         
     return True
@@ -62,7 +62,11 @@ if __name__ == "__main__":
         
     configFile = open(sys.argv[2] + "/" + terminologyFileName + ".json")
     configData = json.load(configFile)
-    
+
+    # rewrite for NCIM->NCIMTH
+    if (terminology == "NCIM"):
+    	terminology = "NCIMTH";    
+
     with open(terminologyFileName + "-samples.txt", "w") as termFile:
     
         with open (sys.argv[1] + "/MRCONSO.RRF", "r", encoding='utf-8') as mrconsoFile:
@@ -78,11 +82,15 @@ if __name__ == "__main__":
                 mrconsoTerminology = splitLine[11]
                 mrconsoTermType = splitLine[12]
                 mrconsoCode = splitLine[13]
+                # use the CUI as the code for NCIM
+                if (terminology == "NCIMTH"):
+                    mrconsoCode = splitLine[0]
                 mrconsoTerm = splitLine[14]
                 
-                if(mrconsoTerminology != terminology): # only process mrconsos from the terminology 
+                if(mrconsoTerminology != terminology and terminology != "NCIMTH"): # only process mrconsos from the terminology 
                     continue
                     
+                # print("mrconsoAui: " + mrconsoAui)
                 # print("mrconsoCode: " + mrconsoCode)
                 # print("mrconsoTerminology: " + mrconsoTerminology)
                 # print("mrconsoTermType: " + mrconsoTermType)
@@ -219,7 +227,10 @@ if __name__ == "__main__":
                 lineRela = splitLine[7]
                 lineRui = splitLine[8]
                 
-                if(lineAui2 not in auiCodeMappings or lineAui1 not in auiCodeMappings): # AUIs must be from the terminology being processed 
+                if(lineAui1 not in auiCodeMappings): # AUIs must be from the terminology being processed 
+                    continue
+
+                if(lineAui2 not in auiCodeMappings): # AUIs must be from the terminology being processed 
                     continue
                     
                 if (lineRel == "CHD"):
@@ -266,18 +277,20 @@ if __name__ == "__main__":
                         
         rootAuis = [x for x in listAui1 if x not in listAui2] # any aui 1 not in aui2 is a root concept
         
-        for rootAui in rootAuis: # print out root concepts
+        # no root stuff for NCIMTH
+        if (terminology != "NCIMTH"):
+            for rootAui in rootAuis: # print out root concepts
         
-            code = auiCodeMappings[rootAui]["code"]
-            termFile.write(code + "\t" + code + "\t" + "root" + "\n")
+                code = auiCodeMappings[rootAui]["code"]
+                termFile.write(code + "\t" + code + "\t" + "root" + "\n")
             
-        for childAui, parentInfo in auiNumberParents.items():
+            for childAui, parentInfo in auiNumberParents.items():
             
-            if (str(parentInfo["count"]) not in parentCountsSeen):
+                if (str(parentInfo["count"]) not in parentCountsSeen):
             
-                parentCountsSeen.append(str(parentInfo["count"]))
-                code = auiCodeMappings[childAui]["code"]
-                termFile.write(code + "\t" + code + "\t" + "parent-count" + str(parentInfo["count"]) + "\n")
+                    parentCountsSeen.append(str(parentInfo["count"]))
+                    code = auiCodeMappings[childAui]["code"]
+                    termFile.write(code + "\t" + code + "\t" + "parent-count" + str(parentInfo["count"]) + "\n")
                 
     print("")
     print("--------------------------------------------------")
