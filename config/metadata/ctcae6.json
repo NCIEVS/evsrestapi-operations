@@ -33,5 +33,7 @@
     "definitions-source": true,
     "synonyms-source": true,
     "synonyms-termType": true
-  }
+  },
+  "sparqlPrefix": "PREFIX ncit:<http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>"
+
 }
