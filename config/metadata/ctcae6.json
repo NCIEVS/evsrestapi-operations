@@ -1,0 +1,37 @@
+{
+  "uiLabel": "CTCAE 6",
+  "fhirUri": "http://hl7.org/fhir/us/ctcae",
+  "fhirPublisher": "NCI",
+  "description": "Common Terminology Criteria for Adverse Events ",
+  "code": "ncit:NHC0",
+  "conceptStatus": "owl:deprecated",
+  "retiredStatusValue": "true",
+  "preferredName": "ncit:P108",
+  "synonym": [
+    "ncit:P90",
+    "ncit:P107",
+    "ncit:P108"
+  ],
+  "synonymTermType": "ncit:P383",
+  "synonymSource": "ncit:P384",
+  "synonymCode": "ncit:P385",
+  "synonymSubSource": "ncit:P386",
+  "definition": [
+    "ncit:P97",
+    "ncit:P325"
+  ],
+  "definitionSource": "ncit:P378",
+  "map": "ncit:P375",
+  "mapRelation": "ncit:P393",
+  "mapTarget": "ncit:P395",
+  "mapTargetTermType": "ncit:P394",
+  "mapTargetTerminology": "ncit:P396",
+  "mapTargetTerminologyVersion": "ncit:P397",
+  "relationshipToTarget": "ncit:P393",
+  "hierarchy": true,
+  "detailsColumns": {
+    "definitions-source": true,
+    "synonyms-source": true,
+    "synonyms-termType": true
+  }
+}
