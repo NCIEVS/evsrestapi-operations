@@ -15,6 +15,9 @@ databases=("NCIT2" "CTRP")
 
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
+echo XXX $DIR
+
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     # use environment variable config (dev env)
@@ -161,21 +164,24 @@ get_databases(){
   fi
 
   if [[ $quiet -eq 0 ]]; then
-      echo "    databases = " `cat /tmp/db.$$.txt`
+      echo "    databases = $(cat /tmp/db.$$.txt | tr -d '\r' | tr '\n' ' ')"
   fi
   for db in "${databases[@]}"; do
     exists=0
-    for current_db in `cat /tmp/db.$$.txt`; do
+    while IFS= read -r current_db; do
+      # Strip whitespace and carriage returns
+      current_db=$(echo "$current_db" | tr -d '[:space:]' | tr -d '\r')
       if [ "$db" = "$current_db" ]; then
           exists=1
           break
       fi
-    done
+    done < /tmp/db.$$.txt
     if [[ $exists -eq 0 ]]; then
       create_database "$db"
       echo "$db" >> /tmp/db.$$.txt
     fi
   done
+
   ct=`cat /tmp/db.$$.txt | wc -l`
   if [[ $ct -eq 0 ]]; then
       echo "ERROR: no graph databases, this is unexpected"
@@ -281,25 +287,36 @@ done
 # Sort by version then reverse by DB (NCIT2 goes before CTRP)
 # this is because we need "monthly" to be indexed from the "monthlyDb"
 # defined in ncit.json
-sort -t\| -k 1,1 -k 2,2r -o /tmp/y.$$.txt /tmp/y.$$.txt
+sort -t\| -k 1,1 -k 2,2r /tmp/y.$$.txt > /tmp/z.$$.txt && mv /tmp/z.$$.txt /tmp/y.$$.txt
 
 if [[ $quiet -eq 0 ]]; then
     echo "  List $l_graph_db_type graphs ...`/bin/date`"
 fi
 # Here determine the parts for each case
 
-for x in `cat /tmp/y.$$.txt`; do
-    version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(.*)/[a-zA-Z]+.owl#$1#;'`
-    db=`echo $x | cut -d\| -f 2`
-    uri=`echo $x | cut -d\| -f 4`
-    graph_uri=`echo $x | cut -d\| -f 3`
-    term=$(get_terminology "$uri")
-    if [[ $quiet -eq 1 ]]; then
-        echo "$l_graph_db_type|$db|$term|$version|$graph_uri"
-    else
-        echo "    $db $term $version $graph_uri"
+while IFS= read -r x; do
+    if [[ -n "$x" ]]; then
+        # Debug: Check if we have the expected pipe-separated format
+        field_count=$(echo "$x" | tr -cd '|' | wc -c)
+        if [[ $field_count -lt 3 ]]; then
+            echo "    WARNING: Malformed data line: $x" >&2
+            continue
+        fi
+
+        version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(.*)/[a-zA-Z]+.owl#$1#;' | tr -d '\r\n'`
+        db=`echo $x | cut -d\| -f 2 | tr -d '\r\n'`
+        graph_uri=`echo $x | cut -d\| -f 3 | tr -d '\r\n'`
+        uri=`echo $x | cut -d\| -f 4 | tr -d '\r\n'`
+        term=$(get_terminology "$uri")
+
+
+        if [[ $quiet -eq 1 ]]; then
+            echo "$l_graph_db_type|$db|$term|$version|$graph_uri"
+        else
+            printf "    %-10s %-15s %-15s %s\n" "$db" "$term" "$version" "$graph_uri"
+        fi
     fi
-done
+done < /tmp/y.$$.txt
 
 fi
 
