@@ -1,5 +1,6 @@
 config=1
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 PATCHES_DIRECTORY=$DIR/patches
 
 while [[ "$#" -gt 0 ]]; do

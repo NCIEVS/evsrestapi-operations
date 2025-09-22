@@ -65,7 +65,6 @@ fi
 # Set directory of this script so we can call relative scripts
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
-echo xxx $DIR
 
 echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"
