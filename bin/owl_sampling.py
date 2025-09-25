@@ -150,6 +150,9 @@ def handleAxiom(line):
         axiomInfo.append(re.findall(">(.+?)<", line)[0] + "~")
     elif(not line.startswith("<owl:annotated") and len(re.split(r'[< >]', line)) > 1 and len(re.findall(">(.+?)<", line)) > 0 and axiomInfo[0] + re.split(r'[< >]', line)[1] + "~" + re.findall(">(.+?)<", line)[0] not in axiomProperties): # get connected properties
         newProperty = re.split(r'[< >]', line)[1] # extract property from line
+        # Strip namespace prefix from property (e.g., ncit:P383 -> P383)
+        if(':' in newProperty):
+            newProperty = newProperty.split(':')[-1]
         if(len(re.findall(">(.+?)<", line)) > 0):
           newCode = re.findall(">(.+?)<", line)[0] # extract code from line
         elif(len(re.findall('"([^"]*)"', line)) > 0 and len(re.split(r'[#/]', re.findall('"([^"]*)"', line)[0])) > 0): # check for quotes with a #
@@ -305,7 +308,8 @@ if __name__ == "__main__":
                 if(spaces > lastSpaces): # add to stack based on spacing
                     currentClassPath.append(re.split(">| ", line)[0][1:])
                 elif(lastSpaces > spaces): # remove from stack based on spacing (less/up level)
-                    currentClassPath.pop()
+                    if(len(currentClassPath) > 0):
+                      currentClassPath.pop()
                 else: # replace in stack based on spacing (unchanged)
                     if(len(currentClassPath) > 0):
                       currentClassPath.pop()

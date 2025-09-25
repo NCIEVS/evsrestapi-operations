@@ -14,6 +14,7 @@ es=1
 databases=("NCIT2" "CTRP")
 
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
@@ -145,6 +146,7 @@ create_database(){
 }
 
 get_databases(){
+	
   if [[ $l_graph_db_type == "stardog" ]]; then
     # print the curl command to stdout
     echo "    curl -s -g -u \"${l_graph_db_username}:****\" \"http://${l_graph_db_host}:${l_graph_db_port}/admin/databases\""
@@ -161,11 +163,14 @@ get_databases(){
   fi
 
   if [[ $quiet -eq 0 ]]; then
-      echo "    databases = " `cat /tmp/db.$$.txt`
+      echo "    databases = `cat /tmp/db.$$.txt | perl -ne 'chop; s/\r//; print "$_ "'`"
   fi
+  
   for db in "${databases[@]}"; do
     exists=0
     for current_db in `cat /tmp/db.$$.txt`; do
+      # Strip whitespace and carriage returns
+      current_db=$(echo "$current_db" | perl -pe 's/\r//;')
       if [ "$db" = "$current_db" ]; then
           exists=1
           break
@@ -176,6 +181,7 @@ get_databases(){
       echo "$db" >> /tmp/db.$$.txt
     fi
   done
+
   ct=`cat /tmp/db.$$.txt | wc -l`
   if [[ $ct -eq 0 ]]; then
       echo "ERROR: no graph databases, this is unexpected"
@@ -267,7 +273,7 @@ query=`cat /tmp/x.$$.txt`
 touch /tmp/y.$$.txt
 for db in `cat /tmp/db.$$.txt`; do
     # Remove any whitespace or carriage returns for dos/unix compatibility
-    db=$(echo "$db" | tr -d '[:space:]' | tr -d '\r')
+    db=$(echo "$db" | perl -pe 's/\r//;')
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
         http://${l_graph_db_host}:${l_graph_db_port}/$db/query \
         --data-urlencode "$query" -H "Accept: application/sparql-results+json" |\
@@ -281,23 +287,33 @@ done
 # Sort by version then reverse by DB (NCIT2 goes before CTRP)
 # this is because we need "monthly" to be indexed from the "monthlyDb"
 # defined in ncit.json
-sort -t\| -k 1,1 -k 2,2r -o /tmp/y.$$.txt /tmp/y.$$.txt
+sort -t\| -k 1,1 -k 2,2r /tmp/y.$$.txt > /tmp/z.$$.txt && mv /tmp/z.$$.txt /tmp/y.$$.txt
 
 if [[ $quiet -eq 0 ]]; then
     echo "  List $l_graph_db_type graphs ...`/bin/date`"
 fi
-# Here determine the parts for each case
 
-for x in `cat /tmp/y.$$.txt`; do
-    version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(.*)/[a-zA-Z]+.owl#$1#;'`
-    db=`echo $x | cut -d\| -f 2`
-    uri=`echo $x | cut -d\| -f 4`
-    graph_uri=`echo $x | cut -d\| -f 3`
-    term=$(get_terminology "$uri")
-    if [[ $quiet -eq 1 ]]; then
-        echo "$l_graph_db_type|$db|$term|$version|$graph_uri"
-    else
-        echo "    $db $term $version $graph_uri"
+# Get graphs and sort by graphdb
+for x in `cat /tmp/y.$$.txt | perl -pe 's/\r//;' | sort -t\| -k 2,2`; do
+    if [[ -n "$x" ]]; then
+        # Debug: Check if we have the expected pipe-separated format
+        field_count=$(echo "$x" | tr -cd '|' | wc -c)
+        if [[ $field_count -lt 3 ]]; then
+            echo "    WARNING: Malformed data line: $x" >&2
+            continue
+        fi
+
+        version=`echo $x | cut -d\| -f 1 | perl -pe 's#.*/(.*)/[a-zA-Z]+.owl#$1#;' | perl -pe 's/\r//;'`
+        db=`echo $x | cut -d\| -f 2 | perl -pe 's/\r//;'`
+        graph_uri=`echo $x | cut -d\| -f 3 | perl -pe 's/\r//;'`
+        uri=`echo $x | cut -d\| -f 4 | perl -pe 's/\r//;'`
+        term=$(get_terminology "$uri")
+
+        if [[ $quiet -eq 1 ]]; then
+            echo "$l_graph_db_type|$db|$term|$version|$graph_uri"
+        else
+            printf "    %-10s %-15s %-15s %s\n" "$db" "$term" "$version" "$graph_uri"
+        fi
     fi
 done
 
@@ -305,57 +321,56 @@ fi
 
 if [[ $es -eq 1 ]]; then
 
-if [[ $quiet -eq 0 ]]; then
-    echo "  List elasticsearch indexes ...`/bin/date`"
-fi
+if [[ $quiet -eq 0 ]]; then echo "  List elasticsearch indexes ...`/bin/date`"; fi
 
 curl -s "$ES/evs_metadata/_search?size=10000"  |\
-   $jq | grep terminologyVersion | perl -pe 's/(?<!snomedct)_/ /; s/.*"\: ?"//; s/".*//' |\
-   sort -u -o /tmp/x.txt
+    $jq | grep terminologyVersion | perl -pe 's/(?<!snomedct)_/ /; s/.*"\: ?"//; s/".*//' |\
+    sort -u -o /tmp/x.txt
 
-if [[ $quiet -eq 0 ]]; then
-
-sort /tmp/x.txt| sed 's/^/    /'
-
-# Fix up versions for compare
-curl -s "$ES/_cat/indices" | grep concept_ | cut -d\  -f 3 | perl -pe 's/concept_//; s/_/ /; s/ us_/_us /;' |\
-   perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
-   sort -u -o /tmp/y.txt
-
-curl -s "$ES/_cat/indices" | grep evs_object_ | cut -d\  -f 3 | perl -pe 's/evs_object_//; s/_/ /; s/ us_/_us /;' |\
-   perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
-   sort -u -o /tmp/z.txt
-
-ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | wc -l`
-if [ $ct -ne 0 ]; then
-    echo "WARNING: evs_metadata entries without concept indexes"
-    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | sed 's/^/    /'
-fi
-
-ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | wc -l`
-if [ $ct -ne 0 ]; then
-    echo "WARNING: concept indexes without evs_metadata entries"
-    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | sed 's/^/    /'
-fi
-
-ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | wc -l`
-if [ $ct -ne 0 ]; then
-    echo "WARNING: evs_metadata entries without evs_object indexes"
-    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | sed 's/^/    /'
-fi
-
-ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | wc -l`
-if [ $ct -ne 0 ]; then
-    echo "WARNING: evs_object indexes without evs_metadata entries"
-    perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | sed 's/^/    /'
-fi
-
-else
-sort /tmp/x.txt| sed 's/^/es|/'
-fi
 if [[ $? -ne 0 ]]; then
     echo "ERROR: problem looking up indexes"
     exit 1
+fi
+
+if [[ $quiet -eq 0 ]]; then
+
+    sort /tmp/x.txt| sed 's/^/    /'
+
+    # Fix up versions for compare
+    curl -s "$ES/_cat/indices" | grep concept_ | cut -d\  -f 3 | perl -pe 's/concept_//; s/_/ /; s/ us_/_us /;' |\
+       perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
+       sort -u -o /tmp/y.txt
+
+    curl -s "$ES/_cat/indices" | grep evs_object_ | cut -d\  -f 3 | perl -pe 's/evs_object_//; s/_/ /; s/ us_/_us /;' |\
+       perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
+       sort -u -o /tmp/z.txt
+
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | wc -l`
+    if [ $ct -ne 0 ]; then
+        echo "WARNING: evs_metadata entries without concept indexes"
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | sed 's/^/    /'
+    fi
+
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | wc -l`
+    if [ $ct -ne 0 ]; then
+        echo "WARNING: concept indexes without evs_metadata entries"
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | sed 's/^/    /'
+    fi
+
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | wc -l`
+    if [ $ct -ne 0 ]; then
+        echo "WARNING: evs_metadata entries without evs_object indexes"
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | sed 's/^/    /'
+    fi
+
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | wc -l`
+    if [ $ct -ne 0 ]; then
+        echo "WARNING: evs_object indexes without evs_metadata entries"
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | sed 's/^/    /'
+    fi
+
+else
+    sort /tmp/x.$$ | sed 's/^/es|/'
 fi
 
 fi

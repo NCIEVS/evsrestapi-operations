@@ -582,6 +582,7 @@ fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
