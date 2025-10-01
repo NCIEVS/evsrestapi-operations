@@ -6,7 +6,7 @@
   "code": "ncit:NHC0",
   "conceptStatus": "owl:deprecated",
   "retiredStatusValue": "true",
-  "preferredName": "P108",
+  "preferredName": "ncit:P108",
   "synonym": [
     "P90",
     "P107",
