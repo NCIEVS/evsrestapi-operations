@@ -10,6 +10,7 @@ force=0
 config=1
 help=0
 weekly=0
+transform_only=0
 commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
@@ -30,6 +31,8 @@ while [[ "$#" -gt 0 ]]; do
   --force) force=1 ;;
   # weekly not monthly
   --weekly) weekly=1 ;;
+  # transform only
+  --transform-only) transform_only=1 ;;
   *) arr=("${arr[@]}" "$1") ;;
   esac
   shift
@@ -43,10 +46,12 @@ print_help(){
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
+  echo "  e.g. $0 /local/content/downloads/canmed_202506.owl --transform-only"
   echo "  e.g. $0 print_env"
   echo "  e.g. $0 list"
   echo "  e.g. $0 remove ncit 20.09d --graphdb"
   echo "  e.g. $0 remove ncim 202102 --es"
+  echo "  e.g. $0 remove --mapset NCIt_to_HGNC_Mapping"
   echo "  e.g. $0 patch 2.2.0"
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
@@ -589,6 +594,7 @@ fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
@@ -653,6 +659,13 @@ echo "  Version:$version"
 graph=$(get_graph "$namespace" "$version")
 echo "  Graph:$graph"
 get_databases
+
+# Bail if transform only
+if [[ $transform_only -eq 1 ]]; then
+    echo "Transform complete, exiting"
+    exit 0
+fi
+
 db=NCIT2
 validate_weekly
 echo "  qa_owl_file...$(/bin/date)"
@@ -664,7 +677,7 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
-compact_dbs
+# compact_dbs
 # For monthly ncit, also loaded into CTRP db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
   optimize_stardog_db "CTRP"
