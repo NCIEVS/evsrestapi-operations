@@ -13,6 +13,7 @@ print_help(){
   echo "  e.g. $0 patch 2.2.0"
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
+  echo "  e.g. $0 init"
   exit 1
 }
 
