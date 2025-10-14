@@ -197,6 +197,17 @@ run_drop_ctrp_db() {
     exit 0
 }
 
+run_init() {
+    echo "    Dropping CTRP DB ...`/bin/date`"
+    # run init.sh to create default DBs
+    "$DIR"/init.sh "$ncflag" 2>&1
+    if [[ $? -ne 0 ]]; then
+        echo "Error occurred when dropping CTRP database. Response:$_"
+        exit 1
+    fi
+    exit 0
+}
+
 run_commands(){
   if [[ $data == "print_env" ]]; then
     print_env
@@ -215,6 +226,9 @@ run_commands(){
   fi
   if [[ $data == "metadata" ]]; then
     run_metadata_command
+  fi
+  if [[ $data == "init" ]]; then
+    run_init
   fi
 }
 

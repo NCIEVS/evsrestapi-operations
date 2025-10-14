@@ -60,17 +60,17 @@ setup_configuration() {
 
 validate_setup() {
   if [[ -z "$GRAPH_DB_HOST" ]]; then
-    echo "Error: Both GRAPH_DB_HOST and STARDOG_HOST are not set."
+    echo "  Error: Both GRAPH_DB_HOST and STARDOG_HOST are not set."
     exit 1
   fi
   if [[ -z "$GRAPH_DB_PORT" ]]; then
-    echo "GRAPH_DB_PORT is not set. Using default"
+    echo "  GRAPH_DB_PORT is not set. Using default"
     GRAPH_DB_PORT="3030"
   fi
   GRAPH_DB_URL="${GRAPH_DB_SCHEME:-http}://${GRAPH_DB_HOST}:${GRAPH_DB_PORT}"
   # check if ${ES_SCHEME}://${ES_HOST}:${ES_PORT} is set
   if [[ -z "$ES_SCHEME" || -z "$ES_HOST" || -z "$ES_PORT" ]]; then
-    echo "ERROR: ES_SCHEME, ES_HOST, or ES_PORT is not set."
+    echo "  ERROR: ES_SCHEME, ES_HOST, or ES_PORT is not set."
     exit 1
   else
     ES="${ES_SCHEME}://${ES_HOST}:${ES_PORT}"
@@ -83,7 +83,7 @@ check_and_create_index() {
   local index_exists=$(curl -s -o /dev/null -w "%{http_code}" "$ES/$index_name")
 
   if [[ $index_exists -ne 200 ]]; then
-    echo "Configuration index does not exist. Creating index: $index_name"
+    echo "  Configuration index does not exist. Creating index: $index_name"
     curl -s -o /dev/null -X PUT "$ES/$index_name" -H 'Content-Type: application/json' -d '{
       "mappings": {
         "properties": {
@@ -93,7 +93,7 @@ check_and_create_index() {
       }
     }'
   else
-    echo "Configuration index already exists."
+    echo "  Configuration index already exists."
   fi
 }
 
@@ -107,7 +107,7 @@ check_for_default_dbs(){
   local created_database=0
   for db in "${DEFAULT_DBS[@]}"; do
     if ! echo "$db_names" | grep -q "^$db$"; then
-      echo "Database $db does not exist. Creating it."
+      echo "  Database $db does not exist. Creating it."
       create_database "$db"
     fi
   done
@@ -121,17 +121,17 @@ store_datasets() {
   # Re-pull datasets after checking for default databases because the check may have created default databases if missing
   datasets=$(curl -s "$GRAPH_DB_URL/$/server" | jq -c "$jq_expression")
   # delete existing documents in configuration index
-  echo "Deleting existing documents in configuration index"
+  echo "  Deleting existing documents in configuration index"
   curl -s -o /dev/null -X POST "$ES/configuration/_delete_by_query" -H 'Content-Type: application/json' -d '{"query": {"match_all": {}}}'
   echo "$datasets" | jq -c '.[]' | while read -r dataset; do
     local name=$(echo "$dataset" | jq -r '.name')
     local weekly=$(echo "$dataset" | jq -r '.weekly')
 
-    echo "Storing dataset: $name, Weekly: $weekly"
+    echo "  Storing dataset: $name, Weekly: $weekly"
     curl -s -o /dev/null -X POST "$ES/configuration/_doc" -H 'Content-Type: application/json' -d "{\"name\": \"$name\", \"weekly\": $weekly}"
 
     if [[ $? -ne 0 ]]; then
-      echo "ERROR: Failed to store dataset $name in configuration index."
+      echo "  ERROR: Failed to store dataset $name in configuration index."
       exit 1
     fi
   done
@@ -141,7 +141,7 @@ create_database(){
   echo "    Creating $1"
   curl -s -g -X POST -d "dbName=$1&dbType=tdb2" "$GRAPH_DB_URL/$/datasets" > /dev/null
   if [[ $? -ne 0 ]]; then
-      echo "Error occurred when creating database $1. Response:$_"
+      echo "  Error occurred when creating database $1. Response:$_"
       exit 1
   fi
 }

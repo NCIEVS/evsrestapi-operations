@@ -11,7 +11,7 @@ config=1
 help=0
 weekly=0
 transform_only=0
-commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db")
+commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db" "init")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
@@ -55,6 +55,7 @@ print_help(){
   echo "  e.g. $0 patch 2.2.0"
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
+  echo "  e.g. $0 init"
   exit 1
 }
 
@@ -109,8 +110,10 @@ print_disk_usage(){
 }
 
 optimize_stardog_dbs() {
-  optimize_stardog_db "NCIT2"
-  optimize_stardog_db "CTRP"
+  for db in $dbs; do
+    echo "  optimize_stardog_db ($db) ...$(/bin/date)"
+    optimize_stardog_db "$db"
+  done
 }
 
 optimize_stardog_db() {
@@ -127,16 +130,7 @@ optimize_stardog_db() {
   fi
 }
 
-get_databases() {
-  dbs=$($DIR/list.sh $ncflag | grep "databases = " | sed 's/.*databases = //' | xargs)
-  if [[ $? -ne 0 ]]; then
-    echo "ERROR: problem running list.sh"
-    cleanup 1
-  fi
-}
-
 compact_dbs() {
-  get_databases
   for db in $dbs; do
     echo "  compact_db ($db) ...$(/bin/date)"
     compact_db "$db"
@@ -207,6 +201,12 @@ validate_setup() {
   else
     echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
     exit 1
+  fi
+  if [[ -z "$ES_SCHEME" || -z "$ES_HOST" || -z "$ES_PORT" ]]; then
+    echo "  ERROR: ES_SCHEME, ES_HOST, or ES_PORT is not set."
+    exit 1
+  else
+    ES="${ES_SCHEME}://${ES_HOST}:${ES_PORT}"
   fi
 }
 
@@ -412,14 +412,48 @@ validate_owl_file() {
   fi
 }
 
-validate_weekly() {
-  if [[ $weekly -eq 1 ]]; then
-    if [[ $terminology != "ncit" ]]; then
-      echo "ERROR: --weekly only makes sense when loading NCI Thesaurus"
-      cleanup 1
-    fi
-    db=CTRP
+validate_and_populate_dbs(){
+  echo "  Getting databases from configuration index ...$(/bin/date)"
+  if [[ -z $(curl -s "$ES/configuration/_search?size=1" | jq -r '.hits.hits[0]') ]]; then
+    echo "ERROR: configuration index does not exist. Run init.sh first."
+    exit 1
   fi
+  str_weekly_dbs=$(curl -s "$ES/configuration/_search" | jq -r '[.hits.hits[] | select(._source.weekly==true) | ._source.name] | join(",")')
+  IFS=',' read -r -a weekly_dbs <<<"$str_weekly_dbs"
+  if [[ $? -ne 0 ]]; then
+      echo "ERROR: unexpected problem listing weekly databases. Try running init.sh first."
+      exit 1
+  fi
+  if [[ ${#weekly_dbs[@]} -gt 1 ]]; then
+    echo "ERROR: More than one weekly is not supported: $weekly_dbs"
+    exit 1
+  fi
+  if [[ ${#weekly_dbs[@]} -eq 0 ]]; then
+    echo "ERROR: No weekly database found in configuration index"
+    exit 1
+  fi
+  str_non_weekly_dbs=$(curl -s "$ES/configuration/_search" | jq -r '[.hits.hits[] | select(._source.weekly==false) | ._source.name] | join(",")')
+  IFS=',' read -r -a non_weekly_dbs <<<"$str_non_weekly_dbs"
+  if [[ $? -ne 0 ]]; then
+      echo "ERROR: unexpected problem listing non-weekly databases. Try running init.sh first."
+      exit 1
+  fi
+  if [[ ${#non_weekly_dbs[@]} -gt 1 ]]; then
+    echo "ERROR: More than one non-weekly is not supported: $non_weekly_dbs"
+    exit 1
+  fi
+  if [[ ${#non_weekly_dbs[@]} -eq 0 ]]; then
+    echo "ERROR: No non-weekly database found in configuration index"
+    exit 1
+  fi
+  dbs=("${weekly_dbs[@]}" "${non_weekly_dbs[@]}")
+  weekly_db=${weekly_dbs[0]}
+  if [[ $weekly -eq 1 ]]; then
+    db=${weekly_dbs[0]}
+  else
+    db=${non_weekly_dbs[0]}
+  fi
+  echo "  db: $db"
 }
 
 qa_owl_file() {
@@ -467,8 +501,9 @@ force_remove_graph() {
   # Remove data if $force is set (remove from both DBs)
   if [[ $force -eq 1 ]]; then
     echo "  Remove graph (force mode) ...$(/bin/date)"
-    remove_graph "$graph" "CTRP"
-    remove_graph "$graph" "NCIT2"
+    for d in $dbs; do
+      remove_graph "$graph" "$d"
+    done
   fi
 }
 
@@ -484,17 +519,17 @@ load_data() {
     echo "ERROR: Problem loading $l_graph_db_type ($db)"
     cleanup 1
   fi
-  # For monthly ncit, also load into CTRP db
+  # For monthly ncit, also load into weekly db
   if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
-    echo "  Load data (CTRP) ...$(/bin/date)"
+    echo "  Load data weekly_db ...$(/bin/date)"
     if [[ $l_graph_db_type == "stardog" ]]; then
-      $l_graph_db_home/bin/stardog data add "CTRP" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+      $l_graph_db_home/bin/stardog data add "$weekly_db" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
-      echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/CTRP/data?graph=$graph"
-      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/CTRP/data?graph=$graph"
+      echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/$weekly_db/data?graph=$graph"
+      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$weekly_db/data?graph=$graph"
     fi
     if [[ $? -ne 0 ]]; then
-      echo "ERROR: Problem loading $l_graph_db_type (CTRP)"
+      echo "ERROR: Problem loading $l_graph_db_type ($weekly_db)"
       cleanup 1
     fi
   fi
@@ -535,10 +570,10 @@ remove_older_versions() {
   fi
 
   echo "  Remove old weekly versions (will keep only 1)...$(/bin/date)"
-  weekly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w CTRP | awk -F\| '{print $5}')
+  weekly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w "$weekly_db" | awk -F\| '{print $5}')
   weekly_graphs_array=(${weekly_graphs})
   for graph_to_remove in "${weekly_graphs_array[@]:0:${#weekly_graphs_array[@]}-1}"; do
-    remove_graph "$graph_to_remove" "CTRP"
+    remove_graph "$graph_to_remove" "$weekly_db"
   done
 }
 
@@ -625,6 +660,7 @@ echo "  setup...$(/bin/date)"
 setup
 validate_setup
 run_commands
+validate_and_populate_dbs
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
@@ -658,7 +694,6 @@ version=$(get_version "$file" "$terminology")
 echo "  Version:$version"
 graph=$(get_graph "$namespace" "$version")
 echo "  Graph:$graph"
-get_databases
 
 # Bail if transform only
 if [[ $transform_only -eq 1 ]]; then
@@ -666,8 +701,6 @@ if [[ $transform_only -eq 1 ]]; then
     exit 0
 fi
 
-db=NCIT2
-validate_weekly
 echo "  qa_owl_file...$(/bin/date)"
 qa_owl_file
 check_if_version_exists
@@ -678,9 +711,9 @@ load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
 # compact_dbs
-# For monthly ncit, also loaded into CTRP db. So optimize
+# For monthly ncit, also loaded into weekly db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
-  optimize_stardog_db "CTRP"
+  optimize_stardog_db "$weekly_db"
 fi
 cleanup
 print_completion

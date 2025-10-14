@@ -108,6 +108,12 @@ validate_setup() {
     echo "Error: Both GRAPH_DB_HOME and STARDOG_USERNAME are not set."
     exit 1
   fi
+  if [[ -z "$ES_SCHEME" || -z "$ES_HOST" || -z "$ES_PORT" ]]; then
+    echo "  ERROR: ES_SCHEME, ES_HOST, or ES_PORT is not set."
+    exit 1
+  else
+    ES="${ES_SCHEME}://${ES_HOST}:${ES_PORT}"
+  fi
 }
 
 setup_configuration
@@ -117,8 +123,6 @@ l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_host=${GRAPH_DB_HOST:-"localhost"}
 l_graph_db_port=${GRAPH_DB_PORT:-"5820"}
 export GRAPH_DB_TYPE=$l_graph_db_type
-
-ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
 
 if [[ $quiet -eq 0 ]]; then
     echo "    graphdb type = ${l_graph_db_type}"
@@ -143,35 +147,19 @@ get_databases(){
     # query ES for the databases. The databases are stored in the configuration index. if the index does not exist, print an error and exit
     # check if the configuration index exists
     if [[ -z $(curl -s "$ES/configuration/_search?size=1" | jq -r '.hits.hits[0]') ]]; then
-      echo "ERROR: configuration index does not exist"
+      echo "ERROR: configuration index does not exist. Run init.sh first."
       exit 1
     fi
     curl -s "$ES/configuration/_search" | jq -r '.hits.hits[]._source.name' > /tmp/db.$$.txt
   fi
   if [[ $? -ne 0 ]]; then
-      echo "ERROR: unexpected problem listing databases"
+      echo "ERROR: unexpected problem listing databases. Try running init.sh first."
       exit 1
   fi
 
   if [[ $quiet -eq 0 ]]; then
       echo "    databases = `cat /tmp/db.$$.txt | perl -ne 'chop; s/\r//; print "$_ "'`"
   fi
-
-  for db in "${databases[@]}"; do
-    exists=0
-    for current_db in `cat /tmp/db.$$.txt`; do
-      # Strip whitespace and carriage returns
-      current_db=$(echo "$current_db" | perl -pe 's/\r//;')
-      if [ "$db" = "$current_db" ]; then
-          exists=1
-          break
-      fi
-    done
-    if [[ $exists -eq 0 ]]; then
-      create_database "$db"
-      echo "$db" >> /tmp/db.$$.txt
-    fi
-  done
 
   ct=`cat /tmp/db.$$.txt | wc -l`
   if [[ $ct -eq 0 ]]; then
