@@ -425,7 +425,7 @@ validate_and_populate_dbs(){
       exit 1
   fi
   if [[ ${#weekly_dbs[@]} -gt 1 ]]; then
-    echo "ERROR: More than one weekly is not supported: $weekly_dbs"
+    echo "ERROR: More than one weekly is not supported: $str_weekly_dbs"
     exit 1
   fi
   if [[ ${#weekly_dbs[@]} -eq 0 ]]; then
@@ -439,7 +439,7 @@ validate_and_populate_dbs(){
       exit 1
   fi
   if [[ ${#non_weekly_dbs[@]} -gt 1 ]]; then
-    echo "ERROR: More than one non-weekly is not supported: $non_weekly_dbs"
+    echo "ERROR: More than one non-weekly is not supported: $str_non_weekly_dbs"
     exit 1
   fi
   if [[ ${#non_weekly_dbs[@]} -eq 0 ]]; then
