@@ -58,21 +58,7 @@
       "instructions": {
         "parts": [
           {
-            "text": "Fill in the following fields as appropriate. For multiple term submissions (any more than 3 terms), please click on and download the Excel file"
-          },
-          {
-            "text": "CDISC Controlled Terminology Multiple Term Request Spreadsheet.",
-            "link": "https://evsexplore.semantics.cancer.gov/evsexplore/assets/downloads/CDISC_Multi_Term_Request.xls"
-          },
-          {
-            "text": "Fill in the template appropriately, add your name and request date to the end of the file name, and Email the completed file to"
-          },
-          {
-            "text": "NciEvsCdiscHelp@mail.nih.gov.",
-            "link": "mailto:NciEvsCdiscHelp@mail.nih.gov?Subject=CDISC%20New%20Term%20Request%20File"
-          },
-          {
-            "text": "In addition, please submit this CDISC New Term Request form indicating \"File emailed separately\" in the “Additional Information” field below."
+            "text": "Fill in the following fields as appropriate. For multiple term submissions (any more than 3 terms), please use the \"Batch Term Information\" section below."
           }
         ]
       },
@@ -1667,12 +1653,38 @@
       ]
     },
     {
+      "name":"batchTermInfo",
+      "label":"Batch Term Information",
+      "instructions": {
+        "parts": [
+          {
+            "text":"For any more than 3 terms, please click on and download the Excel file"
+          },
+          {
+            "text":"CDISC Controlled Terminology Multiple Term Request Spreadsheet.",
+            "link":"https://evsexplore.semantics.cancer.gov/evsexplore/assets/downloads/CDISC_Multi_Term_Request.xls"
+          },
+          {
+            "text":"Fill in the template appropriately, add your name and request date to the end of the file name, and upload the file."
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name":"file",
+          "label":"File Upload",
+          "type":"file",
+          "value":null
+        }
+      ]
+    },
+    {
       "name": "additionalInfo",
       "label": "Additional Information",
       "instructions": {
         "parts": [
           {
-            "text": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"File emailed separately\". Failure to include supporting information may delay resolution of the request."
+            "text": "If submitting a new term include a description of the term, the data context within which it is being used, and any supplemental information that further clarifies the request.\n If submitting a change to existing term, include justification for why the change is necessary, along with relevant references.\n If a multiple term request spreadsheet or other supplemental information is being submitted, enter \"Multiple term request\". Failure to include supporting information may delay resolution of the request."
           }
         ]
       },
