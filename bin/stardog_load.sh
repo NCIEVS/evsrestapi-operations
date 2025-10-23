@@ -132,13 +132,29 @@ compact_dbs() {
   compact_db "CTRP"
 }
 
+can_compact_db(){
+  task_count=$(curl -s -f "$l_graph_db_url/$/tasks" | jq '.[].finished' | grep -c null)
+  if [[ $task_count -lt 4 ]]; then
+    echo "0"
+  else
+    echo "1"
+  fi
+}
+
 compact_db(){
-  if [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
+  echo "  Compacting db $1 ...$(/bin/date)"
+  compact_db=$(can_compact_db)
+  echo "    Can compact_db=$compact_db"
+  if [[ $compact_db == "1" ]] ; then
+    echo "    Skipping compacting $1 ...$(/bin/date)"
+    return
+  fi
+  if [[ $compact_db == "0" ]] && [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
     echo "  compact jena ...$(/bin/date)"
     curl -XPOST -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
     if [[ $? -ne 0 ]]; then
+      # Do not fail the run. Just log the error
       echo "    ERROR: Problem compacting ($db)"
-      cleanup 1
     fi
   fi
 }
