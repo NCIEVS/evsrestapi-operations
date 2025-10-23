@@ -14,6 +14,7 @@ print_help(){
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
   echo "  e.g. $0 init"
+  echo "  e.g. $0 list_compaction_tasks"
   exit 1
 }
 
@@ -229,6 +230,11 @@ run_init() {
     exit 0
 }
 
+list_compaction_tasks(){
+  echo "Listing compaction tasks ..."
+  curl -i -X GET "$GRAPH_DB_URL/$/tasks"
+}
+
 run_commands(){
   if [[ $data == "print_env" ]]; then
     print_env
@@ -250,6 +256,9 @@ run_commands(){
   fi
   if [[ $data == "init" ]]; then
     run_init
+  fi
+  if [[ $data == "list_compaction_tasks" ]]; then
+    list_compaction_tasks
   fi
 }
 

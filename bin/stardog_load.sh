@@ -677,6 +677,9 @@ setup
 validate_setup
 run_commands
 validate_and_populate_dbs
+terminology="ncit"
+compact_dbs
+exit 0
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
