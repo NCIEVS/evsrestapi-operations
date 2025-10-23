@@ -14,5 +14,17 @@ if GRAPH_DB_TYPE.lower() == "stardog":
 elif GRAPH_DB_TYPE.lower() == "jena":
     for db in data["datasets"]:
         print(db["ds.name"].replace("/", ""))
+elif GRAPH_DB_TYPE.lower() == "jena_es":
+    try:
+        databases = data.get("persistent", {}) \
+            .get("cluster", {}) \
+            .get("metadata", {}) \
+            .get("graphdb", {}) \
+            .get("databases", [])
+        for db in databases:
+            print(db)
+    except Exception as e:
+        print(f"Error extracting databases: {e}", file=sys.stderr)
+
 else:
     raise Exception("Unknown graph DB")
