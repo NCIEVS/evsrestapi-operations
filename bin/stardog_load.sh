@@ -677,9 +677,6 @@ setup
 validate_setup
 run_commands
 validate_and_populate_dbs
-terminology="ncit"
-compact_dbs
-exit 0
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
@@ -729,7 +726,7 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
-# compact_dbs
+compact_dbs
 # For monthly ncit, also loaded into weekly db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
   optimize_stardog_db "$weekly_db"
