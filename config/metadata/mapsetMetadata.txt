@@ -1,5 +1,5 @@
 #name,mapsetLink,version,welcomeText,loader,sourceTerminology,sourceTerminologyVersion,targetTerminology,targetTerminologyVersion
-NCIt_to_HGNC_Mapping,,Sept2025,mapping-nci-hgnc.html,MappingLoadServiceImpl,ncit,25.09e,hgnc,202509
+NCIt_to_HGNC_Mapping,,Oct2025,mapping-nci-hgnc.html,MappingLoadServiceImpl,ncit,25.10d,hgnc,202510
 NCIt_to_ChEBI_Mapping,,Aug2024,mapping-nci-chebi.html,MappingLoadServiceImpl,ncit,24.08d,chebi,235
 MA_to_NCIt_Mapping,,November2011,mapping-ma-nci.html,MappingLoadServiceImpl,ma,July2011,ncit,11.09d
 GO_to_NCIt_Mapping,,February2020,mapping-go-nci.html,MappingLoadServiceImpl,go,February2020,ncit,20.02d
