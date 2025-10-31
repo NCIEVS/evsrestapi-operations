@@ -33,26 +33,26 @@ if [ ! -d $OUTPUT_DIRECTORY ]; then
 fi
 }
 setup() {
-  python3 -m venv "$VENV_DIRECTORY"
+  python3 -m venv "$VENV_DIRECTORY" 2>&1
   source "$VENV_BIN_DIRECTORY"/activate
-  "$VENV_BIN_DIRECTORY"/pip install poetry
+  "$VENV_BIN_DIRECTORY"/pip install poetry 2>&1
   # Setting the URL lib to a specific version to avoid upgrading OpenSSL version
-  "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15"
+  "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15" 2>&1
   pushd "$EVS_OPS_HOME" || exit
-  "$VENV_BIN_DIRECTORY"/poetry install
+  "$VENV_BIN_DIRECTORY"/poetry install 2>&1
   popd "$EVS_OPS_HOME" || exit
 }
 
 generate_standard_format_files() {
   echo "generating HGNC standard format files at $OUTPUT_DIRECTORY"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/hgnc.py -d "$1" -o "$OUTPUT_DIRECTORY"
+  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/hgnc.py -d "$1" -o "$OUTPUT_DIRECTORY" 2>&1
 }
 
 generate_owl_file() {
   echo "generating HGNC owl file at $OUTPUT_DIRECTORY"
   local terminology_upper=$(echo "$TERMINOLOGY" | tr '[:lower:]' '[:upper:]')
   local versioned_owl_file="$dir/${terminology_upper}_$date.owl"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${date}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}"
+  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${date}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}" 2>&1
   mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file"
   echo "$versioned_owl_file"
 }
