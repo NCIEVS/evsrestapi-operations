@@ -56,6 +56,7 @@ print_help(){
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
   echo "  e.g. $0 init"
+  echo "  e.g. $0 list_compaction_tasks"
   exit 1
 }
 
