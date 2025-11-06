@@ -56,6 +56,7 @@ print_help(){
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
   echo "  e.g. $0 init"
+  echo "  e.g. $0 list_compaction_tasks"
   exit 1
 }
 
@@ -137,13 +138,29 @@ compact_dbs() {
   done
 }
 
+can_compact_db(){
+  task_count=$(curl -s -f "$l_graph_db_url/$/tasks" | jq '.[].finished' | grep -c null)
+  if [[ $task_count -lt 4 ]]; then
+    echo "0"
+  else
+    echo "1"
+  fi
+}
+
 compact_db(){
-  if [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
+  echo "  Compacting db $1 ...$(/bin/date)"
+  compact_db=$(can_compact_db)
+  echo "    Can compact_db=$compact_db"
+  if [[ $compact_db == "1" ]] ; then
+    echo "    Skipping compacting $1 ...$(/bin/date)"
+    return
+  fi
+  if [[ $compact_db == "0" ]] && [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
     echo "  compact jena ...$(/bin/date)"
     curl -XPOST -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
     if [[ $? -ne 0 ]]; then
+      # Do not fail the run. Just log the error
       echo "    ERROR: Problem compacting ($db)"
-      cleanup 1
     fi
   fi
 }
@@ -710,7 +727,7 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
-# compact_dbs
+compact_dbs
 # For monthly ncit, also loaded into weekly db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
   optimize_stardog_db "$weekly_db"
