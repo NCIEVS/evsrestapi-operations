@@ -110,9 +110,9 @@ print_disk_usage(){
 }
 
 optimize_stardog_dbs() {
-  for db in $dbs; do
-    echo "  optimize_stardog_db ($db) ...$(/bin/date)"
-    optimize_stardog_db "$db"
+  for d in "${dbs[@]}"; do
+    echo "  optimize_stardog_db ($d) ...$(/bin/date)"
+    optimize_stardog_db "$d"
   done
 }
 
@@ -131,9 +131,9 @@ optimize_stardog_db() {
 }
 
 compact_dbs() {
-  for db in $dbs; do
-    echo "  compact_db ($db) ...$(/bin/date)"
-    compact_db "$db"
+  for d in "${dbs[@]}"; do
+    echo "  compact_db ($d) ...$(/bin/date)"
+    compact_db "$d"
   done
 }
 
@@ -501,7 +501,7 @@ force_remove_graph() {
   # Remove data if $force is set (remove from both DBs)
   if [[ $force -eq 1 ]]; then
     echo "  Remove graph (force mode) ...$(/bin/date)"
-    for d in $dbs; do
+    for d in "${dbs[@]}"; do
       remove_graph "$graph" "$d"
     done
   fi
