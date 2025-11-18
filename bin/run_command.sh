@@ -13,6 +13,8 @@ print_help(){
   echo "  e.g. $0 patch 2.2.0"
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
+  echo "  e.g. $0 init"
+  echo "  e.g. $0 list_compaction_tasks"
   exit 1
 }
 
@@ -217,6 +219,22 @@ run_drop_ctrp_db() {
     exit 0
 }
 
+run_init() {
+    echo "    Dropping CTRP DB ...`/bin/date`"
+    # run init.sh to create default DBs
+    "$DIR"/init.sh "$ncflag" 2>&1
+    if [[ $? -ne 0 ]]; then
+        echo "Error occurred when dropping CTRP database. Response:$_"
+        exit 1
+    fi
+    exit 0
+}
+
+list_compaction_tasks(){
+  echo "Listing compaction tasks ..."
+  curl -i -X GET "$GRAPH_DB_URL/$/tasks"
+}
+
 run_commands(){
   if [[ $data == "print_env" ]]; then
     print_env
@@ -235,6 +253,12 @@ run_commands(){
   fi
   if [[ $data == "metadata" ]]; then
     run_metadata_command
+  fi
+  if [[ $data == "init" ]]; then
+    run_init
+  fi
+  if [[ $data == "list_compaction_tasks" ]]; then
+    list_compaction_tasks
   fi
 }
 
