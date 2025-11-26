@@ -1,38 +1,65 @@
 {
+  "_comment": "CTCAE6 Configuration - Pattern: External Namespace Dependency",
+  "_comment_pattern": "This configuration demonstrates Pattern 2: External Namespace Dependency. CTCAE6 reuses NCIt Thesaurus properties (ncit:NHC0, ncit:P108) for consistency across NCI terminologies, while also defining local properties (P90, P97, P383, etc.) in its own ctcae6.owl namespace.",
+  "_comment_prefix_usage": "Properties from NCIt Thesaurus use 'ncit:' prefix. Properties defined in ctcae6.owl have NO prefix. All prefixes must be declared in sparqlPrefix below.",
+
   "uiLabel": "CTCAE 6",
   "fhirUri": "http://hl7.org/fhir/us/ctcae",
   "fhirPublisher": "NCI",
   "description": "Common Terminology Criteria for Adverse Events ",
+
   "code": "ncit:NHC0",
+  "_comment_code": "External property from NCIt Thesaurus - standard concept code property",
+
   "conceptStatus": "owl:deprecated",
   "retiredStatusValue": "true",
+
   "preferredName": "ncit:P108",
+  "_comment_preferredName": "External property from NCIt Thesaurus - standard preferred name property",
+
   "synonym": [
     "P90",
     "P107",
     "P108"
   ],
+  "_comment_synonym": "Local properties from ctcae6.owl - NO prefix because they are defined in this ontology",
+
   "synonymTermType": "P383",
+  "_comment_synonymTermType": "Local property - qualifier for synonym term type",
+
   "synonymSource": "P384",
+  "_comment_synonymSource": "Local property - qualifier for synonym source",
+
   "synonymCode": null,
   "synonymSubSource": null,
+
   "definition": [
     "P97",
     "P325"
   ],
+  "_comment_definition": "Local properties from ctcae6.owl - NO prefix",
+
   "definitionSource": "P378",
+  "_comment_definitionSource": "Local property - qualifier for definition source",
+
   "map": "P375",
   "mapRelation": "P393",
   "mapTarget": "P395",
   "mapTargetTermType": "P394",
   "mapTargetTerminology": "P396",
   "mapTargetTerminologyVersion": "P397",
+  "_comment_mapping": "All mapping properties are local to ctcae6.owl - NO prefixes",
+
   "relationshipToTarget": "P393",
+
   "hierarchy": true,
+
   "detailsColumns": {
     "definitions-source": true,
     "synonyms-source": true,
     "synonyms-termType": true
   },
-  "sparqlPrefix": "PREFIX :<http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae6.owl#> PREFIX base:<http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae6.owl#> PREFIX ncit:<http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>"
+
+  "sparqlPrefix": "PREFIX :<http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae6.owl#> PREFIX base:<http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae6.owl#> PREFIX ncit:<http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>",
+  "_comment_sparqlPrefix": "Declares three namespaces: ':' and 'base:' for local ctcae6.owl properties, 'ncit:' for NCIt Thesaurus properties. This makes 'ncit:NHC0' and 'ncit:P108' valid in SPARQL queries."
 }

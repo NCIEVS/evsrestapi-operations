@@ -1,21 +1,41 @@
 {
+	"_comment": "CTCAE5 Configuration - Pattern: Self-Contained Ontology",
+	"_comment_pattern": "This configuration demonstrates Pattern 1: Self-Contained Ontology. All properties (NCIt_Code, Preferred_Name, FULL_SYN, DEFINITION, etc.) are defined within the ctcae5.owl namespace itself. No external ontology references.",
+	"_comment_prefix_usage": "NO prefixes used in property codes because all properties belong to ctcae5.owl namespace. No sparqlPrefix field needed - system uses default graph prefix template.",
+
 	"uiLabel": "CTCAE 5",
-        "fhirUri": "http://hl7.org/fhir/us/ctcae",
-        "fhirPublisher": "NCI",
+	"fhirUri": "http://hl7.org/fhir/us/ctcae",
+	"fhirPublisher": "NCI",
 	"description": "Common Terminology Criteria for Adverse Events ",
+
 	"code": "NCIt_Code",
+	"_comment_code": "Local property from ctcae5.owl - unprefixed because it's in this ontology's namespace",
+
 	"conceptStatus": "owl:deprecated",
 	"retiredStatusValue": "true",
+
 	"preferredName": "Preferred_Name",
+	"_comment_preferredName": "Local property from ctcae5.owl - unprefixed",
+
 	"synonymSource": "term-source",
+	"_comment_synonymSource": "Local qualifier property for synonym source",
+
 	"synonymTermType": "term-group",
+	"_comment_synonymTermType": "Local qualifier property for synonym term type",
+
 	"synonym": [
 		"FULL_SYN"
 	],
+	"_comment_synonym": "Local property from ctcae5.owl - unprefixed",
+
 	"definition": [
 		"DEFINITION", "ALT_DEFINITION"
 	],
+	"_comment_definition": "Local properties from ctcae5.owl - unprefixed",
+
 	"definitionSource": "def-source",
+	"_comment_definitionSource": "Local qualifier property for definition source",
+
 	"map": null,
 	"mapRelation": null,
 	"mapTarget": null,
@@ -23,10 +43,14 @@
 	"mapTargetTerminology": null,
 	"mapTargetTerminologyVersion": null,
 	"relationshipToTarget": null,
+
 	"hierarchy": true,
+
 	"detailsColumns": {
 		"definitions-source": true,
 		"synonyms-source": true,
 		"synonyms-termType": true
- 	}
+ 	},
+
+	"_comment_sparqlPrefix": "NO sparqlPrefix field - uses default prefix.graph template which generates: PREFIX :<http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae5.owl#> PREFIX base:<http://ncicb.nci.nih.gov/xml/owl/EVS/ctcae5.owl#>"
 }
