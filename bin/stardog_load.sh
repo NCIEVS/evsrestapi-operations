@@ -307,7 +307,7 @@ get_terminology() {
 }
 
 get_version() {
-  version=$(grep '<owl:versionInfo>' $1 | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  version=$(grep '<owl:versionInfo' $1 | perl -pe 's/.*<owl:versionInfo[^>]*>(.*?)<\/owl:versionInfo>.*/\1/')
   if [[ -z "$version" ]]; then
     echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/(.*)\/$2.*/\1/")
   else
@@ -711,6 +711,12 @@ version=$(get_version "$file" "$terminology")
 echo "  Version:$version"
 graph=$(get_graph "$namespace" "$version")
 echo "  Graph:$graph"
+
+# if any of terminology, version, graph is empty, exit with error
+if [[ -z $terminology || -z $version || -z $graph ]]; then
+  echo "    ERROR: terminology, version, or graph is empty. terminology:$terminology version:$version graph:$graph"
+  cleanup 1
+fi
 
 # Bail if transform only
 if [[ $transform_only -eq 1 ]]; then
