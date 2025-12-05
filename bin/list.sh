@@ -224,9 +224,13 @@ SELECT DISTINCT ?source ?graphName (STR(?safeVersion) AS ?versionString) WHERE {
     }
     BIND (
         IF(
-            DATATYPE(?version) = xsd:decimal,
-            xsd:integer(?version),
-            ?version
+            isURI(?version),  # 1. CHECK FOR URI: If ?version is a URI
+            ?version,         #    RETURN: The URI as is.
+            IF(
+                DATATYPE(?version) = xsd:decimal, # 2. CHECK FOR DECIMAL LITERAL: If it's a literal AND a decimal
+                xsd:integer(?version),            #    RETURN: The integer cast (strips the .0).
+                ?version                          # 3. OTHERWISE: Return the literal as is (e.g., plain string, date, etc.)
+            )
         ) AS ?safeVersion
     )
   }
@@ -254,9 +258,13 @@ SELECT DISTINCT ?source ?graphName (STR(?safeVersion) AS ?versionString) WHERE {
     }
     BIND (
         IF(
-            DATATYPE(?version) = xsd:decimal,
-            xsd:integer(?version),
-            ?version
+            isURI(?version),  # 1. CHECK FOR URI: If ?version is a URI
+            ?version,         #    RETURN: The URI as is.
+            IF(
+                DATATYPE(?version) = xsd:decimal, # 2. CHECK FOR DECIMAL LITERAL: If it's a literal AND a decimal
+                xsd:integer(?version),            #    RETURN: The integer cast (strips the .0).
+                ?version                          # 3. OTHERWISE: Return the literal as is (e.g., plain string, date, etc.)
+            )
         ) AS ?safeVersion
     )
   }
