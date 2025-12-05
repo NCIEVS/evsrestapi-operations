@@ -577,7 +577,7 @@ remove_older_versions() {
     maxVersions=$(grep maxVersions $DIR/../config/metadata/$terminology.json | perl -pe 's/.*\:\s*(\d+),.*/$1/;')
   fi
   echo "  Remove old monthly version (maxVersions=$maxVersions) ...$(/bin/date)"
-  monthly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w NCIT2 | awk -F\| '{print $5}')
+  monthly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w NCIT2 | awk -F\| '{print $5}' | sort)
   monthly_graphs_array=(${monthly_graphs})
   echo "  Found ${#monthly_graphs_array[@]} versions"
   if [[ ${#monthly_graphs_array[@]} -gt maxVersions ]]; then
@@ -587,7 +587,7 @@ remove_older_versions() {
   fi
 
   echo "  Remove old weekly versions (will keep only 1)...$(/bin/date)"
-  weekly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w "$weekly_db" | awk -F\| '{print $5}')
+  weekly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w "$weekly_db" | awk -F\| '{print $5}' | sort)
   weekly_graphs_array=(${weekly_graphs})
   for graph_to_remove in "${weekly_graphs_array[@]:0:${#weekly_graphs_array[@]}-1}"; do
     remove_graph "$graph_to_remove" "$weekly_db"
