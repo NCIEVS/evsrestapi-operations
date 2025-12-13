@@ -28,5 +28,6 @@
 	"hierarchy": true,
 	"detailsColumns": {
 		"synonyms-type": true
-	}
+	},
+    "sparqlPrefix": "PREFIX :<http://purl.bioontology.org/ontology/npo#> PREFIX base:<http://purl.bioontology.org/ontology/npo#> PREFIX npo:<http://purl.bioontology.org/ontology/npo#>"
 }
