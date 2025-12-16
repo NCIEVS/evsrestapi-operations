@@ -8,14 +8,14 @@
 	"preferredName": "preferred_Name",
 	"synonym": [
 		"rdfs:label",
-		"npo:preferred_Name"
+		"preferred_Name"
 	],
 	"synonymTermType": "oboInOwl:hasSynonymType",
 	"synonymSource": null,
 	"synonymCode": null,
 	"synonymSubSource": null,
 	"definition": [
-		"npo:definition"
+		"definition"
 	],
 	"definitionSource": null,
 	"map": null,
@@ -28,6 +28,5 @@
 	"hierarchy": true,
 	"detailsColumns": {
 		"synonyms-type": true
-	},
-    "sparqlPrefix": "PREFIX :<http://purl.bioontology.org/ontology/npo#> PREFIX base:<http://purl.bioontology.org/ontology/npo#> PREFIX npo:<http://purl.bioontology.org/ontology/npo#>"
+	}
 }
