@@ -58,7 +58,7 @@ else
     fi
     terminology=${arr[0]}
     version=${arr[1]}
-    # Strip dot and dash chars from version
+    # Strip dot and dash chars from version and lowercase
     indexVersion=`echo $version | perl -ne 's/[\.\-]//g; print lc($_)'`
 fi
 

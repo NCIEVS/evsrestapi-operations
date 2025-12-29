@@ -339,35 +339,35 @@ if [[ $quiet -eq 0 ]]; then
 
     # Fix up versions for compare
     curl -s "$ES/_cat/indices" | grep concept_ | cut -d\  -f 3 | perl -pe 's/concept_//; s/_/ /; s/ us_/_us /;' |\
-       perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
+       perl -ne 'chop; @_=split/ /; print "$_[0] $_[1]\n" ' |\
        sort -u -o /tmp/y.txt
 
     curl -s "$ES/_cat/indices" | grep evs_object_ | cut -d\  -f 3 | perl -pe 's/evs_object_//; s/_/ /; s/ us_/_us /;' |\
-       perl -ne 'chop; @_=split/ /; if ($_[0] eq "umlssemnet") { print "$_[0] ".uc($_[1])."\n"; } else { print "$_[0] $_[1]\n" }' |\
+       perl -ne 'chop; @_=split/ /; print "$_[0] $_[1]\n" ' |\
        sort -u -o /tmp/z.txt
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: evs_metadata entries without concept indexes"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | sed 's/^/    /'
     fi
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: concept indexes without evs_metadata entries"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | sed 's/^/    /'
     fi
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: evs_metadata entries without evs_object indexes"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | sed 's/^/    /'
     fi
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: evs_object indexes without evs_metadata entries"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | sed 's/^/    /'
     fi
 
 else
