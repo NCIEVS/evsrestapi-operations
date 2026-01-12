@@ -1,5 +1,5 @@
 {
-	"uiLabel": "CanMED",
+	"uiLabel": "CanMED: Cancer Medications Enquiry Database",
 	"fhirUri": "http://seer.nci.nih.gov/CanMED.owl",
 	"fhirPublisher": "National Cancer Institute Enterprise Vocabulary Services",
 	"description": "Cancer Medications Enquiry Database (CanMED)",

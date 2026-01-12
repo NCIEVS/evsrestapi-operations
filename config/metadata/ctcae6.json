@@ -1,5 +1,5 @@
 {
-  "uiLabel": "CTCAE 6",
+  "uiLabel": "CTCAE 6: Common Terminology Criteria for Adverse Events Version 6",
   "fhirUri": "http://hl7.org/fhir/us/ctcae",
   "fhirPublisher": "NCI",
   "description": "Common Terminology Criteria for Adverse Events ",
