@@ -18,6 +18,7 @@ l_graph_db_home=""
 l_graph_db_url=""
 l_graph_db_username=""
 l_graph_db_password=""
+l_mount_dir=${LOCAL_MOUNT_DIR:-"/local"}
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -103,6 +104,15 @@ print_env(){
 
 print_disk_usage(){
   df -h
+  # if l_mount_dir is in df -h then get the %used. If --force is not set and disk usage is greater than 60% then exit with error
+  if df -h | grep -q "$l_mount_dir"; then
+    disk_usage=$(df -h | grep "$l_mount_dir" | awk '{print $5}' | sed 's/%//g')
+    echo "Disk usage of $l_mount_dir is $disk_usage%"
+    if [[ $force -eq 0 ]] && [[ $disk_usage -gt 60 ]]; then
+      echo "ERROR: Disk usage of $l_mount_dir is greater than 60%. Exiting."
+      exit 1
+    fi
+  fi
   # if l_graph_db_home exists
   if [[ -n $l_graph_db_home ]]; then
     echo "Disk usage of $l_graph_db_home"
@@ -667,6 +677,7 @@ l_graph_db_password=$GRAPH_DB_PASSWORD
 echo "    GRAPH_DB_TYPE = $l_graph_db_type"
 echo ""
 print_disk_usage
+exit 0
 if [[ $data == "optimize" ]]; then
   optimize_stardog_dbs
   print_completion
