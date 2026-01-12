@@ -347,7 +347,8 @@ get_data() {
       fi
       echo "     download datafile:${datafile}"
       echo "     download dataext:${dataext}"
-      curl --fail -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$url" >/tmp/x.$$.log 2>&1
+      # -L is so that we follow redirects. GO terminology url causes re-directs
+      curl --fail -L -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$url" >/tmp/x.$$.log 2>&1
       if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
