@@ -677,7 +677,6 @@ l_graph_db_password=$GRAPH_DB_PASSWORD
 echo "    GRAPH_DB_TYPE = $l_graph_db_type"
 echo ""
 print_disk_usage
-exit 0
 if [[ $data == "optimize" ]]; then
   optimize_stardog_dbs
   print_completion
