@@ -124,7 +124,40 @@ optimize_stardog_dbs() {
   for d in "${dbs[@]}"; do
     echo "  optimize_stardog_db ($d) ...$(/bin/date)"
     optimize_stardog_db "$d"
+    cleanup_compacted_dirs "$d"
   done
+}
+
+cleanup_compacted_dirs(){
+    # At times jena does not clean up the old versions after compaction. These directories have this mask: $l_graph_db_home"/run/databases/${d}/Data-xxxx. Here xxxx is a zero padded number. For example 0001 or 0010. Find all these directories and sort them. The highest numbered directory is the current directory. Check if there is a process tied to any of these directories. If there is a process tied to it, leave that directory intact. If there is no directory tied to it and if that directory is not the highest numbered directory. Delete that directory.
+    if [[ $l_graph_db_type == "jena" ]]; then
+      db_dir="$l_graph_db_home/run/databases/$1"
+      if [[ -d $db_dir ]]; then
+        echo "    Checking for old version directories in $db_dir"
+        version_dirs=()
+        while IFS= read -r dir; do
+          version_dirs+=("$dir")
+        done < <(find "$db_dir" -maxdepth 1 -type d -name "Data-*" -print | sort)
+        highest_dir=""
+        if [[ ${#version_dirs[@]} -gt 0 ]]; then
+          highest_dir="${version_dirs[${#version_dirs[@]}-1]}"
+        fi
+        echo "    Found ${#version_dirs[@]} version directories"
+        echo "    Highest version directory: $highest_dir"
+        for dir in "${version_dirs[@]}"; do
+          if [[ "$dir" != "$highest_dir" ]]; then
+            # Check if any process is using this directory
+            lsof +D "$dir" >/dev/null 2>&1
+            if [[ $? -ne 0 ]]; then
+              echo "      Deleting old version directory: $dir"
+              rm -rf "$dir"
+            else
+              echo "      Directory $dir is in use. Skipping deletion."
+            fi
+          fi
+        done
+      fi
+    fi
 }
 
 optimize_stardog_db() {
@@ -687,6 +720,8 @@ fi
 echo "  setup...$(/bin/date)"
 setup
 validate_setup
+cleanup_compacted_dirs "CTRP"
+exit 0
 run_commands
 validate_and_populate_dbs
 
