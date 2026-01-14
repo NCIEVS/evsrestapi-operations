@@ -145,6 +145,7 @@ cleanup_compacted_dirs(){
         echo "    Found ${#version_dirs[@]} version directories"
         echo "    Highest version directory: $highest_dir"
         for dir in "${version_dirs[@]}"; do
+          # we want to keep the highest dir no matter what because there is a slight chance that Jena i
           if [[ "$dir" != "$highest_dir" ]]; then
             # Check if any process is using this directory
             lsof +D "$dir" >/dev/null 2>&1
