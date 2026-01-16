@@ -124,7 +124,6 @@ optimize_stardog_dbs() {
   for d in "${dbs[@]}"; do
     echo "  optimize_stardog_db ($d) ...$(/bin/date)"
     optimize_stardog_db "$d"
-    cleanup_compacted_dirs "$d"
   done
 }
 
@@ -179,6 +178,7 @@ compact_dbs() {
   for d in "${dbs[@]}"; do
     echo "  compact_db ($d) ...$(/bin/date)"
     compact_db "$d"
+    cleanup_compacted_dirs "$d"
   done
 }
 
