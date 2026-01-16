@@ -145,7 +145,7 @@ cleanup_compacted_dirs(){
       echo "    Highest version directory: $highest_dir"
       for dir in "${version_dirs[@]}"; do
         # we want to keep the highest dir no matter what because there is a slight chance that Jena i
-        #if [[ "$dir" != "$highest_dir" ]]; then
+        if [[ "$dir" != "$highest_dir" ]]; then
           # Capture output (including errors) into a variable
           usage=$(lsof +D "$dir" 2>/dev/null)
           if [[ -z "$usage" ]]; then
@@ -154,7 +154,7 @@ cleanup_compacted_dirs(){
           else
             echo "      Directory $dir is in use. Skipping deletion."
           fi
-        #fi
+        fi
       done
     else
       echo "    Database directory $db_dir does not exist. Skipping cleanup."
@@ -721,8 +721,6 @@ fi
 echo "  setup...$(/bin/date)"
 setup
 validate_setup
-cleanup_compacted_dirs "CTRP"
-exit 0
 run_commands
 validate_and_populate_dbs
 
