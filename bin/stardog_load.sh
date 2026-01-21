@@ -133,19 +133,22 @@ cleanup_compacted_dirs(){
     if [[ -d $db_dir ]]; then
       echo "    Checking for old version directories in $db_dir"
       version_dirs=()
+
+      # Added "! -name '*-tmp'" to exclude temporary Jena directories
       while IFS= read -r dir; do
         version_dirs+=("$dir")
-      done < <(find "$db_dir" -maxdepth 1 -type d -name "Data-*" -print | sort)
+      done < <(find "$db_dir" -maxdepth 1 -type d -name "Data-*" ! -name "*-tmp" -print | sort)
+
       highest_dir=""
       if [[ ${#version_dirs[@]} -gt 0 ]]; then
         highest_dir="${version_dirs[${#version_dirs[@]}-1]}"
       fi
-      echo "    Found ${#version_dirs[@]} version directories"
+
+      echo "    Found ${#version_dirs[@]} version directories (excluding *-tmp)"
       echo "    Highest version directory: $highest_dir"
+
       for dir in "${version_dirs[@]}"; do
-        # we want to keep the highest dir no matter what because there is a slight chance that Jena i
         if [[ "$dir" != "$highest_dir" ]]; then
-          # Capture output (including errors) into a variable
           usage=$(lsof +D "$dir" 2>/dev/null)
           if [[ -z "$usage" ]]; then
             echo "      Deleting old version directory: $dir"
@@ -722,6 +725,8 @@ echo "  setup...$(/bin/date)"
 setup
 validate_setup
 run_commands
+cleanup_compacted_dirs CTRP
+exit 0
 validate_and_populate_dbs
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
