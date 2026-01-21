@@ -725,8 +725,6 @@ echo "  setup...$(/bin/date)"
 setup
 validate_setup
 run_commands
-cleanup_compacted_dirs CTRP
-exit 0
 validate_and_populate_dbs
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
