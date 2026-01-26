@@ -11,6 +11,7 @@ help=0
 quiet=0
 graphdb=1
 es=1
+diff=0
 
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
@@ -27,6 +28,7 @@ while [[ "$#" -gt 0 ]]; do case $1 in
     --jena) es=0;;
     # show es data only
     --es) graphdb=0;;
+    --diff) diff=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
@@ -372,6 +374,24 @@ if [[ $quiet -eq 0 ]]; then
 
 else
     sort /tmp/x.$$ | sed 's/^/es|/'
+fi
+
+if [[ $diff -eq 1 ]]; then
+    echo ""
+    # Extract terminology|version from GraphDB output
+    grep -v '^ *$' /tmp/y.$$.txt | perl -pe 's/\r//;' | \
+        awk -F'|' '{print $3 "|" $1}' | sort -u > /tmp/graphdb_terms.txt
+
+    # Extract terminology|version from ES output
+    grep -v '^ *$' /tmp/x.txt | awk '{print $1 "|" $2}' | sort -u > /tmp/es_terms.txt
+
+    # Find in ES but not in GraphDB
+    echo "In ES but missing in GraphDB:"
+    comm -23 /tmp/es_terms.txt /tmp/graphdb_terms.txt | sed 's/^/    /'
+
+    # Find in GraphDB but not in ES
+    echo "In GraphDB but missing in ES:"
+    comm -13 /tmp/es_terms.txt /tmp/graphdb_terms.txt | sed 's/^/    /'
 fi
 
 fi
