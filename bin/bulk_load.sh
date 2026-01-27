@@ -59,5 +59,3 @@ for url in "${URLS[@]}"; do
 done
 
 echo "Bulk Stardog Load Complete: $(date)" | tee -a "$logfile"
-cat "$logfile"
-rm "$logfile"
