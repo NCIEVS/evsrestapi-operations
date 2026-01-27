@@ -127,6 +127,42 @@ optimize_stardog_dbs() {
   done
 }
 
+cleanup_compacted_dirs(){
+    db_dir="$l_graph_db_home/run/databases/$1"
+    echo "  cleanup_compacted_dirs ($db_dir) ...$(/bin/date)"
+    if [[ -d $db_dir ]]; then
+      echo "    Checking for old version directories in $db_dir"
+      version_dirs=()
+
+      # Added "! -name '*-tmp'" to exclude temporary Jena directories
+      while IFS= read -r dir; do
+        version_dirs+=("$dir")
+      done < <(find "$db_dir" -maxdepth 1 -type d -name "Data-*" ! -name "*-tmp" -print | sort)
+
+      highest_dir=""
+      if [[ ${#version_dirs[@]} -gt 0 ]]; then
+        highest_dir="${version_dirs[${#version_dirs[@]}-1]}"
+      fi
+
+      echo "    Found ${#version_dirs[@]} version directories (excluding *-tmp)"
+      echo "    Highest version directory: $highest_dir"
+
+      for dir in "${version_dirs[@]}"; do
+        if [[ "$dir" != "$highest_dir" ]]; then
+          usage=$(lsof +D "$dir" 2>/dev/null)
+          if [[ -z "$usage" ]]; then
+            echo "      Deleting old version directory: $dir"
+            rm -rf "$dir"
+          else
+            echo "      Directory $dir is in use. Skipping deletion."
+          fi
+        fi
+      done
+    else
+      echo "    Database directory $db_dir does not exist. Skipping cleanup."
+    fi
+}
+
 optimize_stardog_db() {
   optimize_db=$1
   if [[ $l_graph_db_type == "stardog" ]]; then
@@ -144,6 +180,7 @@ optimize_stardog_db() {
 compact_dbs() {
   for d in "${dbs[@]}"; do
     echo "  compact_db ($d) ...$(/bin/date)"
+    cleanup_compacted_dirs "$d"
     compact_db "$d"
   done
 }
