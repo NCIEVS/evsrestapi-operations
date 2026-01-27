@@ -5,3 +5,4 @@
 .settings
 /config/setenv.sh
 owls/*
+*.log
