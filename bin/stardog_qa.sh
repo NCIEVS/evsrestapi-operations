@@ -87,7 +87,6 @@ if [[ $terminology == "ncit" ]]; then
       error=1
   fi
 fi
-[]
 if [[ $terminology == "medrt" ]]; then
     echo "    Checking MED-RT filename and content version alignment"
     set +f
