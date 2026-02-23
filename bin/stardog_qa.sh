@@ -1,34 +1,39 @@
 #!/bin/bash -f
 #
-# This script takes an terminology and an owl file for consideration of loading into
+# This script takes a terminology and an owl file for consideration of loading into
 # stardog and checks required things about the file.
 #
 help=0
+arr=()
+
+# Parse flags
 while [[ "$#" -gt 0 ]]; do case $1 in
     --help) help=1;;
     *) arr=( "${arr[@]}" "$1" );;
 esac; shift; done
 
-if [ ${#arr[@]} -ne 3 ] || [ $help -eq 1 ]; then
-    echo "Usage: $0 [--help] <terminology> <data file> <weekly flag>"
-    echo "  e.g. $0 ncit ./Thesaurus.owl"
+if [ ${#arr[@]} -ne 4 ] || [ $help -eq 1 ]; then
+    echo "Usage: $0 [--help] <terminology> <data file> <weekly flag> <input_directory>"
+    echo "  e.g. $0 medrt ./medrt_data.zip 0 ./work/input"
     exit 1
 fi
 
 terminology=${arr[0]}
 file=${arr[1]}
 weekly=${arr[2]}
+input_directory=${arr[3]}
 
 echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"
 echo "--------------------------------------------------"
-echo "terminology = $terminology"
-echo "file = $file"
-echo "weekly = $weekly"
+echo "terminology  = $terminology"
+echo "file         = $file"
+echo "weekly       = $weekly"
+echo "input_directory = $input_directory"
 
 if [[ ! -e $file ]]; then
     echo "ERROR: $file does not exist"
-	exit 1
+    exit 1
 fi
 
 if [[ $file = *zip ]]; then
@@ -42,12 +47,6 @@ if [[ $file = *zip ]]; then
 fi
 
 error=0
-
-get_ncit_last_char() {
-  file_name=$(echo "$file" |  perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;')
-  echo "${file_name: -1}"
-}
-
 # NCI Thesaurus checks
 if [[ $terminology == "ncit" ]]; then
   version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
@@ -58,44 +57,66 @@ if [[ $terminology == "ncit" ]]; then
     error=1
   fi
   if [[ "$ncit_last_char" =~ [^de] && "$weekly" -eq 0 ]]; then
-    echo "A non-montly NCIT file is run as a monthly load. NCIT version:${version}"
+    echo "A non-monthly NCIT file is run as a monthly load. NCIT version:${version}"
     error=1
   fi
-	echo "    Verify each owl:Class has an NHC0 property"
-    perl -ne 'if (/<owl:Class /) { $x = 0; $code=$_;}
-              if (/<owl:Class/) { $oc++;}
-              if (/<NHC0>/ && $oc == 1) { $x = 1; }; 
-              if (/<\/owl:Class/ && $oc == 1 && !$x) { print "$code"; }
-              if (/<\/owl:Class/) { $oc--; }' $file > /tmp/x.$$
-    ct=`cat /tmp/x.$$ | wc -l`
-	if [[ $ct -ne 0 ]]; then
-	    cat /tmp/x.$$ | sed 's/^/    /;'
-        echo "ERROR: missing NHC0 (see above)"
-		error=1
-	fi
 
-	echo "    Verify each owl:Class has an P108 property"
-    perl -ne 'if (/<owl:Class /) { $x = 0; $code=$_;}
-              if (/<owl:Class/) { $oc++;}
-              if (/<P108>/ && $oc == 1) { $x = 1; }; 
-              if (/<\/owl:Class/ && $oc == 1 && !$x) { print "$code"; }
-              if (/<\/owl:Class/) { $oc--; }' $file > /tmp/x.$$
-    ct=`cat /tmp/x.$$ | wc -l`
-	if [[ $ct -ne 0 ]]; then
-	    cat /tmp/x.$$ | sed 's/^/    /;'
-        echo "ERROR: missing P108 (see above)"
-		error=1
-	fi
+  echo "    Verify each owl:Class has an NHC0 property"
+  perl -ne 'if (/<owl:Class /) { $x = 0; $code=$_;}
+            if (/<owl:Class/) { $oc++;}
+            if (/<NHC0>/ && $oc == 1) { $x = 1; };
+            if (/<\/owl:Class/ && $oc == 1 && !$x) { print "$code"; }
+            if (/<\/owl:Class/) { $oc--; }' $file > /tmp/x.$$
+  ct=`cat /tmp/x.$$ | wc -l`
+  if [[ $ct -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      echo "ERROR: missing NHC0 (see above)"
+      error=1
+  fi
 
+  echo "    Verify each owl:Class has an P108 property"
+  perl -ne 'if (/<owl:Class /) { $x = 0; $code=$_;}
+            if (/<owl:Class/) { $oc++;}
+            if (/<P108>/ && $oc == 1) { $x = 1; };
+            if (/<\/owl:Class/ && $oc == 1 && !$x) { print "$code"; }
+            if (/<\/owl:Class/) { $oc--; }' $file > /tmp/x.$$
+  ct=`cat /tmp/x.$$ | wc -l`
+  if [[ $ct -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      echo "ERROR: missing P108 (see above)"
+      error=1
+  fi
+fi
+if [[ $terminology == "medrt" ]]; then
+    echo "    Checking MED-RT filename and content version alignment"
+    set +f
+    xml_file=$(ls $input_directory/Core_MEDRT_*_DTS.xml 2>/dev/null)
+    set -f
+    if [[ -f "$xml_file" ]]; then
+        file_version=$(echo "$xml_file" | sed -n 's/.*Core_MEDRT_\([0-9]\{8\}\)_DTS\.xml/\1/p')
+        content_version=$(grep '<version>' "$xml_file" | sed -n 's/.*<version>\(.*\)<\/version>.*/\1/p' | tr -d '.')
+
+        if [[ "$file_version" != "$content_version" ]]; then
+            echo "ERROR: MED-RT Version Mismatch!"
+            echo "  Filename version: $file_version"
+            echo "  Content version:  $content_version (from <version> tag)"
+            echo "  Please ensure the XML content matches the filename date."
+            error=1
+        else
+            echo "    MED-RT version alignment verified ($file_version)."
+        fi
+    else
+        echo "    Warning: No MED-RT XML file found in $INPUT_DIRECTORY; unable to run QA"
+    fi
 fi
 
 # Cleanup
 echo "  Cleanup...`/bin/date`"
 /bin/rm -f /tmp/x.$$ /tmp/fx.$$
 
-if [[ $error -ne 0 ]]; then 
+if [[ $error -ne 0 ]]; then
     echo "Finished with errors"
-	exit 1
+    exit 1
 fi
 
 echo ""
