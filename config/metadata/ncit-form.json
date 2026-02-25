@@ -197,7 +197,7 @@
           },
           {
             "text":"NCIT Terminology Multiple Term Request Spreadsheet.",
-            "link":"https://evsexplore.semantics.cancer.gov/evsexplore/assets/downloads/NCIT_Multi_Term_Request.xls"
+            "link":"./assets/downloads/NCIT_Multi_Term_Request.xls"
           },
           {
             "text":"Fill in the template appropriately, add your name and request date to the end of the file name, and upload the file."
