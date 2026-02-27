@@ -58,12 +58,13 @@ else
     fi
     terminology=${arr[0]}
     version=${arr[1]}
-    # Strip dot and dash chars from version
+    # Strip dot and dash chars from version and lowercase
     indexVersion=`echo $version | perl -ne 's/[\.\-]//g; print lc($_)'`
 fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 
 echo "--------------------------------------------------"
 echo "Starting ...`/bin/date`"

@@ -8,14 +8,14 @@
 	"preferredName": "preferred_Name",
 	"synonym": [
 		"rdfs:label",
-		"npo:preferred_Name"
+		"preferred_Name"
 	],
 	"synonymTermType": "oboInOwl:hasSynonymType",
 	"synonymSource": null,
 	"synonymCode": null,
 	"synonymSubSource": null,
 	"definition": [
-		"npo:definition"
+		"definition"
 	],
 	"definitionSource": null,
 	"map": null,

@@ -1,6 +1,27 @@
 config=1
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 PATCHES_DIRECTORY=$DIR/patches
+
+print_help(){
+  echo "Usage: $0 [--noconfig] [--help] <command> [options]"
+  echo "  e.g. $0 print_env"
+  echo "  e.g. $0 list"
+  echo "  e.g. $0 remove ncit 20.09d --graphdb"
+  echo "  e.g. $0 remove ncim 202102 --es"
+  echo "  e.g. $0 remove --mapset NCIt_to_HGNC_Mapping"
+  echo "  e.g. $0 patch 2.2.0"
+  echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
+  echo "  e.g. $0 drop_ctrp_db"
+  echo "  e.g. $0 init"
+  echo "  e.g. $0 list_compaction_tasks"
+  exit 1
+}
+
+# if no arguments, print help
+if [[ "$#" -eq 0 ]]; then
+  print_help
+fi
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -8,12 +29,14 @@ while [[ "$#" -gt 0 ]]; do
     config=0
     ncflag="--noconfig"
     ;;
+  --help) print_help ;;
   *) arr=("${arr[@]}" "$1") ;;
   esac
   shift
 done
 
 data="${arr[0]}"
+
 
 setup_configuration() {
   if [[ $config -eq 1 ]]; then
@@ -196,6 +219,22 @@ run_drop_ctrp_db() {
     exit 0
 }
 
+run_init() {
+    echo "    Dropping CTRP DB ...`/bin/date`"
+    # run init.sh to create default DBs
+    "$DIR"/init.sh "$ncflag" 2>&1
+    if [[ $? -ne 0 ]]; then
+        echo "Error occurred when dropping CTRP database. Response:$_"
+        exit 1
+    fi
+    exit 0
+}
+
+list_compaction_tasks(){
+  echo "Listing compaction tasks ..."
+  curl -i -X GET "$GRAPH_DB_URL/$/tasks"
+}
+
 run_commands(){
   if [[ $data == "print_env" ]]; then
     print_env
@@ -214,6 +253,12 @@ run_commands(){
   fi
   if [[ $data == "metadata" ]]; then
     run_metadata_command
+  fi
+  if [[ $data == "init" ]]; then
+    run_init
+  fi
+  if [[ $data == "list_compaction_tasks" ]]; then
+    list_compaction_tasks
   fi
 }
 

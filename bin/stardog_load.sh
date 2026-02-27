@@ -11,13 +11,14 @@ config=1
 help=0
 weekly=0
 transform_only=0
-commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db")
+commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db" "init")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
 l_graph_db_url=""
 l_graph_db_username=""
 l_graph_db_password=""
+l_mount_dir=${LOCAL_MOUNT_DIR:-"/local"}
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -51,9 +52,12 @@ print_help(){
   echo "  e.g. $0 list"
   echo "  e.g. $0 remove ncit 20.09d --graphdb"
   echo "  e.g. $0 remove ncim 202102 --es"
+  echo "  e.g. $0 remove --mapset NCIt_to_HGNC_Mapping"
   echo "  e.g. $0 patch 2.2.0"
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
+  echo "  e.g. $0 init"
+  echo "  e.g. $0 list_compaction_tasks"
   exit 1
 }
 
@@ -100,6 +104,15 @@ print_env(){
 
 print_disk_usage(){
   df -h
+  # if l_mount_dir is in df -h then get the %used. If --force is not set and disk usage is greater than 60% then exit with error
+  if df -h | grep -q "$l_mount_dir"; then
+    disk_usage=$(df -h | grep "$l_mount_dir" | awk '{print $5}' | sed 's/%//g')
+    echo "Disk usage of $l_mount_dir is $disk_usage%"
+    if [[ $force -eq 0 ]] && [[ $disk_usage -gt 60 ]]; then
+      echo "ERROR: Disk usage of $l_mount_dir is greater than 60%. Exiting."
+      exit 1
+    fi
+  fi
   # if l_graph_db_home exists
   if [[ -n $l_graph_db_home ]]; then
     echo "Disk usage of $l_graph_db_home"
@@ -108,8 +121,46 @@ print_disk_usage(){
 }
 
 optimize_stardog_dbs() {
-  optimize_stardog_db "NCIT2"
-  optimize_stardog_db "CTRP"
+  for d in "${dbs[@]}"; do
+    echo "  optimize_stardog_db ($d) ...$(/bin/date)"
+    optimize_stardog_db "$d"
+  done
+}
+
+cleanup_compacted_dirs(){
+    db_dir="$l_graph_db_home/run/databases/$1"
+    echo "  cleanup_compacted_dirs ($db_dir) ...$(/bin/date)"
+    if [[ -d $db_dir ]]; then
+      echo "    Checking for old version directories in $db_dir"
+      version_dirs=()
+
+      # Added "! -name '*-tmp'" to exclude temporary Jena directories
+      while IFS= read -r dir; do
+        version_dirs+=("$dir")
+      done < <(find "$db_dir" -maxdepth 1 -type d -name "Data-*" ! -name "*-tmp" -print | sort)
+
+      highest_dir=""
+      if [[ ${#version_dirs[@]} -gt 0 ]]; then
+        highest_dir="${version_dirs[${#version_dirs[@]}-1]}"
+      fi
+
+      echo "    Found ${#version_dirs[@]} version directories (excluding *-tmp)"
+      echo "    Highest version directory: $highest_dir"
+
+      for dir in "${version_dirs[@]}"; do
+        if [[ "$dir" != "$highest_dir" ]]; then
+          usage=$(lsof +D "$dir" 2>/dev/null)
+          if [[ -z "$usage" ]]; then
+            echo "      Deleting old version directory: $dir"
+            rm -rf "$dir"
+          else
+            echo "      Directory $dir is in use. Skipping deletion."
+          fi
+        fi
+      done
+    else
+      echo "    Database directory $db_dir does not exist. Skipping cleanup."
+    fi
 }
 
 optimize_stardog_db() {
@@ -127,17 +178,36 @@ optimize_stardog_db() {
 }
 
 compact_dbs() {
-  compact_db "NCIT2"
-  compact_db "CTRP"
+  for d in "${dbs[@]}"; do
+    echo "  compact_db ($d) ...$(/bin/date)"
+    cleanup_compacted_dirs "$d"
+    compact_db "$d"
+  done
+}
+
+can_compact_db(){
+  task_count=$(curl -s -f "$l_graph_db_url/$/tasks" | jq '.[].finished' | grep -c null)
+  if [[ $task_count -lt 4 ]]; then
+    echo "0"
+  else
+    echo "1"
+  fi
 }
 
 compact_db(){
-  if [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
+  echo "  Compacting db $1 ...$(/bin/date)"
+  compact_db=$(can_compact_db)
+  echo "    Can compact_db=$compact_db"
+  if [[ $compact_db == "1" ]] ; then
+    echo "    Skipping compacting $1 ...$(/bin/date)"
+    return
+  fi
+  if [[ $compact_db == "0" ]] && [[ $l_graph_db_type == "jena" ]] && [[ $terminology == "ncit" ]]; then
     echo "  compact jena ...$(/bin/date)"
     curl -XPOST -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$/compact/$1?deleteOld=true"
     if [[ $? -ne 0 ]]; then
+      # Do not fail the run. Just log the error
       echo "    ERROR: Problem compacting ($db)"
-      cleanup 1
     fi
   fi
 }
@@ -195,6 +265,12 @@ validate_setup() {
   else
     echo "Error: Both GRAPH_DB_PASSWORD and STARDOG_PASSWORD are not set."
     exit 1
+  fi
+  if [[ -z "$ES_SCHEME" || -z "$ES_HOST" || -z "$ES_PORT" ]]; then
+    echo "  ERROR: ES_SCHEME, ES_HOST, or ES_PORT is not set."
+    exit 1
+  else
+    ES="${ES_SCHEME}://${ES_HOST}:${ES_PORT}"
   fi
 }
 
@@ -278,7 +354,7 @@ get_terminology() {
 }
 
 get_version() {
-  version=$(grep '<owl:versionInfo>' $1 | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  version=$(grep '<owl:versionInfo' $1 | perl -pe 's/.*<owl:versionInfo[^>]*>(.*?)<\/owl:versionInfo>.*/\1/')
   if [[ -z "$version" ]]; then
     echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/(.*)\/$2.*/\1/")
   else
@@ -318,7 +394,8 @@ get_data() {
       fi
       echo "     download datafile:${datafile}"
       echo "     download dataext:${dataext}"
-      curl --fail -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$url" >/tmp/x.$$.log 2>&1
+      # -L is so that we follow redirects. GO terminology url causes re-directs
+      curl --fail -L -v -o "$INPUT_DIRECTORY"/f$$."$datafile"."$dataext" "$url" >/tmp/x.$$.log 2>&1
       if [[ $? -ne 0 ]]; then
         cat /tmp/x.$$.log | sed 's/^/    /;'
         echo "ERROR: problem downloading file"
@@ -400,14 +477,48 @@ validate_owl_file() {
   fi
 }
 
-validate_weekly() {
-  if [[ $weekly -eq 1 ]]; then
-    if [[ $terminology != "ncit" ]]; then
-      echo "ERROR: --weekly only makes sense when loading NCI Thesaurus"
-      cleanup 1
-    fi
-    db=CTRP
+validate_and_populate_dbs(){
+  echo "  Getting databases from configuration index ...$(/bin/date)"
+  if [[ -z $(curl -s "$ES/configuration/_search?size=1" | jq -r '.hits.hits[0]') ]]; then
+    echo "ERROR: configuration index does not exist. Run init.sh first."
+    exit 1
   fi
+  str_weekly_dbs=$(curl -s "$ES/configuration/_search" | jq -r '[.hits.hits[] | select(._source.weekly==true) | ._source.name] | join(",")')
+  IFS=',' read -r -a weekly_dbs <<<"$str_weekly_dbs"
+  if [[ $? -ne 0 ]]; then
+      echo "ERROR: unexpected problem listing weekly databases. Try running init.sh first."
+      exit 1
+  fi
+  if [[ ${#weekly_dbs[@]} -gt 1 ]]; then
+    echo "ERROR: More than one weekly is not supported: $str_weekly_dbs"
+    exit 1
+  fi
+  if [[ ${#weekly_dbs[@]} -eq 0 ]]; then
+    echo "ERROR: No weekly database found in configuration index"
+    exit 1
+  fi
+  str_non_weekly_dbs=$(curl -s "$ES/configuration/_search" | jq -r '[.hits.hits[] | select(._source.weekly==false) | ._source.name] | join(",")')
+  IFS=',' read -r -a non_weekly_dbs <<<"$str_non_weekly_dbs"
+  if [[ $? -ne 0 ]]; then
+      echo "ERROR: unexpected problem listing non-weekly databases. Try running init.sh first."
+      exit 1
+  fi
+  if [[ ${#non_weekly_dbs[@]} -gt 1 ]]; then
+    echo "ERROR: More than one non-weekly is not supported: $str_non_weekly_dbs"
+    exit 1
+  fi
+  if [[ ${#non_weekly_dbs[@]} -eq 0 ]]; then
+    echo "ERROR: No non-weekly database found in configuration index"
+    exit 1
+  fi
+  dbs=("${weekly_dbs[@]}" "${non_weekly_dbs[@]}")
+  weekly_db=${weekly_dbs[0]}
+  if [[ $weekly -eq 1 ]]; then
+    db=${weekly_dbs[0]}
+  else
+    db=${non_weekly_dbs[0]}
+  fi
+  echo "  db: $db"
 }
 
 qa_owl_file() {
@@ -415,7 +526,7 @@ qa_owl_file() {
     echo "  SKIP QA on $file ...$(/bin/date)"
   else
     echo "  Run QA on $file ...$(/bin/date)"
-    $DIR/stardog_qa.sh $terminology $file $weekly >/tmp/x.$$.log 2>&1
+    $DIR/stardog_qa.sh $terminology $file $weekly $INPUT_DIRECTORY >/tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
       cat /tmp/x.$$.log | sed 's/^/    /;'
       echo "ERROR: QA errors, re-run with --force to bypass this"
@@ -455,8 +566,9 @@ force_remove_graph() {
   # Remove data if $force is set (remove from both DBs)
   if [[ $force -eq 1 ]]; then
     echo "  Remove graph (force mode) ...$(/bin/date)"
-    remove_graph "$graph" "CTRP"
-    remove_graph "$graph" "NCIT2"
+    for d in "${dbs[@]}"; do
+      remove_graph "$graph" "$d"
+    done
   fi
 }
 
@@ -472,17 +584,17 @@ load_data() {
     echo "ERROR: Problem loading $l_graph_db_type ($db)"
     cleanup 1
   fi
-  # For monthly ncit, also load into CTRP db
+  # For monthly ncit, also load into weekly db
   if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
-    echo "  Load data (CTRP) ...$(/bin/date)"
+    echo "  Load data weekly_db ...$(/bin/date)"
     if [[ $l_graph_db_type == "stardog" ]]; then
-      $l_graph_db_home/bin/stardog data add "CTRP" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+      $l_graph_db_home/bin/stardog data add "$weekly_db" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
-      echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/CTRP/data?graph=$graph"
-      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/CTRP/data?graph=$graph"
+      echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/$weekly_db/data?graph=$graph"
+      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$weekly_db/data?graph=$graph"
     fi
     if [[ $? -ne 0 ]]; then
-      echo "ERROR: Problem loading $l_graph_db_type (CTRP)"
+      echo "ERROR: Problem loading $l_graph_db_type ($weekly_db)"
       cleanup 1
     fi
   fi
@@ -513,7 +625,7 @@ remove_older_versions() {
     maxVersions=$(grep maxVersions $DIR/../config/metadata/$terminology.json | perl -pe 's/.*\:\s*(\d+),.*/$1/;')
   fi
   echo "  Remove old monthly version (maxVersions=$maxVersions) ...$(/bin/date)"
-  monthly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w NCIT2 | awk -F\| '{print $5}')
+  monthly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w NCIT2 | awk -F\| '{print $5}' | sort)
   monthly_graphs_array=(${monthly_graphs})
   echo "  Found ${#monthly_graphs_array[@]} versions"
   if [[ ${#monthly_graphs_array[@]} -gt maxVersions ]]; then
@@ -523,10 +635,10 @@ remove_older_versions() {
   fi
 
   echo "  Remove old weekly versions (will keep only 1)...$(/bin/date)"
-  weekly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w CTRP | awk -F\| '{print $5}')
+  weekly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w "$weekly_db" | awk -F\| '{print $5}' | sort)
   weekly_graphs_array=(${weekly_graphs})
   for graph_to_remove in "${weekly_graphs_array[@]:0:${#weekly_graphs_array[@]}-1}"; do
-    remove_graph "$graph_to_remove" "CTRP"
+    remove_graph "$graph_to_remove" "$weekly_db"
   done
 }
 
@@ -582,6 +694,7 @@ fi
 
 # Set directory of this script so we can call relative scripts
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 WORK_DIRECTORY=$DIR/work_$$
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
@@ -612,6 +725,7 @@ echo "  setup...$(/bin/date)"
 setup
 validate_setup
 run_commands
+validate_and_populate_dbs
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
 dataext=$(get_file_extension $data)
@@ -646,14 +760,18 @@ echo "  Version:$version"
 graph=$(get_graph "$namespace" "$version")
 echo "  Graph:$graph"
 
+# if any of terminology, version, graph is empty, exit with error
+if [[ -z $terminology || -z $version || -z $graph ]]; then
+  echo "    ERROR: terminology, version, or graph is empty. terminology:$terminology version:$version graph:$graph"
+  cleanup 1
+fi
+
 # Bail if transform only
 if [[ $transform_only -eq 1 ]]; then
     echo "Transform complete, exiting"
     exit 0
 fi
 
-db=NCIT2
-validate_weekly
 echo "  qa_owl_file...$(/bin/date)"
 qa_owl_file
 check_if_version_exists
@@ -663,10 +781,10 @@ load_data
 load_extra_owl_files
 remove_older_versions
 optimize_stardog_db $db
-# compact_dbs
-# For monthly ncit, also loaded into CTRP db. So optimize
+compact_dbs
+# For monthly ncit, also loaded into weekly db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
-  optimize_stardog_db "CTRP"
+  optimize_stardog_db "$weekly_db"
 fi
 cleanup
 print_completion

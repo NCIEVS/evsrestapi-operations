@@ -3,10 +3,14 @@
   "fhirUri": "http://hl7.org/fhir/us/ctcae",
   "fhirPublisher": "NCI",
   "description": "Common Terminology Criteria for Adverse Events ",
+
+  "_comment": "These values are used to actually drive queries and get directly injected into a sparql query, requiring prefixes. These must be the actual properties as they appear in the rdf.",
   "code": "ncit:NHC0",
   "conceptStatus": "owl:deprecated",
   "retiredStatusValue": "true",
   "preferredName": "ncit:P108",
+
+  "_comment2": "These are used to analyze results and must be the actual code values.",
   "synonym": [
     "P90",
     "P107",
