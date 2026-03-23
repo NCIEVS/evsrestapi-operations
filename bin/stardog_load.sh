@@ -110,7 +110,7 @@ print_disk_usage(){
     echo "Disk usage of $l_mount_dir is $disk_usage%"
     if [[ $force -eq 0 ]] && [[ $disk_usage -gt 60 ]]; then
       echo "ERROR: Disk usage of $l_mount_dir is greater than 60%. Exiting."
-      exit 1
+      cleanup 1
     fi
   fi
   # if l_graph_db_home exists
