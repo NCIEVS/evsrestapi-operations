@@ -1662,7 +1662,11 @@
             "link":"./assets/downloads/CDISC_Multi_Term_Request.xls"
           },
           {
-            "text":"Fill in the template appropriately, add your name and request date to the end of the file name, and upload the file."
+            "text":"Fill in the template appropriately, add your name and request date to the end of the file name, and upload the file. The upload feature will only accept the multiple term request template format provided. Please send all other supplemental files to"
+          },
+          {
+            "text":"ncievscdischelp@mail.nih.gov.",
+            "link":"mailto:ncievscdischelp@mail.nih.gov?Subject=NCIt%20New%20Term%20Request%20File"
           }
         ]
       },
