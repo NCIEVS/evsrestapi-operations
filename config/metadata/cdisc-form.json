@@ -100,6 +100,8 @@
           "placeholder": "Select CDISC subset",
           "options": [
             "New",
+            "Other",
+            "Unknown",
             "ADaM",
             "CDASH",
             "CDISC Glossary",
@@ -111,8 +113,6 @@
             "SDTM",
             "SEND",
             "TMF",
-            "Other",
-            "Unknown"
           ],
           "validations": [
             {
@@ -141,6 +141,7 @@
             "New",
             "None",
             "Other",
+            "Unknown",
             "ADaM-HAMD1PC",
             "ADaM-HAMD1PN",
             "ADaM-APCH1PC",
