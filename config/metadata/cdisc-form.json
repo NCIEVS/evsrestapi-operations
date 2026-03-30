@@ -112,7 +112,7 @@
             "QRS",
             "SDTM",
             "SEND",
-            "TMF",
+            "TMF"
           ],
           "validations": [
             {
