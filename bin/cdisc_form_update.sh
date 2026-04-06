@@ -1,5 +1,4 @@
-# This script will take the file with the new codes (cdisc.txt) as input
-
+# This script will take the file with the new codes in a .txt file as input
 
 FILE="${1}"
 CODELISTS="temp/$$-cdisc-codelist"
@@ -33,6 +32,3 @@ rm ./temp/$$-$CDISC_FORM_COPY
 cp ./temp/$CDISC_FORM_COPY ./../config/metadata/cdisc-form.json
 
 echo "Completed reformatting of codelist and subsets based on $FILE."
-echo "Check that ../config/metadata/$CDISC_FORM_COPY is correct. Compare it to ../config/metadata/cdisc-form.json."
-echo "If the file is correct, replace cdisc-form.json using "
-echo "cp ./temp/$CDISC_FORM_COPY cdisc-form.json"
