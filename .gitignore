@@ -6,4 +6,4 @@
 /config/setenv.sh
 owls/*
 *.log
-bin/temp/*
+bin/temp/
