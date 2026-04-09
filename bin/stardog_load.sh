@@ -296,7 +296,7 @@ get_owl_files() {
   fi
   # Loop through all the owl files in $INPUT_DIRECTORY. Ignore the OWL specified as the first
   while IFS= read -r filename; do
-    # Add filename to the array
+    # Add filename to the array 
     filenames+=("$filename")
   done <<<"$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" ! -name "*$2*" -print | sort)"
   echo "${filenames[*]}"
