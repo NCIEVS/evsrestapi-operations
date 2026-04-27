@@ -109,8 +109,8 @@ print_disk_usage(){
     disk_usage=$(df -h | grep "$l_mount_dir" | awk '{print $5}' | sed 's/%//g')
     echo "Disk usage of $l_mount_dir is $disk_usage%"
     if [[ $force -eq 0 ]] && [[ $disk_usage -gt 60 ]]; then
-      echo "ERROR: Disk usage of $l_mount_dir is greater than 60%. Exiting."
-      exit 1
+      echo "ERROR: Disk usage of $l_mount_dir is greater than 60%. Exiting. Use --force to bypass this check."
+      cleanup 1
     fi
   fi
   # if l_graph_db_home exists
@@ -296,7 +296,7 @@ get_owl_files() {
   fi
   # Loop through all the owl files in $INPUT_DIRECTORY. Ignore the OWL specified as the first
   while IFS= read -r filename; do
-    # Add filename to the array
+    # Add filename to the array 
     filenames+=("$filename")
   done <<<"$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" ! -name "*$2*" -print | sort)"
   echo "${filenames[*]}"
