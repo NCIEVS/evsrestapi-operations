@@ -1,6 +1,8 @@
 import subprocess
 from pathlib import Path
 
+from terminology_converter.qa.qa_utils import EmptyProperty, find_empty_properties
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 STARDOG_QA = REPO_ROOT / "bin" / "stardog_qa.sh"
@@ -50,16 +52,26 @@ def test_ncit_qa_fails_for_empty_property(tmp_path):
     assert "ERROR: empty properties" in result.stdout
 
 
-def test_ncit_qa_allows_populated_properties(tmp_path):
+def test_find_empty_properties_identifies_empty_class_property(tmp_path):
     owl_file = tmp_path / "Thesaurus.owl"
     write_ncit_owl(
         owl_file,
         """    <NHC0>C123</NHC0>
     <P108>Sample Concept</P108>
-    <P90 rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Synonym</P90>""",
+    <P90 rdf:datatype="http://www.w3.org/2001/XMLSchema#string"></P90>""",
     )
 
-    result = run_stardog_qa(owl_file, tmp_path)
+    assert find_empty_properties(owl_file) == [EmptyProperty("C123", "P90")]
 
-    assert result.returncode == 0
-    assert "ERROR: empty properties" not in result.stdout
+
+def test_find_empty_properties_allows_populated_properties(tmp_path):
+    owl_file = tmp_path / "Thesaurus.owl"
+    write_ncit_owl(
+        owl_file,
+        """    <NHC0>C123</NHC0>
+    <P108>Sample Concept</P108>
+    <P90 rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Synonym</P90>
+    <rdfs:subClassOf xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="http://example.com/Parent"/>""",
+    )
+
+    assert find_empty_properties(owl_file) == []
