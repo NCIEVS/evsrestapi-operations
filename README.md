@@ -29,6 +29,21 @@ Information on the operations processes for the EVSRESTAPI project
 * Use ```make clean build``` to create a zip of all the scripts in the bin directory
 * This command would create a build directory if it does not exist and creates the zip file in that directory
 
+### Running tests
+
+The project uses Poetry to manage the Python test environment. From the repository root:
+
+```
+poetry install
+PYTHONPATH=.:src poetry run pytest
+```
+
+To run a specific test file:
+
+```
+PYTHONPATH=.:src poetry run pytest test/stardog_qa_test.py
+```
+
 ### Versioning
 * The version of the scripts are maintained in the ```Makefile```
 

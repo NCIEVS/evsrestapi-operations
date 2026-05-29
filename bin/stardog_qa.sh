@@ -86,6 +86,74 @@ if [[ $terminology == "ncit" ]]; then
       echo "ERROR: missing P108 (see above)"
       error=1
   fi
+
+  echo "    Verify owl:Class properties are not empty"
+  python3 - "$file" > /tmp/x.$$ <<'PY'
+import sys
+from xml.etree import ElementTree as ET
+
+RDF_NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+VALUE_ATTRS = {
+    f"{{{RDF_NS}}}about",
+    f"{{{RDF_NS}}}resource",
+    f"{{{RDF_NS}}}nodeID",
+}
+
+
+def local_name(tag):
+    if tag.startswith("{"):
+        return tag.rsplit("}", 1)[1]
+    return tag.split(":", 1)[-1]
+
+
+def node_id(element):
+    for attr in VALUE_ATTRS:
+        value = element.attrib.get(attr)
+        if value:
+            return value
+    return "<unknown class>"
+
+
+def concept_code(element):
+    for child in element:
+        if local_name(child.tag) == "NHC0" and child.text and child.text.strip():
+            return child.text.strip()
+    return node_id(element)
+
+
+def is_empty_property(element):
+    if len(element) != 0:
+        return False
+    if element.text and element.text.strip():
+        return False
+    return not any(element.attrib.get(attr) for attr in VALUE_ATTRS)
+
+
+try:
+    for _, element in ET.iterparse(sys.argv[1], events=("end",)):
+        if local_name(element.tag) != "Class":
+            continue
+        code = concept_code(element)
+        for child in element:
+            if is_empty_property(child):
+                print(f"{code}: empty {local_name(child.tag)}")
+        element.clear()
+except ET.ParseError as exc:
+    print(f"ERROR: unable to parse OWL XML: {exc}")
+    sys.exit(2)
+PY
+  empty_property_status=$?
+  if [[ $empty_property_status -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      error=1
+  else
+    ct=`cat /tmp/x.$$ | wc -l`
+    if [[ $ct -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      echo "ERROR: empty properties (see above)"
+      error=1
+    fi
+  fi
 fi
 if [[ $terminology == "medrt" ]]; then
     echo "    Checking MED-RT filename and content version alignment"
