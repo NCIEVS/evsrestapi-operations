@@ -18,6 +18,9 @@ if [ ${#arr[@]} -ne 4 ] || [ $help -eq 1 ]; then
     exit 1
 fi
 
+DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
+
 terminology=${arr[0]}
 file=${arr[1]}
 weekly=${arr[2]}
@@ -85,6 +88,21 @@ if [[ $terminology == "ncit" ]]; then
       cat /tmp/x.$$ | sed 's/^/    /;'
       echo "ERROR: missing P108 (see above)"
       error=1
+  fi
+
+  echo "    Verify owl:Class properties are not empty"
+  python3 "$DIR/../src/terminology_converter/qa/qa_utils.py" "$file" > /tmp/x.$$
+  empty_property_status=$?
+  if [[ $empty_property_status -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      error=1
+  else
+    ct=`cat /tmp/x.$$ | wc -l`
+    if [[ $ct -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      echo "ERROR: empty properties (see above)"
+      error=1
+    fi
   fi
 fi
 if [[ $terminology == "medrt" ]]; then
