@@ -91,7 +91,7 @@ if [[ $terminology == "ncit" ]]; then
   fi
 
   echo "    Verify owl:Class properties are not empty"
-  python3 "$DIR/../src/terminology_converter/qa/qa_utils.py" "$file" > /tmp/x.$$
+  python3 "$DIR/../src/terminology_converter/qa/qa_utils.py" empty-properties "$file" > /tmp/x.$$
   empty_property_status=$?
   if [[ $empty_property_status -ne 0 ]]; then
       cat /tmp/x.$$ | sed 's/^/    /;'
@@ -101,6 +101,21 @@ if [[ $terminology == "ncit" ]]; then
     if [[ $ct -ne 0 ]]; then
       cat /tmp/x.$$ | sed 's/^/    /;'
       echo "ERROR: empty properties (see above)"
+      error=1
+    fi
+  fi
+
+  echo "    Verify active owl:Class concepts do not use retired parents"
+  python3 "$DIR/../src/terminology_converter/qa/qa_utils.py" retired-parents "$file" > /tmp/x.$$
+  retired_parent_status=$?
+  if [[ $retired_parent_status -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      error=1
+  else
+    ct=`cat /tmp/x.$$ | wc -l`
+    if [[ $ct -ne 0 ]]; then
+      cat /tmp/x.$$ | sed 's/^/    /;'
+      echo "ERROR: retired parents (see above)"
       error=1
     fi
   fi
