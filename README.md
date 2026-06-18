@@ -44,6 +44,52 @@ To run a specific test file:
 PYTHONPATH=.:src poetry run pytest test/stardog_qa_test.py
 ```
 
+### Generating OWL samples for EVSRESTAPI content QA
+
+`bin/owl_sampling.py` generates TSV sample files from terminology OWL release
+files.  The EVSRESTAPI test project uses these files to check that a loaded
+terminology can be read back through the REST API.
+
+The script does not export every concept.  It picks useful examples.  Each row
+is a small test case that says, "after this terminology is loaded, EVSRESTAPI
+should be able to return this thing."
+
+The generated rows test examples of:
+
+* concept properties, such as preferred names, labels, definitions, synonyms,
+  subset links, maps, and status values
+* deprecated concept flags and NCIt concept status values
+* role/restriction targets that should load as concept relationships
+* qualifier metadata on synonyms, definitions, maps, and other properties
+* hierarchy behavior, such as parents, children, roots, parent counts, and the
+  parent with the most children, when those rows are stable for that terminology
+
+For hierarchy rows, the sampler tries to match what EVSRESTAPI can answer after
+loading the terminology.  It keeps explicit imported-parent references so those
+classes do not become false roots, but it only writes exact child-count samples
+for parents that are sampleable concepts in the OWL file.
+
+Basic usage:
+
+```
+python bin/owl_sampling.py <terminology owl file path> <terminology json path>
+```
+
+The output contract is a no-header UTF-8 TSV file:
+
+```
+uri<TAB>code<TAB>key[<TAB>value]
+```
+
+Use `--output` to choose the generated file path, `--terminology` when the
+terminology name should not come from the metadata JSON filename, and
+`--report` to write a JSON summary of sampled counts.  The report also names
+any sample families intentionally skipped for that terminology, such as
+restriction rows or a hierarchy style that does not map cleanly to the
+EVSRESTAPI Java sample checks.
+
+For step-by-step details, see `docs/owl_sampling_tutorial.md`.
+
 ### Versioning
 * The version of the scripts are maintained in the ```Makefile```
 
