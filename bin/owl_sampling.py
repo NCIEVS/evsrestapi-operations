@@ -318,59 +318,43 @@ class TerminologyConfig:
         """
 
         disabled: list[dict[str, str]] = []
+
+        def add(family: str, reason: str, **extra: str) -> None:
+            disabled.append({"family": family, "reason": reason, **extra})
+
         if not self.allows_restriction_samples:
-            disabled.append(
-                {
-                    "family": "restrictions",
-                    "reason": (
-                        "The Java tests check restriction rows as API roles, "
-                        "but this OWL uses restrictions for modeling or imports "
-                        "that EVSRESTAPI does not expose as concept roles."
-                    ),
-                }
+            add(
+                "restrictions",
+                "The Java tests check restriction rows as API roles, "
+                "but this OWL uses restrictions for modeling or imports "
+                "that EVSRESTAPI does not expose as concept roles.",
             )
         if not self.allows_root_samples:
-            disabled.append(
-                {
-                    "family": "roots",
-                    "reason": (
-                        "Some local OWL roots gain parents after EVSRESTAPI "
-                        "loads inferred or imported hierarchy."
-                    ),
-                }
+            add(
+                "roots",
+                "Some local OWL roots gain parents after EVSRESTAPI "
+                "loads inferred or imported hierarchy.",
             )
         if not self.allows_parent_child_style("style2"):
-            disabled.append(
-                {
-                    "family": "parent-style2/child-style2",
-                    "reason": (
-                        "Equivalent-class hierarchy patterns do not map cleanly "
-                        "to the Java tester's style2 parent/child check."
-                    ),
-                }
+            add(
+                "parent-style2/child-style2",
+                "Equivalent-class hierarchy patterns do not map cleanly "
+                "to the Java tester's style2 parent/child check.",
             )
         if self.max_parent_count_sample is not None:
-            disabled.append(
-                {
-                    "family": f"parent-count>{self.max_parent_count_sample}",
-                    "reason": (
-                        "Higher parent-count rows are OWL modeling/import "
-                        "counts that EVSRESTAPI does not expose as exact API "
-                        "parent counts for this terminology."
-                    ),
-                }
+            add(
+                f"parent-count>{self.max_parent_count_sample}",
+                "Higher parent-count rows are OWL modeling/import "
+                "counts that EVSRESTAPI does not expose as exact API "
+                "parent counts for this terminology.",
             )
         skipped_keys = SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY.get(self.terminology)
         if skipped_keys:
-            disabled.append(
-                {
-                    "family": "direct-properties",
-                    "keys": ", ".join(sorted(skipped_keys)),
-                    "reason": (
-                        "These OWL keys are mapped or filtered by the loader "
-                        "instead of being returned as plain Concept properties."
-                    ),
-                }
+            add(
+                "direct-properties",
+                "These OWL keys are mapped or filtered by the loader "
+                "instead of being returned as plain Concept properties.",
+                keys=", ".join(sorted(skipped_keys)),
             )
         return disabled
 
@@ -578,7 +562,6 @@ class ConceptNode:
     uri: str
     code: str
     sampleable: bool
-    deprecated: bool
 
 
 @dataclass
@@ -663,13 +646,7 @@ class SampleCollector:
     def build_indexes(self, owl_path: Path) -> None:
         """First pass: remember URI-to-code mappings needed later."""
 
-        for event, element in self._iterparse(owl_path):
-            if event == "start" and self.resolver is None:
-                self.resolver = QNameResolver.from_root(element)
-                continue
-            if event != "end" or not self._is_top_level(element):
-                continue
-
+        for element in self._top_level_elements(owl_path):
             tag = self._local_name(element)
             if tag == "Class":
                 concept = self._concept_from_element(element)
@@ -691,25 +668,15 @@ class SampleCollector:
             elif self._has_rdf_type(element, "owl:DatatypeProperty"):
                 self._index_datatype_property(element)
 
-            self._clear_top_level(element)
-
     def collect_samples(self, owl_path: Path) -> None:
         """Second pass: collect rows now that codes are known."""
 
-        for event, element in self._iterparse(owl_path):
-            if event == "start" and self.resolver is None:
-                self.resolver = QNameResolver.from_root(element)
-                continue
-            if event != "end" or not self._is_top_level(element):
-                continue
-
+        for element in self._top_level_elements(owl_path):
             tag = self._local_name(element)
             if tag == "Class":
                 self._collect_class_samples(element)
             elif tag == "Axiom":
                 self._collect_axiom_sample(element)
-
-            self._clear_top_level(element)
 
     def ordered_rows(self) -> list[SampleRow]:
         """Return rows in the order used by the sample files."""
@@ -747,6 +714,18 @@ class SampleCollector:
         # Release OWL files should be valid XML.  If a file is broken, it is
         # better to fail here than to quietly write a partial sample file.
         return ET.iterparse(str(owl_path), events=("start", "end"), recover=False, huge_tree=True)
+
+    def _top_level_elements(self, owl_path: Path):
+        """Yield completed top-level RDF elements and clear them afterward."""
+
+        for event, element in self._iterparse(owl_path):
+            if event == "start" and self.resolver is None:
+                self.resolver = QNameResolver.from_root(element)
+                continue
+            if event != "end" or not self._is_top_level(element):
+                continue
+            yield element
+            self._clear_top_level(element)
 
     def _local_name(self, element: ET._Element) -> str:
         assert self.resolver is not None
@@ -838,7 +817,6 @@ class SampleCollector:
             uri=uri,
             code=code,
             sampleable=sampleable,
-            deprecated=deprecated,
         )
 
     def _code_from_uri(self, uri: str) -> str:
