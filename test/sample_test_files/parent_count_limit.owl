@@ -1,0 +1,18 @@
+<rdf:RDF xml:base="http://example.org/parent-count-limit"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:Class rdf:about="#P1"><Code>P1</Code></owl:Class>
+  <owl:Class rdf:about="#P2"><Code>P2</Code></owl:Class>
+  <owl:Class rdf:about="#P3"><Code>P3</Code></owl:Class>
+  <owl:Class rdf:about="#P4"><Code>P4</Code></owl:Class>
+  <owl:Class rdf:about="#P5"><Code>P5</Code></owl:Class>
+  <owl:Class rdf:about="#Child">
+    <Code>CHILD</Code>
+    <rdfs:subClassOf rdf:resource="#P1"/>
+    <rdfs:subClassOf rdf:resource="#P2"/>
+    <rdfs:subClassOf rdf:resource="#P3"/>
+    <rdfs:subClassOf rdf:resource="#P4"/>
+    <rdfs:subClassOf rdf:resource="#P5"/>
+  </owl:Class>
+</rdf:RDF>

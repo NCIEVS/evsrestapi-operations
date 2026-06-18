@@ -1,0 +1,14 @@
+<rdf:RDF xml:base="http://example.org/ncit-like"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:Class rdf:about="http://example.org/ncit-like#C1">
+    <NHC0>C1</NHC0>
+    <P325>Sentence one keeps one row.</P325>
+  </owl:Class>
+  <owl:Axiom>
+    <owl:annotatedSource rdf:resource="http://example.org/ncit-like#C1"/>
+    <owl:annotatedProperty rdf:resource="http://example.org/ncit-like#P325"/>
+    <owl:annotatedTarget>Sentence one keeps one row.</owl:annotatedTarget>
+    <P378>TEST</P378>
+  </owl:Axiom>
+</rdf:RDF>

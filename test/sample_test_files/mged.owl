@@ -1,0 +1,13 @@
+<rdf:RDF xml:base="http://example.org/mged"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:Class rdf:about="#MGEDCoreOntology"/>
+  <owl:Class rdf:about="#BioMaterialPackage">
+    <Code>MO_182</Code>
+    <rdfs:label>BioMaterialPackage</rdfs:label>
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#MGEDCoreOntology"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+</rdf:RDF>
