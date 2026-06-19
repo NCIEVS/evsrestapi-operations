@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 from lxml import etree as ET
 
@@ -592,6 +592,278 @@ class PropertyRegistry:
 
 
 @dataclass
+class HierarchySampler:
+    """Collect hierarchy evidence and turn it into hierarchy sample rows."""
+
+    config: TerminologyConfig
+    sampleable_class_uris: "OrderedDict[str, None]"
+    deprecated_uris: set[str]
+    object_property_uris: set[str]
+    annotation_property_uris: set[str]
+    code_for_resource: Callable[[str], str]
+    key_for_element: Callable[[ET._Element], str]
+    local_name: Callable[[ET._Element], str]
+    direct_resource: Callable[[ET._Element], Optional[str]]
+    restriction_role_and_target: Callable[[ET._Element], Optional[tuple[str, str, str]]]
+    is_datatype_property: Callable[[str, str], bool]
+    parent_style1: Optional[tuple[str, str]] = None
+    parent_style2: Optional[tuple[str, str]] = None
+    all_parents: "OrderedDict[str, list[str]]" = field(default_factory=OrderedDict)
+    all_children: "OrderedDict[str, list[str]]" = field(default_factory=OrderedDict)
+    non_root_class_uris: set[str] = field(default_factory=set)
+
+    def collect_parent_relationships(self, element: ET._Element, concept: ConceptNode) -> None:
+        """Record parent/child evidence from one sampled concept."""
+
+        for child in element:
+            child_key = self.key_for_element(child)
+            if child_key == "rdfs:subClassOf":
+                parents, direct_parent = self._subclass_parent_resources(child)
+                for parent in parents:
+                    if self._record_hierarchy_parent(concept.uri, parent):
+                        if (
+                            direct_parent
+                            and parent in self.sampleable_class_uris
+                            and self.parent_style1 is None
+                        ):
+                            self.parent_style1 = (concept.uri, parent)
+
+            elif child_key == "owl:equivalentClass":
+                # Some OWLs express a parent inside an equivalentClass block.
+                # Keep this old behavior because the Java tests check this
+                # hierarchy style separately from direct rdfs:subClassOf.
+                for parent in self._class_expression_parent_resources(child):
+                    if self._record_hierarchy_parent(concept.uri, parent):
+                        if (
+                            parent in self.sampleable_class_uris
+                            and self.parent_style2 is None
+                        ):
+                            self.parent_style2 = (concept.uri, parent)
+
+    def rows(self) -> list[SampleRow]:
+        """Return hierarchy rows in the historical sample-file order."""
+
+        rows: list[SampleRow] = []
+        rows.extend(self._parent_child_style_rows(self.parent_style1, "style1"))
+        rows.extend(self._parent_child_style_rows(self.parent_style2, "style2"))
+        max_children_row = self._max_children_row()
+        if max_children_row:
+            rows.append(max_children_row)
+        rows.extend(self._parent_count_rows())
+        rows.extend(self._root_rows())
+        return rows
+
+    def parent_relationship_count(self) -> int:
+        return sum(len(parents) for parents in self.all_parents.values())
+
+    def _subclass_is_restriction(self, subclass_element: ET._Element) -> bool:
+        return any(self.local_name(child) == "Restriction" for child in subclass_element)
+
+    def _hierarchy_restriction_parent_resource(
+        self, subclass_element: ET._Element
+    ) -> Optional[str]:
+        """Return a parent encoded as a configured hierarchy-role restriction.
+
+        OBO-style OWLs sometimes use a restriction like "part_of some X" as a
+        hierarchy edge.  The metadata JSON tells us which roles are hierarchy
+        roles.  Those restrictions should not become role samples, but they do
+        matter for roots, parent counts, child counts, and paths.
+        """
+
+        for restriction in subclass_element.iterdescendants():
+            parts = self.restriction_role_and_target(restriction)
+            if parts is None:
+                continue
+            role_resource, role_key, target_resource = parts
+            if self.is_datatype_property(role_resource, role_key):
+                continue
+            if role_key in self.config.hierarchy_roles:
+                return target_resource
+        return None
+
+    def _subclass_parent_resources(
+        self, subclass_element: ET._Element
+    ) -> tuple[list[str], bool]:
+        """Return parent resources for direct subclass hierarchy."""
+
+        parent = self.direct_resource(subclass_element)
+        if parent:
+            return [parent], True
+        if self._subclass_is_restriction(subclass_element):
+            hierarchy_parent = self._hierarchy_restriction_parent_resource(subclass_element)
+            return ([hierarchy_parent] if hierarchy_parent else []), False
+        return self._class_expression_parent_resources(subclass_element), True
+
+    def _class_expression_parent_resources(self, element: ET._Element) -> list[str]:
+        """Return named parents from the top level of a class expression.
+
+        OWL class expressions can nest restrictions inside restrictions.  Only
+        the named class at the top of the expression is hierarchy evidence.
+        Deeper named classes are role targets or logical details, not parents.
+        """
+
+        direct = self.direct_resource(element)
+        if direct:
+            return [direct]
+
+        parents: list[str] = []
+        for child in element:
+            child_key = self.key_for_element(child)
+            if child_key in {"owl:Class", "rdf:Description"}:
+                self._append_parent_resource(parents, self.direct_resource(child))
+                self._append_top_level_collection_parents(parents, child)
+        return parents
+
+    def _append_top_level_collection_parents(
+        self, parents: list[str], class_expression: ET._Element
+    ) -> None:
+        for child in class_expression:
+            child_key = self.key_for_element(child)
+            if child_key not in {"owl:intersectionOf", "owl:unionOf"}:
+                continue
+            for member in child:
+                member_key = self.key_for_element(member)
+                if member_key in {"owl:Class", "rdf:Description"}:
+                    self._append_parent_resource(parents, self.direct_resource(member))
+
+    def _append_parent_resource(
+        self, parents: list[str], parent: Optional[str]
+    ) -> None:
+        if parent and parent not in parents:
+            parents.append(parent)
+
+    def _record_hierarchy_parent(self, child_uri: str, parent_uri: str) -> bool:
+        """Record a parent edge if it is useful for Java sample testing.
+
+        Imported parents may not have a full class record in the release OWL.
+        They still matter for root and parent-count checks, because EVSRESTAPI
+        can load those parents from imports.  Exact child-count checks are more
+        conservative and only count children under parents that are sampleable
+        from this OWL file.
+
+        Configured scaffold parents are even narrower.  They are helper classes
+        we do not want as sample rows, but their children are still not roots.
+        Those edges only suppress root rows.
+        """
+
+        if self._is_hierarchy_scaffold_uri(child_uri):
+            return False
+        if self._is_hierarchy_scaffold_uri(parent_uri):
+            self.non_root_class_uris.add(child_uri)
+            return False
+        self._add_parent(
+            child_uri,
+            parent_uri,
+            count_child=parent_uri in self.sampleable_class_uris,
+        )
+        return True
+
+    def _add_parent(self, child_uri: str, parent_uri: str, count_child: bool = True) -> None:
+        parents = self.all_parents.setdefault(child_uri, [])
+        if parent_uri not in parents:
+            parents.append(parent_uri)
+        if not count_child:
+            return
+        children = self.all_children.setdefault(parent_uri, [])
+        if child_uri not in children:
+            children.append(child_uri)
+
+    def _is_hierarchy_scaffold_uri(self, uri: str) -> bool:
+        local = _local_part(uri)
+        return bool(local and local in self.config.hierarchy_scaffold_locals)
+
+    def _parent_child_style_rows(
+        self, pair: Optional[tuple[str, str]], style: str
+    ) -> list[SampleRow]:
+        """Return parent-style/child-style rows for one hierarchy shape."""
+
+        if not pair or not self.config.allows_parent_child_style(style):
+            return []
+        child_uri, parent_uri = pair
+        # This row looks odd on purpose: column 1 is the child URI, but column 2
+        # is the parent code.  The Java tester queries the parent and then checks
+        # that the child appears under it.
+        return [
+            SampleRow(
+                child_uri,
+                self.code_for_resource(child_uri),
+                f"parent-{style}",
+                self.code_for_resource(parent_uri),
+            ),
+            SampleRow(
+                child_uri,
+                self.code_for_resource(parent_uri),
+                f"child-{style}",
+                self.code_for_resource(child_uri),
+            ),
+        ]
+
+    def _max_children_row(self) -> Optional[SampleRow]:
+        """Return the parent with the largest number of children."""
+
+        max_children_parent = ""
+        max_children_count = 0
+        for parent_uri, children in self.all_children.items():
+            if self._is_hierarchy_scaffold_uri(parent_uri):
+                continue
+            active_children = [
+                child
+                for child in children
+                if child in self.sampleable_class_uris and child not in self.deprecated_uris
+            ]
+            if len(active_children) > max_children_count:
+                max_children_parent = parent_uri
+                max_children_count = len(active_children)
+        if max_children_parent and max_children_count > 0:
+            return SampleRow(
+                max_children_parent,
+                self.code_for_resource(max_children_parent),
+                "max-children",
+                str(max_children_count),
+            )
+        return None
+
+    def _parent_count_rows(self) -> list[SampleRow]:
+        """Return one example for each parent count we see."""
+
+        rows: list[SampleRow] = []
+        parent_count: dict[int, str] = {}
+        for child_uri, parents in self.all_parents.items():
+            if child_uri in self.sampleable_class_uris and not self._is_hierarchy_scaffold_uri(
+                child_uri
+            ):
+                parent_count.setdefault(len(parents), child_uri)
+        for count in sorted(parent_count):
+            if (
+                self.config.max_parent_count_sample is not None
+                and count > self.config.max_parent_count_sample
+            ):
+                continue
+            child_uri = parent_count[count]
+            rows.append(
+                SampleRow(child_uri, self.code_for_resource(child_uri), f"parent-count{count}")
+            )
+        return rows
+
+    def _root_rows(self) -> list[SampleRow]:
+        """Return sampleable concepts with no recorded parents."""
+
+        if not self.config.allows_root_samples:
+            return []
+        rows: list[SampleRow] = []
+        excluded = self.deprecated_uris | self.object_property_uris | self.annotation_property_uris
+        for uri in self.sampleable_class_uris.keys():
+            if (
+                uri not in self.all_parents
+                and uri not in self.non_root_class_uris
+                and uri not in excluded
+                and not self._is_hierarchy_scaffold_uri(uri)
+            ):
+                rows.append(SampleRow(uri, self.code_for_resource(uri), "root"))
+        return rows
+
+
+@dataclass
 class SampleCollector:
     """Collect sample rows from one OWL file.
 
@@ -612,15 +884,11 @@ class SampleCollector:
     annotation_property_uris: set[str] = field(default_factory=set)
     datatype_property_keys: set[str] = field(default_factory=set)
     deprecated_uris: set[str] = field(default_factory=set)
-    parent_style1: Optional[tuple[str, str]] = None
-    parent_style2: Optional[tuple[str, str]] = None
-    all_parents: "OrderedDict[str, list[str]]" = field(default_factory=OrderedDict)
-    all_children: "OrderedDict[str, list[str]]" = field(default_factory=OrderedDict)
-    non_root_class_uris: set[str] = field(default_factory=set)
     axiom_rows: "OrderedDict[str, SampleRow]" = field(default_factory=OrderedDict)
     qualifier_assertions: set[tuple[str, ...]] = field(default_factory=set)
     role_assertions: set[tuple[str, str, str]] = field(default_factory=set)
     property_registry: PropertyRegistry = field(init=False)
+    hierarchy: HierarchySampler = field(init=False)
 
     def __post_init__(self) -> None:
         # P310 is NCIt's concept status property.  Keep the short name because
@@ -633,6 +901,19 @@ class SampleCollector:
             if local:
                 multi_keys.add(local)
         self.property_registry = PropertyRegistry(multi_sample_keys=multi_keys)
+        self.hierarchy = HierarchySampler(
+            config=self.config,
+            sampleable_class_uris=self.sampleable_class_uris,
+            deprecated_uris=self.deprecated_uris,
+            object_property_uris=self.object_property_uris,
+            annotation_property_uris=self.annotation_property_uris,
+            code_for_resource=self._code_for_resource,
+            key_for_element=self._key_for_element,
+            local_name=self._local_name,
+            direct_resource=self._direct_resource,
+            restriction_role_and_target=self._restriction_role_and_target,
+            is_datatype_property=self._is_datatype_property,
+        )
 
     def generate(self, owl_path: Path) -> list[SampleRow]:
         """Generate all sample rows for one OWL file."""
@@ -683,8 +964,7 @@ class SampleCollector:
 
         rows = list(self.property_registry.values())
         rows.extend(self.axiom_rows.values())
-        rows.extend(self._hierarchy_rows())
-        rows.extend(self._root_rows())
+        rows.extend(self.hierarchy.rows())
         return rows
 
     def report(self, rows: list[SampleRow]) -> dict[str, Any]:
@@ -698,7 +978,7 @@ class SampleCollector:
             "annotationProperties": len(self.annotation_property_uris),
             "datatypeProperties": len(self.datatype_property_keys),
             "deprecatedClasses": len(self.deprecated_uris),
-            "parentRelationships": sum(len(parents) for parents in self.all_parents.values()),
+            "parentRelationships": self.hierarchy.parent_relationship_count(),
             "axiomSamples": len(self.axiom_rows),
         }
 
@@ -887,7 +1167,7 @@ class SampleCollector:
 
         self._collect_direct_properties(element, concept)
         self._collect_restrictions(element, concept)
-        self._collect_parent_relationships(element, concept)
+        self.hierarchy.collect_parent_relationships(element, concept)
 
     def _collect_direct_properties(self, element: ET._Element, concept: ConceptNode) -> None:
         assert self.resolver is not None
@@ -1010,108 +1290,6 @@ class SampleCollector:
             or (local is not None and local in self.datatype_property_keys)
         )
 
-    def _collect_parent_relationships(self, element: ET._Element, concept: ConceptNode) -> None:
-        for child in element:
-            child_key = self._key_for_element(child)
-            if child_key == "rdfs:subClassOf":
-                parents, direct_parent = self._subclass_parent_resources(child)
-                for parent in parents:
-                    if self._record_hierarchy_parent(concept.uri, parent):
-                        if (
-                            direct_parent
-                            and parent in self.sampleable_class_uris
-                            and self.parent_style1 is None
-                        ):
-                            self.parent_style1 = (concept.uri, parent)
-
-            elif child_key == "owl:equivalentClass":
-                # Some OWLs express a parent inside an equivalentClass block.
-                # Keep this old behavior because the Java tests check this
-                # hierarchy style separately from direct rdfs:subClassOf.
-                for parent in self._class_expression_parent_resources(child):
-                    if self._record_hierarchy_parent(concept.uri, parent):
-                        if (
-                            parent in self.sampleable_class_uris
-                            and self.parent_style2 is None
-                        ):
-                            self.parent_style2 = (concept.uri, parent)
-
-    def _subclass_is_restriction(self, subclass_element: ET._Element) -> bool:
-        return any(self._local_name(child) == "Restriction" for child in subclass_element)
-
-    def _hierarchy_restriction_parent_resource(
-        self, subclass_element: ET._Element
-    ) -> Optional[str]:
-        """Return a parent encoded as a configured hierarchy-role restriction.
-
-        OBO-style OWLs sometimes use a restriction like "part_of some X" as a
-        hierarchy edge.  The metadata JSON tells us which roles are hierarchy
-        roles.  Those restrictions should not become role samples, but they do
-        matter for roots, parent counts, child counts, and paths.
-        """
-
-        for restriction in subclass_element.iterdescendants():
-            parts = self._restriction_role_and_target(restriction)
-            if parts is None:
-                continue
-            role_resource, role_key, target_resource = parts
-            if self._is_datatype_property(role_resource, role_key):
-                continue
-            if role_key in self.config.hierarchy_roles:
-                return target_resource
-        return None
-
-    def _subclass_parent_resources(
-        self, subclass_element: ET._Element
-    ) -> tuple[list[str], bool]:
-        """Return parent resources for direct subclass hierarchy."""
-
-        parent = self._direct_resource(subclass_element)
-        if parent:
-            return [parent], True
-        if self._subclass_is_restriction(subclass_element):
-            hierarchy_parent = self._hierarchy_restriction_parent_resource(subclass_element)
-            return ([hierarchy_parent] if hierarchy_parent else []), False
-        return self._class_expression_parent_resources(subclass_element), True
-
-    def _class_expression_parent_resources(self, element: ET._Element) -> list[str]:
-        """Return named parents from the top level of a class expression.
-
-        OWL class expressions can nest restrictions inside restrictions.  Only
-        the named class at the top of the expression is hierarchy evidence.
-        Deeper named classes are role targets or logical details, not parents.
-        """
-
-        direct = self._direct_resource(element)
-        if direct:
-            return [direct]
-
-        parents: list[str] = []
-        for child in element:
-            child_key = self._key_for_element(child)
-            if child_key in {"owl:Class", "rdf:Description"}:
-                self._append_parent_resource(parents, self._direct_resource(child))
-                self._append_top_level_collection_parents(parents, child)
-        return parents
-
-    def _append_top_level_collection_parents(
-        self, parents: list[str], class_expression: ET._Element
-    ) -> None:
-        for child in class_expression:
-            child_key = self._key_for_element(child)
-            if child_key not in {"owl:intersectionOf", "owl:unionOf"}:
-                continue
-            for member in child:
-                member_key = self._key_for_element(member)
-                if member_key in {"owl:Class", "rdf:Description"}:
-                    self._append_parent_resource(parents, self._direct_resource(member))
-
-    def _append_parent_resource(
-        self, parents: list[str], parent: Optional[str]
-    ) -> None:
-        if parent and parent not in parents:
-            parents.append(parent)
-
     def _direct_resource(self, element: ET._Element) -> Optional[str]:
         assert self.resolver is not None
         resource = element.get(RDF_RESOURCE) or element.get(RDF_ABOUT)
@@ -1121,46 +1299,6 @@ class SampleCollector:
         if rdf_id:
             return _append_fragment(self.resolver.base_uri, rdf_id)
         return None
-
-    def _record_hierarchy_parent(self, child_uri: str, parent_uri: str) -> bool:
-        """Record a parent edge if it is useful for Java sample testing.
-
-        Imported parents may not have a full class record in the release OWL.
-        They still matter for root and parent-count checks, because EVSRESTAPI
-        can load those parents from imports.  Exact child-count checks are more
-        conservative and only count children under parents that are sampleable
-        from this OWL file.
-
-        Configured scaffold parents are even narrower.  They are helper classes
-        we do not want as sample rows, but their children are still not roots.
-        Those edges only suppress root rows.
-        """
-
-        if self._is_hierarchy_scaffold_uri(child_uri):
-            return False
-        if self._is_hierarchy_scaffold_uri(parent_uri):
-            self.non_root_class_uris.add(child_uri)
-            return False
-        self._add_parent(
-            child_uri,
-            parent_uri,
-            count_child=parent_uri in self.sampleable_class_uris,
-        )
-        return True
-
-    def _add_parent(self, child_uri: str, parent_uri: str, count_child: bool = True) -> None:
-        parents = self.all_parents.setdefault(child_uri, [])
-        if parent_uri not in parents:
-            parents.append(parent_uri)
-        if not count_child:
-            return
-        children = self.all_children.setdefault(parent_uri, [])
-        if child_uri not in children:
-            children.append(child_uri)
-
-    def _is_hierarchy_scaffold_uri(self, uri: str) -> bool:
-        local = _local_part(uri)
-        return bool(local and local in self.config.hierarchy_scaffold_locals)
 
     def _collect_axiom_sample(self, element: ET._Element) -> None:
         assert self.resolver is not None
@@ -1332,106 +1470,6 @@ class SampleCollector:
     def _key_for_element(self, element: ET._Element) -> str:
         assert self.resolver is not None
         return self.resolver.tag_to_key(element.tag)
-
-    def _hierarchy_rows(self) -> list[SampleRow]:
-        rows: list[SampleRow] = []
-        rows.extend(self._parent_child_style_rows(self.parent_style1, "style1"))
-        rows.extend(self._parent_child_style_rows(self.parent_style2, "style2"))
-        max_children_row = self._max_children_row()
-        if max_children_row:
-            rows.append(max_children_row)
-        rows.extend(self._parent_count_rows())
-        return rows
-
-    def _parent_child_style_rows(
-        self, pair: Optional[tuple[str, str]], style: str
-    ) -> list[SampleRow]:
-        """Return parent-style/child-style rows for one hierarchy shape."""
-
-        if not pair or not self.config.allows_parent_child_style(style):
-            return []
-        child_uri, parent_uri = pair
-        # This row looks odd on purpose: column 1 is the child URI, but column 2
-        # is the parent code.  The Java tester queries the parent and then checks
-        # that the child appears under it.
-        return [
-            SampleRow(
-                child_uri,
-                self._code_for_resource(child_uri),
-                f"parent-{style}",
-                self._code_for_resource(parent_uri),
-            ),
-            SampleRow(
-                child_uri,
-                self._code_for_resource(parent_uri),
-                f"child-{style}",
-                self._code_for_resource(child_uri),
-            ),
-        ]
-
-    def _max_children_row(self) -> Optional[SampleRow]:
-        """Return the parent with the largest number of children."""
-
-        max_children_parent = ""
-        max_children_count = 0
-        for parent_uri, children in self.all_children.items():
-            if self._is_hierarchy_scaffold_uri(parent_uri):
-                continue
-            active_children = [
-                child
-                for child in children
-                if child in self.sampleable_class_uris and child not in self.deprecated_uris
-            ]
-            if len(active_children) > max_children_count:
-                max_children_parent = parent_uri
-                max_children_count = len(active_children)
-        if max_children_parent and max_children_count > 0:
-            return SampleRow(
-                max_children_parent,
-                self._code_for_resource(max_children_parent),
-                "max-children",
-                str(max_children_count),
-            )
-        return None
-
-    def _parent_count_rows(self) -> list[SampleRow]:
-        """Return one example for each parent count we see."""
-
-        rows: list[SampleRow] = []
-        parent_count: dict[int, str] = {}
-        for child_uri, parents in self.all_parents.items():
-            if child_uri in self.sampleable_class_uris and not self._is_hierarchy_scaffold_uri(
-                child_uri
-            ):
-                parent_count.setdefault(len(parents), child_uri)
-        for count in sorted(parent_count):
-            if (
-                self.config.max_parent_count_sample is not None
-                and count > self.config.max_parent_count_sample
-            ):
-                continue
-            child_uri = parent_count[count]
-            rows.append(
-                SampleRow(child_uri, self._code_for_resource(child_uri), f"parent-count{count}")
-            )
-        return rows
-
-    def _root_rows(self) -> list[SampleRow]:
-        """Return sampleable concepts with no recorded parents."""
-
-        if not self.config.allows_root_samples:
-            return []
-        rows: list[SampleRow] = []
-        excluded = self.deprecated_uris | self.object_property_uris | self.annotation_property_uris
-        for uri in self.sampleable_class_uris.keys():
-            if (
-                uri not in self.all_parents
-                and uri not in self.non_root_class_uris
-                and uri not in excluded
-                and not self._is_hierarchy_scaffold_uri(uri)
-            ):
-                rows.append(SampleRow(uri, self._code_for_resource(uri), "root"))
-        return rows
 
 
 def write_samples(rows: Iterable[SampleRow], output_path: Path) -> None:
