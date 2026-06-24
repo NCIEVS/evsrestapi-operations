@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 """Generate small EVSRESTAPI sample TSV files from OWL/RDF terminologies.
 
 The generated rows are consumed by ``SampleTest`` and ``ConceptSampleTester`` in
@@ -119,21 +119,13 @@ SKIP_PARENT_STYLE2_SAMPLE_TERMINOLOGIES = {
     "npo",
 }
 
-# Most terminologies should get one `parent-count*` row for every distinct
-# parent count in the OWL.  These limits are only for OWLs where the extra
-# high-count rows were proven to be loader/modeling false failures in the Java
-# SampleTest:
-#
-# - NPO has many OWL modeling parents that collapse to 2 or 4 API parents.
-# - OBI and OBIB have imported/modeling parents that are not exposed as API
-#   parents for the sampled concepts.
-#
-# Keep the low, API-visible parent-count rows.  Only trim the noisy counts above
-# the highest value that the Java tests can verify for that terminology.
-MAX_PARENT_COUNT_BY_TERMINOLOGY = {
-    "npo": 4,
-    "obi": 1,
-    "obib": 1,
+# These OWLs use owl:equivalentClass union/intersection expressions as logical
+# definitions.  Their API parent lists match direct rdfs:subClassOf parents, so
+# treating equivalentClass expression members as parents inflates parent counts.
+SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES = {
+    "npo",
+    "obi",
+    "obib",
 }
 
 # These keys are present in the OWL, but the EVSRESTAPI loader maps or filters
@@ -305,8 +297,8 @@ class TerminologyConfig:
         )
 
     @property
-    def max_parent_count_sample(self) -> Optional[int]:
-        return MAX_PARENT_COUNT_BY_TERMINOLOGY.get(self.terminology)
+    def allows_equivalent_class_hierarchy(self) -> bool:
+        return self.terminology not in SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES
 
     def disabled_sample_families(self) -> list[dict[str, str]]:
         """Return row families intentionally left out for this terminology.
@@ -341,12 +333,11 @@ class TerminologyConfig:
                 "Equivalent-class hierarchy patterns do not map cleanly "
                 "to the Java tester's style2 parent/child check.",
             )
-        if self.max_parent_count_sample is not None:
+        if not self.allows_equivalent_class_hierarchy:
             add(
-                f"parent-count>{self.max_parent_count_sample}",
-                "Higher parent-count rows are OWL modeling/import "
-                "counts that EVSRESTAPI does not expose as exact API "
-                "parent counts for this terminology.",
+                "equivalent-class-hierarchy",
+                "Equivalent-class union/intersection members are logical "
+                "definitions in this OWL, not API-visible parent links.",
             )
         skipped_keys = SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY.get(self.terminology)
         if skipped_keys:
@@ -609,7 +600,7 @@ class HierarchySampler:
     parent_style1: Optional[tuple[str, str]] = None
     parent_style2: Optional[tuple[str, str]] = None
     all_parents: "OrderedDict[str, list[str]]" = field(default_factory=OrderedDict)
-    all_children: "OrderedDict[str, list[str]]" = field(default_factory=OrderedDict)
+    max_children_by_parent: "OrderedDict[str, list[str]]" = field(default_factory=OrderedDict)
     non_root_class_uris: set[str] = field(default_factory=set)
 
     def collect_parent_relationships(self, element: ET._Element, concept: ConceptNode) -> None:
@@ -629,16 +620,21 @@ class HierarchySampler:
                             self.parent_style1 = (concept.uri, parent)
 
             elif child_key == "owl:equivalentClass":
-                # Some OWLs express a parent inside an equivalentClass block.
-                # Keep this old behavior because the Java tests check this
-                # hierarchy style separately from direct rdfs:subClassOf.
+                # Equivalent-class members have two different meanings for the
+                # Java checks.  Some loaders expose them as inferred children,
+                # so they help the max-children row.  For OBI-style logical
+                # definitions they are not direct parents, so parent-count rows
+                # skip them for those terminologies.
                 for parent in self._class_expression_parent_resources(child):
-                    if self._record_hierarchy_parent(concept.uri, parent):
-                        if (
-                            parent in self.sampleable_class_uris
-                            and self.parent_style2 is None
-                        ):
-                            self.parent_style2 = (concept.uri, parent)
+                    if self.config.allows_equivalent_class_hierarchy:
+                        if self._record_hierarchy_parent(concept.uri, parent):
+                            if (
+                                parent in self.sampleable_class_uris
+                                and self.parent_style2 is None
+                            ):
+                                self.parent_style2 = (concept.uri, parent)
+                    else:
+                        self._record_max_child_candidate(concept.uri, parent)
 
     def rows(self) -> list[SampleRow]:
         """Return hierarchy rows in the historical sample-file order."""
@@ -762,9 +758,19 @@ class HierarchySampler:
         parents = self.all_parents.setdefault(child_uri, [])
         if parent_uri not in parents:
             parents.append(parent_uri)
-        if not count_child:
+        if count_child:
+            self._record_max_child_candidate(child_uri, parent_uri)
+
+    def _record_max_child_candidate(self, child_uri: str, parent_uri: str) -> None:
+        """Record a child edge for the max-children API check only."""
+
+        if (
+            self._is_hierarchy_scaffold_uri(child_uri)
+            or self._is_hierarchy_scaffold_uri(parent_uri)
+            or parent_uri not in self.sampleable_class_uris
+        ):
             return
-        children = self.all_children.setdefault(parent_uri, [])
+        children = self.max_children_by_parent.setdefault(parent_uri, [])
         if child_uri not in children:
             children.append(child_uri)
 
@@ -803,7 +809,7 @@ class HierarchySampler:
 
         max_children_parent = ""
         max_children_count = 0
-        for parent_uri, children in self.all_children.items():
+        for parent_uri, children in self.max_children_by_parent.items():
             if self._is_hierarchy_scaffold_uri(parent_uri):
                 continue
             active_children = [
@@ -834,11 +840,6 @@ class HierarchySampler:
             ):
                 parent_count.setdefault(len(parents), child_uri)
         for count in sorted(parent_count):
-            if (
-                self.config.max_parent_count_sample is not None
-                and count > self.config.max_parent_count_sample
-            ):
-                continue
             child_uri = parent_count[count]
             rows.append(
                 SampleRow(child_uri, self.code_for_resource(child_uri), f"parent-count{count}")

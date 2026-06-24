@@ -1,4 +1,4 @@
-# owl_sampling_test.py Notes
+﻿# owl_sampling_test.py Notes
 
 This file explains what each test in `owl_sampling_test.py` is protecting.  The
 tests exercise `bin/owl_sampling.py` directly because the sampler is an
@@ -330,22 +330,29 @@ case, the definition-source qualifier should be sampled.
 It protects the narrowness of the repeated-space exception.  The sampler should
 skip only the fragile case, not all definition-source qualifiers.
 
-## test_parent_count_limit_only_applies_to_known_unstable_terminologies
+## test_equivalent_class_hierarchy_is_skipped_for_known_logical_definition_owls
 
-This test makes one child with five direct parents.
+This test makes one child with two direct parents and three extra classes inside
+an `owl:equivalentClass` `owl:unionOf` expression.  It also adds two more
+children that point at the same equivalent-class member, so the fixture can test
+`max-children` separately from `parent-count*`.
 
 It runs the same OWL twice:
 
 - as a normal synthetic terminology
 - as `npo`
 
-The normal run should write `parent-count5`.  The `npo` run should not, because
-NPO has a known Java-test mismatch for high parent-count rows.  This protects
-the intended policy: sample all parent counts by default, but cap only the
-terminologies where high counts have been proven noisy.
+The normal run should write `parent-count5`, because it treats equivalent-class
+members as hierarchy evidence.  The `npo` run should write `parent-count2`,
+because NPO-style equivalent-class union/intersection members are logical
+definitions, not API-visible direct parent links.  The `npo` run should still
+write a `max-children` row for the shared equivalent-class member, because the
+API may expose those members as child links even when they are not direct
+parents.
 
-If this fails, the sampler may be skipping too much hierarchy QA or re-adding
-known false-failing parent-count rows.
+If this fails, the sampler may be either adding false parent links for NPO-like
+OWL files or skipping useful equivalent-class hierarchy for terminologies that
+still use that pattern as API-visible hierarchy.
 
 ## test_real_owl_smoke_samples
 

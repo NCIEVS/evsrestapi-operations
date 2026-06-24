@@ -1,4 +1,4 @@
-# OWL Sampling Tutorial
+﻿# OWL Sampling Tutorial
 
 ## What The Script Does
 
@@ -343,11 +343,13 @@ OWL evidence that the sampler can safely use.  These rows give the Java tests
 non-root concepts for hierarchy calls, and they also check that EVSRESTAPI keeps
 multi-parent concepts connected after loading.
 
-Most terminologies get one row for every distinct parent count.  A few
-terminologies have a small cap because their OWL files contain modeling or
-import parents that EVSRESTAPI does not expose as exact API parents.  The
-sampler keeps the low parent-count rows that the API can verify and reports the
-cap in `--report`.
+Most terminologies get one row for every distinct parent count.  Some OWLs use
+`owl:equivalentClass` `owl:unionOf` or `owl:intersectionOf` members as logical
+definitions rather than API-visible direct parent links.  For those
+terminologies, `parent-count*`, `parent-style2`, and `child-style2` use the
+clear direct parents from `rdfs:subClassOf`.  `max-children` may still count
+those equivalent-class members as child evidence when that matches the API's
+loaded child list.
 
 ### Roots
 
@@ -408,9 +410,10 @@ Current policies:
   terminologies where local OWL roots cannot be made to match API roots.
 - `SKIP_PARENT_STYLE2_SAMPLE_TERMINOLOGIES`: terminologies where the
   equivalent-class parent/child style does not match API parent/child output.
-- `MAX_PARENT_COUNT_BY_TERMINOLOGY`: terminologies where high parent-count rows
-  are known Java-test false failures because OWL modeling or import parents are
-  not exposed as exact API parent counts.
+- `SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES`: terminologies where
+  equivalent-class union/intersection members are logical definitions, not
+  API-visible direct parent links.  These members can still help `max-children`
+  when the API exposes them as children.
 - `SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY`: direct property keys that are
   parsed from OWL but are not exposed with the same meaning in EVSRESTAPI.
 - `OWL_BUILTIN_CLASS_URIS`: built-in OWL classes that should never become

@@ -1,4 +1,4 @@
-import importlib.util
+﻿import importlib.util
 import json
 import os
 from pathlib import Path
@@ -266,7 +266,7 @@ def test_definition_source_qualifier_without_repeated_spaces_is_sampled(tmp_path
     )
 
 
-def test_parent_count_limit_only_applies_to_known_unstable_terminologies(tmp_path):
+def test_equivalent_class_hierarchy_is_skipped_for_known_logical_definition_owls(tmp_path):
     owl_path = SAMPLE_FILES_DIR / "parent_count_limit.owl"
     config_path = SAMPLE_FILES_DIR / "parent_count_limit.json"
     output_path = tmp_path / "synthetic-samples.txt"
@@ -277,6 +277,13 @@ def test_parent_count_limit_only_applies_to_known_unstable_terminologies(tmp_pat
     assert any(row.key == "parent-count5" for row in ordinary_rows)
 
     npo_rows = generate_samples(owl_path, config_path, output_path=output_path, terminology="npo")
+    npo_row_text = [row.to_tsv() for row in npo_rows]
+
+    assert (
+        "http://example.org/equivalent-hierarchy-policy#LogicalA\tLOGICAL_A\tmax-children\t3"
+        in npo_row_text
+    )
+    assert any(row.key == "parent-count2" for row in npo_rows)
     assert not any(row.key == "parent-count5" for row in npo_rows)
 
 
