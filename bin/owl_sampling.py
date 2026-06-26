@@ -61,11 +61,10 @@ HIERARCHY_SCAFFOLD_LOCALS_BY_TERMINOLOGY = {
 }
 
 # Normal rule: if the metadata JSON says codes come from a property, a class
-# must have that property before we sample it.  These terminologies are
-# exceptions because some real hierarchy concepts only have codes in the URI
-# fragment, like ``#gene_with_protein_product``.
+# must have that property before we sample it.  HGNC is the current exception
+# because some real hierarchy concepts only have codes in the URI fragment,
+# like ``#gene_with_protein_product``.
 HIERARCHY_FALLBACK_CODE_TERMINOLOGIES = {
-    "ctcae5",
     "hgnc",
 }
 
@@ -90,34 +89,18 @@ HIERARCHY_FALLBACK_CODE_TERMINOLOGIES = {
 # Java SampleTest class.  The reason should be "this OWL data is not exposed by
 # EVSRESTAPI in the way the Java row type tests it", not "the row is annoying".
 
-# DUO, MGED, NPO, OBI, and OBIB use OWL restrictions heavily for modeling and
+# MGED, NPO, OBI, and OBIB use OWL restrictions heavily for modeling and
 # imported ontology structure.  The Java tester treats every restriction sample
 # as "this concept has this API role target".  In these terminologies many of
 # those restrictions are not loaded as Concept roles, so the row would fail even
 # though the loader handled the source file as designed.
 SKIP_RESTRICTION_SAMPLE_TERMINOLOGIES = {
-    "duo",
     "mged",
     "npo",
     "obi",
     "obib",
 }
 
-# This hook is here for future OWLs where local/inferred hierarchy gaps make
-# root rows unreliable.  Keep it empty until a generated root row fails the Java
-# SampleTest and the parent cannot be inferred from the source OWL.
-#
-# Do not add a terminology here until generated root rows have been tried
-# against the Java SampleTest.  The sampler records explicit parent references
-# even when the parent class is imported or configured as hierarchy scaffold, so
-# this list should stay small.
-SKIP_ROOT_SAMPLE_TERMINOLOGIES: set[str] = set()
-
-# NPO has equivalent-class hierarchy patterns that do not map cleanly to the
-# Java tester's "style2" parent/child check after loading.
-SKIP_PARENT_STYLE2_SAMPLE_TERMINOLOGIES = {
-    "npo",
-}
 
 # These OWLs use owl:equivalentClass union/intersection expressions as logical
 # definitions.  Their API parent lists match direct rdfs:subClassOf parents, so
@@ -286,15 +269,6 @@ class TerminologyConfig:
     def allows_restriction_samples(self) -> bool:
         return self.terminology not in SKIP_RESTRICTION_SAMPLE_TERMINOLOGIES
 
-    @property
-    def allows_root_samples(self) -> bool:
-        return self.terminology not in SKIP_ROOT_SAMPLE_TERMINOLOGIES
-
-    def allows_parent_child_style(self, style: str) -> bool:
-        return not (
-            style == "style2"
-            and self.terminology in SKIP_PARENT_STYLE2_SAMPLE_TERMINOLOGIES
-        )
 
     @property
     def allows_equivalent_class_hierarchy(self) -> bool:
@@ -321,18 +295,7 @@ class TerminologyConfig:
                 "but this OWL uses restrictions for modeling or imports "
                 "that EVSRESTAPI does not expose as concept roles.",
             )
-        if not self.allows_root_samples:
-            add(
-                "roots",
-                "Some local OWL roots gain parents after EVSRESTAPI "
-                "loads inferred or imported hierarchy.",
-            )
-        if not self.allows_parent_child_style("style2"):
-            add(
-                "parent-style2/child-style2",
-                "Equivalent-class hierarchy patterns do not map cleanly "
-                "to the Java tester's style2 parent/child check.",
-            )
+
         if not self.allows_equivalent_class_hierarchy:
             add(
                 "equivalent-class-hierarchy",
@@ -353,8 +316,8 @@ class TerminologyConfig:
         """Return whether a class has a good enough code to sample.
 
         Most terminologies should only sample classes that have the configured
-        code property.  HGNC and CTCAE5 are special because some real hierarchy
-        concepts use the URI fragment as the API code.
+        code property.  HGNC is special because some real hierarchy concepts use
+        the URI fragment as the API code.
         """
 
         return (
@@ -783,7 +746,7 @@ class HierarchySampler:
     ) -> list[SampleRow]:
         """Return parent-style/child-style rows for one hierarchy shape."""
 
-        if not pair or not self.config.allows_parent_child_style(style):
+        if not pair:
             return []
         child_uri, parent_uri = pair
         # This row looks odd on purpose: column 1 is the child URI, but column 2
@@ -849,8 +812,6 @@ class HierarchySampler:
     def _root_rows(self) -> list[SampleRow]:
         """Return sampleable concepts with no recorded parents."""
 
-        if not self.config.allows_root_samples:
-            return []
         rows: list[SampleRow] = []
         excluded = self.deprecated_uris | self.object_property_uris | self.annotation_property_uris
         for uri in self.sampleable_class_uris.keys():

@@ -17,7 +17,8 @@ renamed, or changed so it can no longer be loaded as normal Python code.
 
 ## Shared Synthetic Fixture
 
-`SYNTHETIC_OWL` (loaded from `sample_test_files/synthetic.owl`) is a small OWL/RDF file made only for tests.  It puts many edge
+`SYNTHETIC_OWL` (loaded from `sample_test_files/synthetic.owl`) is a small
+OWL/RDF file made only for tests.  It puts many edge
 cases in one place so the golden test can stay fast and stable:
 
 - namespace handling for default, `rdf`, `rdfs`, `owl`, `ncit`, and `obo`
@@ -38,7 +39,8 @@ cases in one place so the golden test can stay fast and stable:
 - duplicate synonym qualifier checks, which should be de-duped
 - multiple qualifier values for unique qualifier sampling
 
-`SYNTHETIC_CONFIG` (loaded from `sample_test_files/synthetic.json`) is the metadata JSON for that tiny OWL file:
+`SYNTHETIC_CONFIG` (loaded from `sample_test_files/synthetic.json`) is the
+metadata JSON for that tiny OWL file:
 
 - `code`: concept code property
 - `preferredName`: configured preferred name property
@@ -51,8 +53,9 @@ cases in one place so the golden test can stay fast and stable:
 ## test_generate_samples_from_synthetic_owl
 
 This is the main exact-output test.  It passes the `synthetic.owl` and
-`synthetic.json` files from `sample_test_files/` to `generate_samples()`, and asserts
-the exact TSV row sequence matches `sample_test_files/synthetic_expected.txt`.
+`synthetic.json` files from `sample_test_files/` to `generate_samples()`, then
+asserts the exact TSV row sequence matches
+`sample_test_files/synthetic_expected.txt`.
 
 It protects these behaviors:
 
@@ -98,6 +101,22 @@ family, the report should explain that decision so content QA can review it.
 
 If this fails, the sampler may still be skipping rows, but reviewers may not be
 able to see why.
+
+## test_duo_restrictions_are_not_policy_skipped
+
+This test runs the shared synthetic OWL as `duo`.
+
+DUO used to be part of the restriction skip policy.  We later proved that the
+real DUO restriction sample is returned by EVSRESTAPI as a role, so DUO should
+not be skipped anymore.
+
+The test checks two things:
+
+- a normal restriction row is still written for DUO
+- the JSON report does not list `restrictions` as a disabled sample family
+
+If this fails, DUO may have lost useful role coverage.  Before adding DUO back
+to the skip list, regenerate the real DUO sample file and run `DuoSampleTest`.
 
 ## test_generate_samples_accepts_bom_metadata_json
 
@@ -357,13 +376,15 @@ still use that pattern as API-visible hierarchy.
 ## test_real_owl_smoke_samples
 
 This is a local smoke test for representative real OWL files (configured via the
-`UNIT_TEST_DATA_DIR` environment variable).  "Smoke test" means it checks that the main behavior
+`UNIT_TEST_DATA_DIR` environment variable).  "Smoke test" means it checks that
+the main behavior
 works, but it does not check every exact row.
 
-It only runs when:
+It only runs when both environment variables are set:
 
 ```powershell
 $env:EVS_RUN_LOCAL_OWL_SMOKE='1'
+$env:UNIT_TEST_DATA_DIR='D:\WCI\UnitTestData'
 ```
 
 Each case generates samples to `tmp_path`, then checks:
@@ -393,7 +414,8 @@ If one of these fails, check these first:
 
 ## When Adding Tests
 
-Prefer a small synthetic OWL fixture (stored in `sample_test_files/`) when testing one specific edge case.  Real
+Prefer a small synthetic OWL fixture (stored in `sample_test_files/`) when
+testing one specific edge case.  Real
 OWL smoke tests are useful, but they are slower and depend on external files in the
 `UNIT_TEST_DATA_DIR` directory.
 

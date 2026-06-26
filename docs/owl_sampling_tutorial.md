@@ -122,8 +122,12 @@ Use `--terminology` when the terminology name should not come from the metadata
 filename:
 
 ```powershell
-python bin\owl_sampling.py D:\WCI\UnitTestData\NCIT\ThesaurusInferred_monthly.owl config\metadata\ncit.json --terminology ncit_monthly --output C:\tmp\ncit_monthly-samples.txt
+python bin\owl_sampling.py D:\WCI\UnitTestData\NCIT\ThesaurusInferred_monthly.owl config\metadata\ncit.json --terminology ncit --output C:\tmp\ncit-samples.txt
 ```
+
+Use the EVSRESTAPI terminology name, such as `ncit`, `go`, or `obib`, unless
+you are doing a deliberate experiment.  Some sampler policies are keyed by this
+name.  A made-up value can accidentally turn those policies off.
 
 Use `--report` to write a small JSON summary:
 
@@ -181,10 +185,9 @@ If the metadata JSON names a code property, a class normally must have that
 property before the sampler uses it.  This avoids sampling helper classes that
 are in the OWL file but are not normal API concepts.
 
-There are explicit exceptions for terminologies that have real hierarchy
+There is one explicit exception for a terminology that has real hierarchy
 concepts without a code property:
 
-- `ctcae5`
 - `hgnc`
 
 OWL built-ins such as `owl:Thing` and `owl:Nothing` are never sampleable roots.
@@ -264,6 +267,10 @@ The sampler skips:
   API role check, so those rows would be false failures.
 - Duplicate role rows that would test the same concept, role, and target.
 
+DUO is a useful counterexample.  It has a sampled `DUO_0000010`
+restriction, and EVSRESTAPI returns that restriction as a role, so the
+sampler keeps DUO restriction rows.
+
 In EVSRESTAPI, these rows check two things: the role exists in metadata, and the
 sampled concept returns the expected role target.
 
@@ -327,6 +334,11 @@ Only sampleable parent concepts can win this row.  The sampler may still record
 imported or built-in parents for root checks, but it does not use those parents
 for exact child-count rows because the Java test needs to query the parent
 concept directly.
+
+`max-children` has its own child list inside the sampler.  This is separate from
+the parent-count list.  That split matters for NPO, OBI, and OBIB: their
+`owl:equivalentClass` members are not counted as direct parents, but they can
+still count as children when EVSRESTAPI exposes them in a concept's child list.
 
 ### Parent Counts
 
@@ -400,20 +412,20 @@ samples without writing false root rows.
 Current policies:
 
 - `HIERARCHY_SCAFFOLD_LOCALS_BY_TERMINOLOGY`: class names that help build the
-  hierarchy but should not become sample rows themselves.
+  hierarchy but should not become sample rows themselves.  MGED is the current
+  example.
 - `HIERARCHY_FALLBACK_CODE_TERMINOLOGIES`: terminologies that may sample
   classes using URI-fragment fallback codes, even though metadata has a code
-  property.
+  property.  The current example is `hgnc`.
 - `SKIP_RESTRICTION_SAMPLE_TERMINOLOGIES`: terminologies where OWL restrictions
-  do not make reliable API role samples.
-- `SKIP_ROOT_SAMPLE_TERMINOLOGIES`: a currently empty safety hook for future
-  terminologies where local OWL roots cannot be made to match API roots.
-- `SKIP_PARENT_STYLE2_SAMPLE_TERMINOLOGIES`: terminologies where the
-  equivalent-class parent/child style does not match API parent/child output.
+  do not make reliable API role samples.  The current examples are `mged`,
+  `npo`, `obi`, and `obib`.
+
 - `SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES`: terminologies where
   equivalent-class union/intersection members are logical definitions, not
-  API-visible direct parent links.  These members can still help `max-children`
-  when the API exposes them as children.
+  API-visible direct parent links.  The current examples are `npo`, `obi`, and
+  `obib`.  These members can still help `max-children` when the API exposes
+  them as children.
 - `SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY`: direct property keys that are
   parsed from OWL but are not exposed with the same meaning in EVSRESTAPI.
 - `OWL_BUILTIN_CLASS_URIS`: built-in OWL classes that should never become
@@ -456,6 +468,7 @@ Run local real-file smoke tests when `D:\WCI\UnitTestData` is available:
 
 ```powershell
 $env:EVS_RUN_LOCAL_OWL_SMOKE='1'
+$env:UNIT_TEST_DATA_DIR='D:\WCI\UnitTestData'
 python -m pytest test\owl_sampling_test.py -q
 ```
 
@@ -465,6 +478,22 @@ Run the whole operations test suite:
 $env:PYTHONPATH='.:src'
 poetry run pytest
 ```
+
+Run EVSRESTAPI Java sample tests after regenerating real sample files.  These
+need the local test OpenSearch data available on port `9201`; otherwise every
+API call fails before the sample rows are tested.  A safe manual workflow is:
+
+1. Generate samples to `C:\tmp`.
+2. Back up the matching checked-in file under
+   `D:\WCI\Repos\evsrestapi\src\test\resources\samples`.
+3. Copy the generated file into that samples directory.
+4. Run the matching `*SampleTest` class.
+5. Restore the checked-in sample file even if the test fails.
+
+When reading Java test results, separate sample-row failures from unrelated
+static test failures.  Parent/child sampler problems usually show up as messages
+like `has 2 parents, stated number 5`, `has 204 children, stated number 105`, or
+`SAMPLING ERRORS FOUND`.
 
 ## Troubleshooting
 

@@ -71,6 +71,33 @@ def test_report_lists_disabled_sample_families(tmp_path):
     assert disabled["direct-properties"]["keys"] == "synonym"
 
 
+def test_duo_restrictions_are_not_policy_skipped(tmp_path):
+    owl_path = tmp_path / "sample.owl"
+    config_path = tmp_path / "synthetic.json"
+    output_path = tmp_path / "duo-samples.txt"
+    report_path = tmp_path / "duo-report.json"
+    owl_path.write_text(SYNTHETIC_OWL, encoding="utf-8")
+    config_path.write_text(json.dumps(SYNTHETIC_CONFIG), encoding="utf-8")
+
+    rows = generate_samples(
+        owl_path,
+        config_path,
+        output_path=output_path,
+        terminology="duo",
+        report_path=report_path,
+    )
+
+    row_text = [row.to_tsv() for row in rows]
+    expected_restriction_row = (
+        "http://example.org/test#C1"
+        "\tC1\trdfs:subClassOf/owl:Restriction~has_part\tC2"
+    )
+    assert expected_restriction_row in row_text
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    disabled = {item["family"] for item in report["disabledSampleFamilies"]}
+    assert "restrictions" not in disabled
+
+
 def test_generate_samples_accepts_bom_metadata_json(tmp_path):
     owl_path = tmp_path / "sample.owl"
     config_path = tmp_path / "synthetic.json"
