@@ -9,8 +9,8 @@ operations/content-QA script, not an importable product package.
 `_load_owl_sampling_script()` loads `bin/owl_sampling.py` by file path with
 `importlib.util.spec_from_file_location`.
 
-This is intentional.  It lets pytest call `generate_samples()` directly, while
-the real script stays in `bin/`, where content QA users expect it.
+This lets pytest call `generate_samples()` directly while the script stays in
+`bin/`, where content QA users expect it.
 
 If this loader fails, first check whether `bin/owl_sampling.py` was moved,
 renamed, or changed so it can no longer be loaded as normal Python code.
@@ -18,8 +18,8 @@ renamed, or changed so it can no longer be loaded as normal Python code.
 ## Shared Synthetic Fixture
 
 `SYNTHETIC_OWL` (loaded from `sample_test_files/synthetic.owl`) is a small
-OWL/RDF file made only for tests.  It puts many edge
-cases in one place so the golden test can stay fast and stable:
+OWL/RDF file made for tests.  It puts many edge cases in one place so the
+golden test stays fast and stable:
 
 - namespace handling for default, `rdf`, `rdfs`, `owl`, `ncit`, and `obo`
 - object properties with configured codes
@@ -40,7 +40,7 @@ cases in one place so the golden test can stay fast and stable:
 - multiple qualifier values for unique qualifier sampling
 
 `SYNTHETIC_CONFIG` (loaded from `sample_test_files/synthetic.json`) is the
-metadata JSON for that tiny OWL file:
+metadata JSON for that small OWL file:
 
 - `code`: concept code property
 - `preferredName`: configured preferred name property
@@ -61,7 +61,7 @@ It protects these behaviors:
 
 - direct property sampling and first-seen property ordering
 - namespace-aware key spelling, including `ncit:P108` and OBO local names
-- multiline text normalization into one TSV-safe line
+- multiline text normalization into one TSV-compatible line
 - XML entity decoding, such as `&amp;` becoming `&`
 - resource-valued direct properties resolving to target concept codes
 - `owl:deprecated false` being ignored
@@ -96,8 +96,8 @@ MGED has terminology-specific policies that disable a few row families.  The
 test does not care about the sample rows themselves.  It checks the JSON report
 and verifies that the disabled families are listed there.
 
-It protects the `--report` behavior.  If the sampler intentionally skips a row
-family, the report should explain that decision so content QA can review it.
+It protects the `--report` behavior.  If the sampler skips a row family, the
+report should explain why.
 
 If this fails, the sampler may still be skipping rows, but reviewers may not be
 able to see why.
@@ -106,17 +106,17 @@ able to see why.
 
 This test runs the shared synthetic OWL as `duo`.
 
-DUO used to be part of the restriction skip policy.  We later proved that the
-real DUO restriction sample is returned by EVSRESTAPI as a role, so DUO should
-not be skipped anymore.
+DUO used to be part of the restriction skip policy.  We later confirmed that
+EVSRESTAPI returns the real DUO restriction sample as a role, so DUO should not
+be skipped.
 
 The test checks two things:
 
 - a normal restriction row is still written for DUO
 - the JSON report does not list `restrictions` as a disabled sample family
 
-If this fails, DUO may have lost useful role coverage.  Before adding DUO back
-to the skip list, regenerate the real DUO sample file and run `DuoSampleTest`.
+If this fails, DUO may have lost role coverage.  Before adding DUO back to the
+skip list, regenerate the real DUO sample file and run `DuoSampleTest`.
 
 ## test_generate_samples_accepts_bom_metadata_json
 
@@ -146,7 +146,7 @@ terminologies that use URI fragments as concept codes.
 
 ## test_generate_samples_canonicalizes_builtin_namespace_prefixes
 
-This test intentionally uses unusual prefixes:
+This test uses unusual prefixes:
 
 - `r:` for RDF
 - `o:` for OWL
@@ -201,7 +201,7 @@ This test builds an `owl:equivalentClass` expression with two named classes:
 - `Parent`, which is the top-level named class in the intersection
 - `NestedNotParent`, which appears deeper inside a restriction
 
-Only `Parent` should become hierarchy evidence.  `NestedNotParent` is part of
+Only `Parent` becomes hierarchy evidence.  `NestedNotParent` is part of
 the logical definition, but it is not a parent of the child concept.
 
 It protects OBI-style equivalent-class parsing.  Without this rule, the sampler
@@ -258,8 +258,8 @@ This test models an MGED package class with a scaffold parent:
 `MGEDCoreOntology` is a helper node.  It helps organize the hierarchy, but it
 should not become a sample concept or a max-child parent.
 
-The child class should not become a root, though.  The scaffold parent is still
-real enough to prove that the child has a parent after EVSRESTAPI loads MGED.
+The child class should not become a root.  The scaffold parent is enough to
+show that the child has a parent after EVSRESTAPI loads MGED.
 
 It protects the MGED root behavior.  Without this rule, package classes look
 like local roots in the sampler and then fail the Java root check because the
@@ -309,8 +309,8 @@ The expected rows verify:
 - the fallback-coded parent can appear as a root
 - `owl:Thing` is still excluded
 
-If this fails, HGNC or CTCAE5-like release files can lose parent relationships,
-which often shows up as an explosion of incorrect root rows.
+If this fails, HGNC-like release files can lose parent relationships, which
+often shows up as many incorrect root rows.
 
 ## test_resource_qualifier_values_match_loader_label_shape
 
@@ -330,11 +330,11 @@ short code.
 This test uses a definition with two spaces between sentences.
 
 The direct definition row should keep the meaningful repeated spaces while also
-collapsing the multiline XML text into one TSV-safe line.
+collapsing the multiline XML text into one TSV-compatible line.
 
 The matching definition-source qualifier is skipped because older NCIt-like
 definitions with repeated spaces can be normalized differently by the loader.
-The direct definition still gives useful coverage.
+The direct definition still gives coverage.
 
 If this fails, text normalization may either damage direct property values or
 create fragile qualifier rows.
@@ -343,8 +343,8 @@ create fragile qualifier rows.
 
 This is the companion test for the previous one.
 
-It uses a simple one-line definition without repeated spaces.  In that safer
-case, the definition-source qualifier should be sampled.
+It uses a simple one-line definition without repeated spaces.  In that case,
+the definition-source qualifier should be sampled.
 
 It protects the narrowness of the repeated-space exception.  The sampler should
 skip only the fragile case, not all definition-source qualifiers.
@@ -370,15 +370,13 @@ API may expose those members as child links even when they are not direct
 parents.
 
 If this fails, the sampler may be either adding false parent links for NPO-like
-OWL files or skipping useful equivalent-class hierarchy for terminologies that
+OWL files or skipping valid equivalent-class hierarchy for terminologies that
 still use that pattern as API-visible hierarchy.
 
 ## test_real_owl_smoke_samples
 
-This is a local smoke test for representative real OWL files (configured via the
-`UNIT_TEST_DATA_DIR` environment variable).  "Smoke test" means it checks that
-the main behavior
-works, but it does not check every exact row.
+This is a local smoke test for representative OWL files configured through
+`UNIT_TEST_DATA_DIR`.  It checks the main behavior, not every exact row.
 
 It only runs when both environment variables are set:
 
@@ -414,10 +412,9 @@ If one of these fails, check these first:
 
 ## When Adding Tests
 
-Prefer a small synthetic OWL fixture (stored in `sample_test_files/`) when
-testing one specific edge case.  Real
-OWL smoke tests are useful, but they are slower and depend on external files in the
-`UNIT_TEST_DATA_DIR` directory.
+Prefer a small synthetic OWL fixture in `sample_test_files/` for one edge case.
+Real OWL smoke tests help, but they are slower and depend on external files in
+`UNIT_TEST_DATA_DIR`.
 
 Use exact TSV assertions when the row format or row order matters.  Use key or
 category assertions when real-file examples are allowed to vary.

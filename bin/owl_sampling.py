@@ -3,7 +3,7 @@
 
 The generated rows are consumed by ``SampleTest`` and ``ConceptSampleTester`` in
 the EVSRESTAPI test suite.  The goal is not to copy the whole OWL file.  The
-goal is to find good examples that prove the loaded terminology can return
+goal is to find examples that check whether the loaded terminology returns
 properties, roles, qualifiers, hierarchy data, and roots through the API.
 """
 
@@ -71,23 +71,22 @@ HIERARCHY_FALLBACK_CODE_TERMINOLOGIES = {
 # Why do we have per-terminology skip lists?
 #
 # This script does not write a general OWL audit report.  It writes test rows
-# for EVSRESTAPI's Java sample tests.  A row is useful only when the Java test
-# can ask the API a matching question.  Some OWLs contain import scaffolding,
-# modeling restrictions, or local hierarchy hints that the EVSRESTAPI loader
-# intentionally does not expose in the same shape.  Sampling those rows would
-# not prove content quality; it would produce known false failures.
+# for EVSRESTAPI's Java sample tests.  A row belongs in the TSV only when the
+# Java test can check the same behavior through the API.  Some OWLs contain
+# import scaffolding, modeling restrictions, or hierarchy hints that the
+# EVSRESTAPI loader exposes differently.  Sampling those rows would create
+# known false failures.
 #
-# These skips are intentionally narrow:
+# These skips are narrow:
 #
 # - They disable one row family, not the whole terminology.
 # - Direct properties, qualifiers, deprecated flags, and stable hierarchy rows
-#   still get sampled when they are API-visible.
-# - The disabled row families are reported by --report so the policy is visible
-#   during QA.
+#   still get sampled when Java can check them through the API.
+# - The disabled row families are listed in --report.
 #
 # If one of these sets changes, regenerate the sample file and run the matching
-# Java SampleTest class.  The reason should be "this OWL data is not exposed by
-# EVSRESTAPI in the way the Java row type tests it", not "the row is annoying".
+# Java SampleTest class.  Use a reason like "this OWL data is exposed through
+# a different API shape", not "the row is annoying".
 
 # MGED, NPO, OBI, and OBIB use OWL restrictions heavily for modeling and
 # imported ontology structure.  The Java tester treats every restriction sample
@@ -100,7 +99,6 @@ SKIP_RESTRICTION_SAMPLE_TERMINOLOGIES = {
     "obi",
     "obib",
 }
-
 
 # These OWLs use owl:equivalentClass union/intersection expressions as logical
 # definitions.  Their API parent lists match direct rdfs:subClassOf parents, so
@@ -179,7 +177,7 @@ MAP_METADATA_KEYS = (
 
 
 def _local_part(value: Optional[str]) -> Optional[str]:
-    """Return the final useful part of a QName-like string or URI."""
+    """Return the last part of a QName-like string or URI."""
 
     if value is None:
         return None
@@ -193,7 +191,7 @@ def _local_part(value: Optional[str]) -> Optional[str]:
 
 
 def _clean_text(value: Optional[str]) -> str:
-    """Make XML text safe for one TSV row."""
+    """Make XML text fit one TSV row."""
 
     if not value:
         return ""
@@ -232,10 +230,8 @@ class SampleRow:
 class TerminologyConfig:
     """Small helper around the terminology metadata JSON.
 
-    The metadata JSON is mainly written for the EVSRESTAPI loader.  The sampler
-    also needs it so it can answer questions like "which property stores the
-    code?" and "which properties are synonyms?".  Keeping those lookups here
-    makes the XML parsing code easier to read.
+    The sampler uses loader metadata to find code, synonym, definition, role,
+    hierarchy, and qualifier properties.
     """
 
     path: Path
@@ -269,18 +265,15 @@ class TerminologyConfig:
     def allows_restriction_samples(self) -> bool:
         return self.terminology not in SKIP_RESTRICTION_SAMPLE_TERMINOLOGIES
 
-
     @property
     def allows_equivalent_class_hierarchy(self) -> bool:
         return self.terminology not in SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES
 
     def disabled_sample_families(self) -> list[dict[str, str]]:
-        """Return row families intentionally left out for this terminology.
+        """Return row families skipped by terminology policy.
 
-        This list is written to the optional JSON report.  It keeps policy
-        choices visible so a reviewer can tell the difference between "the
-        sampler forgot this row type" and "this row type is a known bad match
-        for the Java API check in this terminology".
+        The JSON report uses this so reviewers can tell policy skips from
+        missing sampler coverage.
         """
 
         disabled: list[dict[str, str]] = []
@@ -692,17 +685,13 @@ class HierarchySampler:
             parents.append(parent)
 
     def _record_hierarchy_parent(self, child_uri: str, parent_uri: str) -> bool:
-        """Record a parent edge if it is useful for Java sample testing.
+        """Record a parent edge when the Java checks can use it.
 
-        Imported parents may not have a full class record in the release OWL.
-        They still matter for root and parent-count checks, because EVSRESTAPI
-        can load those parents from imports.  Exact child-count checks are more
-        conservative and only count children under parents that are sampleable
-        from this OWL file.
+        Imported parents still count for roots and parent counts.  Exact child
+        counts only use parents that are sampleable from this OWL file.
 
-        Configured scaffold parents are even narrower.  They are helper classes
-        we do not want as sample rows, but their children are still not roots.
-        Those edges only suppress root rows.
+        Scaffold parents only suppress root rows.  They are helper classes, not
+        sample concepts.
         """
 
         if self._is_hierarchy_scaffold_uri(child_uri):
@@ -749,9 +738,8 @@ class HierarchySampler:
         if not pair:
             return []
         child_uri, parent_uri = pair
-        # This row looks odd on purpose: column 1 is the child URI, but column 2
-        # is the parent code.  The Java tester queries the parent and then checks
-        # that the child appears under it.
+        # Legacy layout: column 1 is the child URI, but column 2 is the parent
+        # code.  The Java tester queries the parent and checks for the child.
         return [
             SampleRow(
                 child_uri,
@@ -991,7 +979,7 @@ class SampleCollector:
 
     def _element_text(self, element: ET._Element) -> str:
         # ``method="text"`` gets all text inside the element and decodes XML
-        # entities.  ``_clean_text`` then makes it safe for one TSV row.
+        # entities.  ``_clean_text`` then makes it fit one TSV row.
         return _clean_text(ET.tostring(element, method="text", encoding="unicode"))
 
     def _element_value(self, element: ET._Element) -> tuple[Optional[str], bool]:
@@ -1145,7 +1133,7 @@ class SampleCollector:
             value, is_resource = self._element_value(child)
             if value is None:
                 continue
-            # Only ``owl:deprecated true`` is useful for the tests.
+            # Only ``owl:deprecated true`` affects the sample tests.
             if key == "owl:deprecated" and value.lower() == "false":
                 continue
             if is_resource:
@@ -1155,7 +1143,7 @@ class SampleCollector:
             self.property_registry.add(SampleRow(concept.uri, concept.code, key, value))
 
     def _skip_direct_property_sample(self, key: str, value: str) -> bool:
-        """Return true when a direct property row is known to be noisy."""
+        """Return true when a direct property row is a known false check."""
 
         # For code-less OBO-family configs, the API code comes from the URI.
         # Some imported classes have owl:deprecated=true in the source OWL but
@@ -1330,16 +1318,12 @@ class SampleCollector:
     def _is_java_fragile_definition_source_row(
         self, source_property: str, qualifier_key: str, target_value: str
     ) -> bool:
-        """Return True when the Java sample test would turn a good row bad.
+        """Return True when Java normalization would fail a valid row.
 
-        ``ConceptSampleTester`` standardizes sample values before it checks
-        them.  That is usually helpful, but definition-source qualifier checks
-        compare the standardized sample text to the raw definition text from
-        EVSRESTAPI.  If the OWL definition intentionally has repeated spaces,
-        the sample row cannot pass that exact comparison even though the
-        sampler preserved the source text correctly.  Skipping just those rows
-        avoids noisy false negatives while still sampling ordinary definitions
-        and ordinary definition-source qualifiers.
+        Definition-source qualifier checks compare standardized sample text to
+        raw API definition text.  If the OWL definition has repeated spaces, the
+        exact comparison can fail even though the sampler kept the source text.
+        Skip only those fragile qualifier rows.
         """
 
         definition_keys = self.config.data.get("definition") or []
