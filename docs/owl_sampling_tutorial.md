@@ -17,8 +17,8 @@ The script lives in:
 bin/owl_sampling.py
 ```
 
-The file contains both the command-line entrypoint and the internal classes used
-by pytest.  It is an operations/content-QA script, not a package API.
+The file contains both the command-line entrypoint and the internal classes
+pytest uses.  It is an operations/content-QA script, not a package API.
 
 ## Output Format
 
@@ -44,8 +44,8 @@ parser changes too.
 
 ## How Rows Are Used By EVSRESTAPI Tests
 
-The sample file is grouped by the `code` column.  For each sampled concept,
-`ConceptSampleTester` asks EVSRESTAPI for the full concept:
+The Java parser groups the sample file by the `code` column.  For each sampled
+concept, `ConceptSampleTester` asks EVSRESTAPI for the full concept:
 
 ```text
 /api/v1/concept/{terminology}/{code}?include=full
@@ -94,7 +94,7 @@ From the `evsrestapi-operations` repository root:
 python bin\owl_sampling.py D:\WCI\UnitTestData\GO\GO.20250601.owl config\metadata\go.json
 ```
 
-By default, the output is written to:
+By default, the script writes output to:
 
 ```text
 <metadata-json-stem>-samples.txt
@@ -122,8 +122,8 @@ python bin\owl_sampling.py D:\WCI\UnitTestData\NCIT\ThesaurusInferred_monthly.ow
 ```
 
 Use the EVSRESTAPI terminology name, such as `ncit`, `go`, or `obib`, unless
-you are doing a deliberate experiment.  Some sampler policies are keyed by this
-name.  A made-up value can accidentally turn those policies off.
+you are doing a deliberate experiment.  Some sampler policies use this name as a
+key.  A made-up value can accidentally turn those policies off.
 
 Use `--report` to write a small JSON summary:
 
@@ -160,12 +160,12 @@ Pass 2 collects sample rows:
 - Root rows.
 
 The two-pass design matters because many OWL values point to URIs.  A role
-target can appear before the target class is defined.  The sampler first learns
-all URI-to-code mappings, then uses those mappings when it writes rows.
+target can appear before the OWL defines the target class.  The sampler first
+learns all URI-to-code mappings, then uses those mappings when it writes rows.
 
-The parser clears each completed top-level RDF element as it goes, so large OWL
-files such as NCIt and HGNC can be processed without loading the full XML tree
-into memory.
+The parser clears each completed top-level RDF element as it goes, so the
+sampler can process large OWL files such as NCIt and HGNC without loading the
+full XML tree into memory.
 
 ## Code Resolution
 
@@ -189,8 +189,8 @@ OWL built-ins such as `owl:Thing` and `owl:Nothing` are never sampleable roots.
 
 ## Key Normalization
 
-XML namespaces are normalized with `QNameResolver`.  In plain terms, this turns
-long XML names into the short names used by the sample files.
+`QNameResolver` normalizes XML namespaces.  In plain terms, it turns long XML
+names into the short names the sample files use.
 
 Examples:
 
@@ -198,8 +198,8 @@ Examples:
 - `{rdfs namespace}label` becomes `rdfs:label`.
 - NCIt properties can stay as `ncit:P108` when that is the namespace prefix in
   the OWL.
-- OBO properties from `http://purl.obolibrary.org/obo/` are emitted as local
-  names such as `IAO_0000115`, matching the historical sample files.
+- The sampler emits OBO properties from `http://purl.obolibrary.org/obo/` as
+  local names such as `IAO_0000115`, matching the historical sample files.
 
 The metadata JSON also tells the sampler which spelling to prefer.  For example,
 if the OWL says `ncit:P108` but metadata says `P108`, the sampler can still
@@ -219,10 +219,11 @@ http://example.org#C1<TAB>C1<TAB>P108<TAB>Preferred Name
 http://example.org#C1<TAB>C1<TAB>rdfs:label<TAB>Concept label
 ```
 
-Text values are collapsed to one line.  XML entities are decoded, so `&amp;`
-becomes `&`.
+The sampler collapses text values to one line and decodes XML entities, so
+`&amp;` becomes `&`.
 
-Resource values are resolved to codes when the URI index knows the target.
+The sampler resolves resource values to codes when the URI index knows the
+target.
 
 In EVSRESTAPI, these rows usually test values on the full `Concept` response.
 Depending on metadata, the value may appear in `properties`, `synonyms`,
@@ -230,15 +231,15 @@ Depending on metadata, the value may appear in `properties`, `synonyms`,
 
 ### Deprecated Concepts And Status Values
 
-`owl:deprecated true` is sampled.  `owl:deprecated false` is ignored.
+The sampler samples `owl:deprecated true` and ignores `owl:deprecated false`.
 
 NCIt concept status (`P310`) keeps multiple rows.  The Java tests need examples
 of more than one status value, not just the first one found.
 
 ### Disjoint-With Links
 
-`owl:disjointWith` is sampled as a direct property with its target resource
-resolved to a code where possible.
+The sampler writes `owl:disjointWith` as a direct property and resolves its
+target resource to a code where possible.
 
 ### Restrictions And Roles
 
@@ -279,8 +280,8 @@ qualifier-<annotatedProperty>~<qualifierProperty>
 qualifier-<annotatedProperty>~<qualifierProperty>~<qualifierValue>
 ```
 
-The second form is used when each qualifier value needs its own row, such as
-synonym term type or synonym source.
+The sampler uses the second form when each qualifier value needs its own row,
+such as synonym term type or synonym source.
 
 Example:
 
@@ -288,13 +289,13 @@ Example:
 uri<TAB>code<TAB>qualifier-P90~P383~PT<TAB>Synonym Value~PT
 ```
 
-Complex axiom targets are skipped because the Java tests look up simple values,
-not nested OWL structures.
+The sampler skips complex axiom targets because the Java tests look up simple
+values, not nested OWL structures.
 
 The sampler also removes duplicate qualifier checks.  This matters when two TSV
 rows look different but would test the same thing in Java.
 
-In EVSRESTAPI, qualifiers are metadata attached to a returned value.  For
+EVSRESTAPI attaches qualifiers as metadata to a returned value.  For
 example, a synonym can have a term type or source, a definition can have a
 source, and a map can have relation or target metadata.  These rows check that
 metadata survived loading and indexing.
@@ -331,9 +332,10 @@ for exact child-count rows because the Java test needs to query the parent
 concept directly.
 
 `max-children` has its own child list inside the sampler.  This is separate from
-the parent-count list.  That split matters for NPO, OBI, and OBIB: their
-`owl:equivalentClass` members are not counted as direct parents, but they can
-still count as children when EVSRESTAPI exposes them in a concept's child list.
+the parent-count list.  That split matters for NPO, OBI, and OBIB: the
+sampler does not count `owl:equivalentClass` members as direct parents, but it
+can still count them as children when EVSRESTAPI exposes them in a concept's
+child list.
 
 ### Parent Counts
 
@@ -345,8 +347,8 @@ child-uri<TAB>child-code<TAB>parent-count2
 child-uri<TAB>child-code<TAB>parent-count3
 ```
 
-The number at the end is the number of parents found in OWL evidence used by
-the sampler.  These rows give the Java tests non-root concepts for hierarchy
+The number at the end is the number of parents the sampler finds in OWL
+evidence.  These rows give the Java tests non-root concepts for hierarchy
 calls and check that EVSRESTAPI keeps multi-parent concepts connected.
 
 Most terminologies get one row for every distinct parent count.  Some OWLs use
@@ -386,13 +388,13 @@ should not hide content QA.
 For example, a restriction row always means "the API should return this as a
 Concept role."  Some OBO-style OWLs use restrictions for ontology modeling or
 imports that EVSRESTAPI does not expose as Concept roles.  Sampling those rows
-would test the wrong API behavior.  The terminology can still be tested through
-direct properties, qualifiers, deprecated flags, search examples, and hierarchy
-rows that match the API.
+would test the wrong API behavior.  The Java tests can still check the
+terminology through direct properties, qualifiers, deprecated flags, search
+examples, and hierarchy rows that match the API.
 
 Root rows follow the same rule.  When the OWL has an explicit parent URI, the
-sampler keeps that edge for root and parent-count checks even if the parent
-class is not sampleable from the same file.  This lets DUO, OBI, and OBIB keep
+sampler keeps that edge for root and parent-count checks even if it cannot
+sample the parent class from the same file.  This lets DUO, OBI, and OBIB keep
 low-count hierarchy samples without writing false root rows.
 
 Current policies:
@@ -411,8 +413,8 @@ Current policies:
   API-visible direct parent links.  The current examples are `npo`, `obi`, and
   `obib`.  These members can still help `max-children` when the API exposes
   them as children.
-- `SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY`: direct property keys that are
-  parsed from OWL but are not exposed with the same meaning in EVSRESTAPI.
+- `SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY`: direct property keys that the
+  sampler parses from OWL but EVSRESTAPI exposes with a different meaning.
 - `OWL_BUILTIN_CLASS_URIS`: built-in OWL classes that should never become
   sample concepts.
 
@@ -442,30 +444,31 @@ row.
   `MO_9 rdfs:subClassOf/owl:Restriction~MO_233 MO_30` for `StrainOrLine`.
   MGED uses many of these restrictions as ontology modeling details.  The Java
   tester reads the row as an API role assertion, which is not reliable for MGED.
-- `npo`: without this policy, rows such as
-  `NPO_1988 rdfs:subClassOf/owl:Restriction~has_part NPO_1989` are sampled.
+- `npo`: without this policy, the sampler writes rows such as
+  `NPO_1988 rdfs:subClassOf/owl:Restriction~has_part NPO_1989`.
   NPO has many restriction rows that do not come back as matching API roles; in
   Java checks these show up as `Wrong role` sampling errors.
-- `obi`: without this policy, rows such as
+- `obi`: without this policy, the sampler writes rows such as
   `APOLLO_SV_00000032 owl:equivalentClass/owl:Restriction~OBI_0000312`
-  `APOLLO_SV_00000033` are sampled.  OBI uses many equivalent-class
-  restrictions as logical definitions, not as plain concept roles.
-- `obib`: without this policy, rows such as
-  `CHEBI_42191 rdfs:subClassOf/owl:Restriction~RO_0000087 OBIB_0000022` are
-  sampled.  OBIB imports and reuses OBI-style logical restrictions, so the Java
-  API-role check is too strict for these rows.
+  `APOLLO_SV_00000033`.  OBI uses many equivalent-class restrictions as logical
+  definitions, not as plain concept roles.
+- `obib`: without this policy, the sampler writes rows such as
+  `CHEBI_42191 rdfs:subClassOf/owl:Restriction~RO_0000087 OBIB_0000022`.
+  OBIB imports and reuses OBI-style logical restrictions, so the Java API-role
+  check is too strict for these rows.
 
 #### `SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES`
 
-- `npo`: if equivalent-class members are counted as parents, `NPO_656` produces
-  a `parent-count22` row.  That is not the direct parent count EVSRESTAPI returns
-  for the concept, so it creates a false hierarchy failure.
-- `obi`: if equivalent-class members are counted as parents, `OBI_0100026`
-  produces a `parent-count5` row.  Those extra parents come from logical class
-  expressions, not from the API-visible direct parent list.
-- `obib`: if equivalent-class members are counted as parents, `OBI_0000639`
-  produces a `parent-count3` row.  OBIB should use direct subclass parents for
-  parent counts, while equivalent-class members can still help `max-children`.
+- `npo`: if the sampler counts equivalent-class members as parents, `NPO_656`
+  produces a `parent-count22` row.  That is not the direct parent count
+  EVSRESTAPI returns for the concept, so it creates a false hierarchy failure.
+- `obi`: if the sampler counts equivalent-class members as parents,
+  `OBI_0100026` produces a `parent-count5` row.  Those extra parents come from
+  logical class expressions, not from the API-visible direct parent list.
+- `obib`: if the sampler counts equivalent-class members as parents,
+  `OBI_0000639` produces a `parent-count3` row.  OBIB should use direct subclass
+  parents for parent counts, while equivalent-class members can still help
+  `max-children`.
 
 #### `SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY`
 
@@ -479,8 +482,8 @@ row.
   synonym objects.  The row checks the wrong API field.
 - `npo` / `rdfs:comment`: without this policy, the sampler writes a long TEM
   microscope comment for `NPO_1430`.  The Java sample test reports it as an
-  incorrectly labelled comment, because that OWL comment is not exposed as the
-  direct `rdfs:comment` property shape the row asks for.
+  incorrectly labelled comment, because EVSRESTAPI does not expose that OWL
+  comment as the direct `rdfs:comment` property shape the row asks for.
 
 #### `OWL_BUILTIN_CLASS_URIS`
 
@@ -508,11 +511,11 @@ against the checked-in fixtures under:
 D:\WCI\Repos\evsrestapi\src\test\resources\samples
 ```
 
-Exact row equality is not required when the OWL release version changed.  But
+You do not need exact row equality when the OWL release version changed.  But
 the output should usually be in the same ballpark and cover the same sample
 categories.
 
-When the regenerated file is expected to differ, run the affected EVSRESTAPI
+When you expect the regenerated file to differ, run the affected EVSRESTAPI
 Java sample tests before replacing checked-in fixtures.
 
 ## Running Tests
@@ -540,7 +543,7 @@ poetry run pytest
 
 Run EVSRESTAPI Java sample tests after regenerating real sample files.  These
 need the local test OpenSearch data available on port `9201`; otherwise every
-API call fails before the sample rows are tested.  Manual workflow:
+API call fails before the Java tests can check sample rows.  Manual workflow:
 
 1. Generate samples to `C:\tmp`.
 2. Back up the matching checked-in file under
@@ -556,9 +559,9 @@ like `has 2 parents, stated number 5`, `has 204 children, stated number 105`, or
 
 ## Troubleshooting
 
-If root counts suddenly become huge, check whether parent classes were skipped
-as no-code classes.  A terminology may need an explicit fallback-code policy if
-those parent classes are real API concepts.
+If root counts suddenly become huge, check whether the sampler skipped parent
+classes as no-code classes.  A terminology may need an explicit fallback-code
+policy if those parent classes are real API concepts.
 
 If a restriction row looks wrong, check whether the role is an object property,
 a datatype property, or a configured `hierarchyRoles` entry.

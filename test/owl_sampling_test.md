@@ -12,18 +12,18 @@ operations/content-QA script, not an importable product package.
 This lets pytest call `generate_samples()` directly while the script stays in
 `bin/`, where content QA users expect it.
 
-If this loader fails, first check whether `bin/owl_sampling.py` was moved,
-renamed, or changed so it can no longer be loaded as normal Python code.
+If this loader fails, first check whether someone moved, renamed, or changed
+`bin/owl_sampling.py` so Python can no longer load it as normal code.
 
 ## Shared Synthetic Fixture
 
-`SYNTHETIC_OWL` (loaded from `sample_test_files/synthetic.owl`) is a small
+`SYNTHETIC_OWL` lives in `sample_test_files/synthetic.owl`.  It is a small
 OWL/RDF file made for tests.  It puts many edge cases in one place so the
 golden test stays fast and stable:
 
 - namespace handling for default, `rdf`, `rdfs`, `owl`, `ncit`, and `obo`
 - object properties with configured codes
-- a datatype property in a restriction, which should be skipped
+- a datatype property in a restriction, which the sampler should skip
 - normal classes with configured `Code` properties
 - direct subclass hierarchy using `rdfs:subClassOf rdf:resource`
 - subclass restrictions using `owl:onProperty` and `owl:someValuesFrom`
@@ -33,13 +33,13 @@ golden test stays fast and stable:
 - OBO-style direct properties such as `IAO_0000115`
 - multiline text and XML entity decoding
 - `owl:disjointWith` resource values
-- `owl:deprecated false`, which should not be emitted
-- `owl:deprecated true`, which should be emitted
-- a no-code deprecated class, which should be skipped
-- duplicate synonym qualifier checks, which should be de-duped
+- `owl:deprecated false`, which the sampler should not emit
+- `owl:deprecated true`, which the sampler should emit
+- a no-code deprecated class, which the sampler should skip
+- duplicate synonym qualifier checks, which the sampler should de-dupe
 - multiple qualifier values for unique qualifier sampling
 
-`SYNTHETIC_CONFIG` (loaded from `sample_test_files/synthetic.json`) is the
+`SYNTHETIC_CONFIG` lives in `sample_test_files/synthetic.json`.  It is the
 metadata JSON for that small OWL file:
 
 - `code`: concept code property
@@ -64,15 +64,15 @@ It protects these behaviors:
 - multiline text normalization into one TSV-compatible line
 - XML entity decoding, such as `&amp;` becoming `&`
 - resource-valued direct properties resolving to target concept codes
-- `owl:deprecated false` being ignored
-- `owl:deprecated true` being sampled
-- no-code classes being excluded from sample rows
-- datatype-property restrictions being skipped
-- duplicate role assertions being de-duped across subclass/equivalent contexts
-- non-duplicate equivalent-class role assertions being retained
-- duplicate synonym qualifier checks being de-duped
-- unique qualifier values, such as `TermType=PT` and `TermType=SY`, both being
-  sampled
+- the sampler ignores `owl:deprecated false`
+- the sampler samples `owl:deprecated true`
+- the sampler excludes no-code classes from sample rows
+- the sampler skips datatype-property restrictions
+- the sampler de-dupes duplicate role assertions across subclass/equivalent contexts
+- the sampler keeps non-duplicate equivalent-class role assertions
+- the sampler de-dupes duplicate synonym qualifier checks
+- the sampler keeps both unique qualifier values, such as `TermType=PT` and
+  `TermType=SY`
 - direct subclass parent/child style rows
 - equivalent-class parent/child style rows
 - `max-children`
@@ -94,7 +94,7 @@ This test runs the shared synthetic OWL as `mged`.
 
 MGED has terminology-specific policies that disable a few row families.  The
 test does not care about the sample rows themselves.  It checks the JSON report
-and verifies that the disabled families are listed there.
+and verifies that the report lists the disabled families.
 
 It protects the `--report` behavior.  If the sampler skips a row family, the
 report should explain why.
@@ -107,12 +107,12 @@ able to see why.
 This test runs the shared synthetic OWL as `duo`.
 
 DUO used to be part of the restriction skip policy.  We later confirmed that
-EVSRESTAPI returns the real DUO restriction sample as a role, so DUO should not
-be skipped.
+EVSRESTAPI returns the real DUO restriction sample as a role, so the sampler
+should not skip DUO.
 
 The test checks two things:
 
-- a normal restriction row is still written for DUO
+- the sampler still writes a normal restriction row for DUO
 - the JSON report does not list `restrictions` as a disabled sample family
 
 If this fails, DUO may have lost role coverage.  Before adding DUO back to the
@@ -189,7 +189,7 @@ http://purl.obolibrary.org/obo/cl#lacks_part
 
 The expected sample key uses `lacks_part`, not the full `cl#lacks_part` shape.
 
-It protects a small URI-normalization rule used by OBO-family files.
+It protects a small URI-normalization rule that OBO-family files use.
 
 If this fails, Java role checks can look for a role key that EVSRESTAPI never
 uses.
@@ -218,7 +218,7 @@ This test builds a `rdfs:subClassOf` block that contains an anonymous
 The top-level `rdf:Description` inside that intersection is a real parent.  A
 resource deeper inside a restriction is not.
 
-It protects OBIB-style subclass parsing.  Some real parent edges are written in
+It protects OBIB-style subclass parsing.  Some OWLs write real parent edges in
 this anonymous class-expression form instead of the simple
 `rdfs:subClassOf rdf:resource="..."` form.
 
@@ -292,7 +292,7 @@ This test models an HGNC-style hierarchy:
 
 - a code-less hierarchy parent class
 - a normal coded child class
-- `owl:Thing`, which must still be skipped
+- `owl:Thing`, which the sampler must still skip
 
 The test passes `terminology="hgnc"`.  HGNC is in
 `HIERARCHY_FALLBACK_CODE_TERMINOLOGIES`.
@@ -302,12 +302,12 @@ nodes by URI-fragment code even when metadata names a code property.
 
 The expected rows verify:
 
-- the fallback-coded hierarchy parent can be sampled
+- the sampler can sample the fallback-coded hierarchy parent
 - the coded child points to that parent
-- the unusual legacy `child-style1` row layout is preserved
+- the sampler preserves the unusual legacy `child-style1` row layout
 - max-child and parent-count rows work with fallback-coded parents
 - the fallback-coded parent can appear as a root
-- `owl:Thing` is still excluded
+- the sampler still excludes `owl:Thing`
 
 If this fails, HGNC-like release files can lose parent relationships, which
 often shows up as many incorrect root rows.
@@ -318,7 +318,7 @@ This test models a ChEBI-style axiom qualifier where the qualifier value is a
 resource URI.
 
 The sampler should write the local resource code, such as `BRAND_NAME`, because
-that is the shape the loader exposes to the Java tests.
+the loader exposes that shape to the Java tests.
 
 It protects qualifier values that are resources instead of plain text.
 
@@ -332,8 +332,8 @@ This test uses a definition with two spaces between sentences.
 The direct definition row should keep the meaningful repeated spaces while also
 collapsing the multiline XML text into one TSV-compatible line.
 
-The matching definition-source qualifier is skipped because older NCIt-like
-definitions with repeated spaces can be normalized differently by the loader.
+The sampler skips the matching definition-source qualifier because the loader
+may normalize older NCIt-like definitions with repeated spaces differently.
 The direct definition still gives coverage.
 
 If this fails, text normalization may either damage direct property values or
@@ -344,7 +344,7 @@ create fragile qualifier rows.
 This is the companion test for the previous one.
 
 It uses a simple one-line definition without repeated spaces.  In that case,
-the definition-source qualifier should be sampled.
+the sampler should sample the definition-source qualifier.
 
 It protects the narrowness of the repeated-space exception.  The sampler should
 skip only the fragile case, not all definition-source qualifiers.
@@ -388,7 +388,7 @@ $env:UNIT_TEST_DATA_DIR='D:\WCI\UnitTestData'
 Each case generates samples to `tmp_path`, then checks:
 
 - output file exists
-- at least one row was generated
+- the generator produced at least one row
 - no row value contains a tab, which would break the TSV contract
 - required high-value keys are present
 
@@ -417,4 +417,4 @@ Real OWL smoke tests help, but they are slower and depend on external files in
 `UNIT_TEST_DATA_DIR`.
 
 Use exact TSV assertions when the row format or row order matters.  Use key or
-category assertions when real-file examples are allowed to vary.
+category assertions when real-file examples may vary.

@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env python
 """Generate small EVSRESTAPI sample TSV files from OWL/RDF terminologies.
 
-The generated rows are consumed by ``SampleTest`` and ``ConceptSampleTester`` in
+``SampleTest`` and ``ConceptSampleTester`` consume the generated rows in
 the EVSRESTAPI test suite.  The goal is not to copy the whole OWL file.  The
 goal is to find examples that check whether the loaded terminology returns
 properties, roles, qualifiers, hierarchy data, and roots through the API.
@@ -53,9 +53,9 @@ STRUCTURAL_DIRECT_PROPERTIES = {
     "rdf:type",
 }
 
-# Some OWL files have grouping classes that help build the hierarchy but should
-# not become test examples themselves.  MGED's three top-level grouping classes
-# are the known case.
+# Some OWL files have grouping classes that help build the hierarchy, but the
+# sampler should not turn them into test examples.  MGED's three top-level
+# grouping classes are the known case.
 HIERARCHY_SCAFFOLD_LOCALS_BY_TERMINOLOGY = {
     "mged": {"MGEDOntology", "MGEDCoreOntology", "MGEDExtendedOntology"},
 }
@@ -80,19 +80,19 @@ HIERARCHY_FALLBACK_CODE_TERMINOLOGIES = {
 # These skips are narrow:
 #
 # - They disable one row family, not the whole terminology.
-# - Direct properties, qualifiers, deprecated flags, and stable hierarchy rows
-#   still get sampled when Java can check them through the API.
-# - The disabled row families are listed in --report.
+# - The sampler still writes direct properties, qualifiers, deprecated flags,
+#   and stable hierarchy rows when Java can check them through the API.
+# - The --report output lists disabled row families.
 #
 # If one of these sets changes, regenerate the sample file and run the matching
-# Java SampleTest class.  Use a reason like "this OWL data is exposed through
-# a different API shape", not "the row is annoying".
+# Java SampleTest class.  Use a reason like "EVSRESTAPI exposes this OWL data
+# through a different API shape", not "the row is annoying".
 
 # MGED, NPO, OBI, and OBIB use OWL restrictions heavily for modeling and
 # imported ontology structure.  The Java tester treats every restriction sample
-# as "this concept has this API role target".  In these terminologies many of
-# those restrictions are not loaded as Concept roles, so the row would fail even
-# though the loader handled the source file as designed.
+# as "this concept has this API role target".  In these terminologies,
+# EVSRESTAPI does not load many restrictions as Concept roles, so the row would
+# fail even though the loader handled the source file as designed.
 SKIP_RESTRICTION_SAMPLE_TERMINOLOGIES = {
     "mged",
     "npo",
@@ -111,8 +111,8 @@ SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES = {
 
 # These keys are present in the OWL, but the EVSRESTAPI loader maps or filters
 # them differently from a plain Concept property.  Keeping them out of the TSV
-# avoids asking the Java tests to look for a direct property that is exposed
-# through another API field or not exposed at all.
+# avoids asking the Java tests to look for a direct property when the loader
+# exposes it through another API field or filters it out.
 SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY = {
     "mged": {"synonym"},
     "npo": {"rdfs:comment", "synonym"},
@@ -120,7 +120,8 @@ SKIP_DIRECT_PROPERTY_KEYS_BY_TERMINOLOGY = {
 
 # Some older OWLs put imported definition text in rdfs:comment.  EVSRESTAPI
 # loaders may normalize those into definitions instead of comment properties,
-# which makes a comment sample fail even though the text was parsed correctly.
+# which makes a comment sample fail even though the parser read the text
+# correctly.
 COMMENT_VALUES_LOADED_AS_DEFINITIONS = (
     "[NCI_Thesaurus definition]:",
 )
@@ -196,7 +197,7 @@ def _clean_text(value: Optional[str]) -> str:
     if not value:
         return ""
     # The Java sample checks sometimes compare text values exactly against the
-    # values returned by EVSRESTAPI.  The loader keeps normal repeated spaces
+    # values EVSRESTAPI returns.  The loader keeps normal repeated spaces
     # inside values, so do not use ``split()`` here.  Only collapse whitespace
     # that would break the TSV row itself, such as line breaks or tabs.
     return re.sub(r"[ \t\r\n]*[\t\r\n][ \t\r\n]*", " ", value).strip()
@@ -270,7 +271,7 @@ class TerminologyConfig:
         return self.terminology not in SKIP_EQUIVALENT_CLASS_HIERARCHY_TERMINOLOGIES
 
     def disabled_sample_families(self) -> list[dict[str, str]]:
-        """Return row families skipped by terminology policy.
+        """Return row families the terminology policy skips.
 
         The JSON report uses this so reviewers can tell policy skips from
         missing sampler coverage.
@@ -910,7 +911,7 @@ class SampleCollector:
                 self._collect_axiom_sample(element)
 
     def ordered_rows(self) -> list[SampleRow]:
-        """Return rows in the order used by the sample files."""
+        """Return rows in sample-file order."""
 
         rows = list(self.property_registry.values())
         rows.extend(self.axiom_rows.values())
@@ -933,7 +934,7 @@ class SampleCollector:
         }
 
     def _remember_concept(self, concept: ConceptNode) -> None:
-        """Add one concept to the indexes used by both passes."""
+        """Add one concept to the indexes both passes use."""
 
         self.class_uris.setdefault(concept.uri, None)
         if concept.sampleable:
@@ -1124,8 +1125,8 @@ class SampleCollector:
         for child in element:
             key = self.resolver.tag_to_key(child.tag)
             key = self.config.preferred_key(key)
-            # These are handled by hierarchy/restriction code, not as normal
-            # properties.  The code property is already used in column 2.
+            # Hierarchy/restriction code handles these, not the normal
+            # property sampler.  Column 2 already uses the code property.
             if key in STRUCTURAL_DIRECT_PROPERTIES:
                 continue
             if self.config.matches(key, self.config.code_property):
@@ -1390,7 +1391,7 @@ class SampleCollector:
 
     def _code_for_annotated_property(self, resource: str) -> str:
         # Qualifier rows need the API-facing property code in the part after
-        # "qualifier-".  If the property was indexed in pass one, use that code
+        # "qualifier-".  If pass one indexed the property, use that code
         # instead of the XML prefix spelling such as "ncit:P90".
         return self._code_for_resource(resource)
 
@@ -1400,9 +1401,9 @@ class SampleCollector:
         if not is_resource:
             return value
         canonical = self.resolver.canonicalize_resource(value) if self.resolver else value
-        # EVSRESTAPI keeps hasDbXref values as-is, but most other qualifier
-        # resources are converted to their final URI piece.  ChEBI synonym
-        # term types are the important example: the OWL value is
+        # EVSRESTAPI keeps hasDbXref values as-is, but it converts most other
+        # qualifier resources to their final URI piece.  ChEBI synonym term
+        # types are the important example: the OWL value is
         # ``.../chebi/IUPAC_NAME`` and the API value is ``IUPAC_NAME``.
         if self.config.matches(qualifier_key, "oboInOwl:hasDbXref"):
             return canonical or value
