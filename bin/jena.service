@@ -1,0 +1,22 @@
+[Unit]
+Description=Apache Jena Fuseki Service
+After=network.target
+
+[Service]
+Type=forking
+User=evsuser
+Group=evsuser
+WorkingDirectory=/local/content/fuseki/current
+ExecStart=/bin/bash -c "/local/content/fuseki/current/fuseki start"
+ExecStop=/bin/bash -c "/local/content/fuseki/current/fuseki stop"
+Restart=always
+RestartSec=10
+Environment="JAVA_HOME=/usr/local/corretto-jdk17"
+Environment="PATH=$JAVA_HOME/bin:/usr/bin:/bin"
+Environment="FUSEKI_HOME=/local/content/fuseki/current"
+Environment="FUSEKI_BASE=/local/content/fuseki/current/run"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
