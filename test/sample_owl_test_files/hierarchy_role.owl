@@ -1,0 +1,25 @@
+<rdf:RDF xml:base="http://example.org/hierarchy-role"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:ObjectProperty rdf:about="#part_of"><Code>part_of</Code></owl:ObjectProperty>
+  <owl:Class rdf:about="#Parent"><Code>PARENT</Code></owl:Class>
+  <owl:Class rdf:about="#ChildOne">
+    <Code>CHILD1</Code>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty rdf:resource="#part_of"/>
+        <owl:someValuesFrom rdf:resource="#Parent"/>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="#ChildTwo">
+    <Code>CHILD2</Code>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty rdf:resource="#part_of"/>
+        <owl:someValuesFrom rdf:resource="#Parent"/>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+  </owl:Class>
+</rdf:RDF>
