@@ -116,3 +116,39 @@ contexts.
 ```
 export CONFIG_BASE_URI=https://raw.githubusercontent.com/NCIEVS/evsrestapi-operations/develop/config/metadata
 ```
+
+### Updating monthly mappings
+
+New mapping versions arrive roughly monthly (for example a new NCIt-to-HGNC
+extract).  The `update-monthly-mappings` agent skill automates ingesting a raw
+drop file, normalizing it into the canonical `data/mappings` file, updating the
+mapset metadata and HTML, and publishing the change to the `develop`, `stage`,
+and `main` tier branches.
+
+The skill is available to both Claude Code (`.claude/skills/update-monthly-mappings`)
+and Codex (`.codex/skills/update-monthly-mappings`); the two directories hold
+identical copies of the same skill.
+
+**Example — publishing a new NCIt-to-HGNC monthly map**
+
+1. The new mapping is delivered by email (typically as an attachment named
+   something like `Aug2026NCItHGNCmap.txt`).  Download the attachment and place
+   it, unchanged, into the mappings folder:
+
+   ```
+   cp ~/Downloads/Aug2026NCItHGNCmap.txt \
+      /local/content/evsrestapi-operations/data/mappings/
+   ```
+
+   The incoming file has no header row and uses Windows (`\r\n`) line endings —
+   leave it as-is; the skill normalizes it.
+
+2. Make sure your checkout is on `develop` and up to date, then invoke the skill:
+
+   * In Claude Code: `/update-monthly-mappings` (or ask "update the monthly
+     mappings").
+   * In Codex: `/skills` and choose `update-monthly-mappings`.
+
+3. The skill walks the process and pauses to ask you to confirm the things it
+   cannot determine on its own. It can roll back changes when requested.  Upon completion, relevant changes will have been made to all files across 
+   `develop`, `stage`, and `main` branches.
