@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 TERMINOLOGY="umlssemnet"
 TERMINOLOGY_URL="${4:-http://www.nlm.nih.gov/research/umls/${TERMINOLOGY}.owl}"
 VERSION="${3:-2023aa}"
@@ -29,7 +31,8 @@ fi
 setup() {
   python3 -m venv "$VENV_DIRECTORY" 2>&1
   source "$VENV_BIN_DIRECTORY"/activate
-  "$VENV_BIN_DIRECTORY"/pip install poetry 2>&1
+  # Poetry 1.8 remains compatible with the urllib3 1.x OpenSSL workaround below.
+  "$VENV_BIN_DIRECTORY"/pip install "poetry==1.8.5" 2>&1
   # Setting the URL lib to a specific version to avoid upgrading OpenSSL version
   "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15" 2>&1
   pushd "$EVS_OPS_HOME" || exit
@@ -46,8 +49,8 @@ generate_owl_file() {
   echo "generating UMLS Semantic Network owl file at $OUTPUT_DIRECTORY"
   local terminology_upper=$(echo "$TERMINOLOGY" | tr '[:lower:]' '[:upper:]')
   local versioned_owl_file="$dir/${terminology_upper}_$date.owl"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${VERSION}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}" 2>&1
-  mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file"
+  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${VERSION}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}" 2>&1 || return 1
+  mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file" || return 1
   echo "$versioned_owl_file"
 }
 
