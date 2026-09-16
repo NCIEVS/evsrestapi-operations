@@ -43,7 +43,7 @@ setup() {
   "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15" 2>&1
   pushd "$EVS_OPS_HOME" || exit
   "$VENV_BIN_DIRECTORY"/poetry install 2>&1
-  popd "$EVS_OPS_HOME" || exit
+  popd || exit
 }
 
 get_input_file() {
