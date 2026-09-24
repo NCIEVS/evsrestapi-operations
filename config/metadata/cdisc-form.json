@@ -1729,6 +1729,9 @@
           {
             "text":"ncievscdischelp@mail.nih.gov.",
             "link":"mailto:ncievscdischelp@mail.nih.gov?Subject=NCIt%20New%20Term%20Request%20File"
+          },
+          {
+            "text":"There is no need to send the Multiple Term Request template via e-mail if it has been uploaded to the new term request form."
           }
         ]
       },
