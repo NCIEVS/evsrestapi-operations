@@ -1,0 +1,36 @@
+﻿<rdf:RDF xml:base="http://example.org/equivalent-hierarchy-policy"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:Class rdf:about="#P1"><Code>P1</Code></owl:Class>
+  <owl:Class rdf:about="#P2"><Code>P2</Code></owl:Class>
+  <owl:Class rdf:about="#P3"><Code>P3</Code></owl:Class>
+  <owl:Class rdf:about="#P4"><Code>P4</Code></owl:Class>
+  <owl:Class rdf:about="#LogicalA"><Code>LOGICAL_A</Code></owl:Class>
+  <owl:Class rdf:about="#LogicalB"><Code>LOGICAL_B</Code></owl:Class>
+  <owl:Class rdf:about="#LogicalC"><Code>LOGICAL_C</Code></owl:Class>
+  <owl:Class rdf:about="#Child">
+    <Code>CHILD</Code>
+    <owl:equivalentClass>
+      <owl:Class>
+        <owl:unionOf rdf:parseType="Collection">
+          <rdf:Description rdf:about="#LogicalA"/>
+          <rdf:Description rdf:about="#LogicalB"/>
+          <rdf:Description rdf:about="#LogicalC"/>
+        </owl:unionOf>
+      </owl:Class>
+    </owl:equivalentClass>
+    <rdfs:subClassOf rdf:resource="#P1"/>
+    <rdfs:subClassOf rdf:resource="#P2"/>
+  </owl:Class>
+  <owl:Class rdf:about="#SecondChild">
+    <Code>SECOND_CHILD</Code>
+    <owl:equivalentClass rdf:resource="#LogicalA"/>
+    <rdfs:subClassOf rdf:resource="#P3"/>
+  </owl:Class>
+  <owl:Class rdf:about="#ThirdChild">
+    <Code>THIRD_CHILD</Code>
+    <owl:equivalentClass rdf:resource="#LogicalA"/>
+    <rdfs:subClassOf rdf:resource="#P4"/>
+  </owl:Class>
+</rdf:RDF>

@@ -1,0 +1,89 @@
+<rdf:RDF xmlns="http://example.org/test#"
+         xml:base="http://example.org/test"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xmlns:ncit="http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#"
+         xmlns:obo="http://purl.obolibrary.org/obo/">
+  <owl:ObjectProperty rdf:about="http://example.org/test#R1"><Code>has_part</Code></owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="http://example.org/test#R2"><Code>related_to</Code></owl:ObjectProperty>
+  <owl:DatatypeProperty rdf:about="http://example.org/test#data_prop"/>
+  <owl:AnnotationProperty rdf:about="http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P108"><Code>P108</Code></owl:AnnotationProperty>
+  <owl:Class rdf:about="http://example.org/test#C0"><Code>C0</Code><Label>Root Parent</Label></owl:Class>
+  <owl:Class rdf:about="http://example.org/test#C2"><Code>C2</Code><Label>Target Concept</Label></owl:Class>
+  <owl:Class rdf:about="http://example.org/test#C3"><Code>C3</Code><Label>Equivalent Parent</Label></owl:Class>
+  <owl:Class rdf:about="http://example.org/test#C4"><Code>C4</Code><Label>Equivalent Target</Label></owl:Class>
+  <owl:Class rdf:about="http://example.org/test#C5"><Code>C5</Code><Label>Disjoint Target</Label></owl:Class>
+  <owl:Class rdf:about="http://example.org/test#C1">
+    <rdfs:subClassOf rdf:resource="http://example.org/test#C0"/>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty rdf:resource="http://example.org/test#R1"/>
+        <owl:someValuesFrom rdf:resource="http://example.org/test#C2"/>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty rdf:resource="http://example.org/test#data_prop"/>
+        <owl:someValuesFrom rdf:resource="http://example.org/test#C5"/>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+    <owl:equivalentClass>
+      <owl:Class>
+        <owl:intersectionOf rdf:parseType="Collection">
+          <rdf:Description rdf:about="http://example.org/test#C3"/>
+          <owl:Restriction>
+            <owl:onProperty rdf:resource="http://example.org/test#R1"/>
+            <owl:someValuesFrom rdf:resource="http://example.org/test#C2"/>
+          </owl:Restriction>
+          <owl:Restriction>
+            <owl:onProperty rdf:resource="http://example.org/test#R2"/>
+            <owl:someValuesFrom rdf:resource="http://example.org/test#C4"/>
+          </owl:Restriction>
+        </owl:intersectionOf>
+      </owl:Class>
+    </owl:equivalentClass>
+    <Code>C1</Code>
+    <Label>Concept One</Label>
+    <ncit:P108>Preferred One</ncit:P108>
+    <obo:IAO_0000115>Line one
+      line two &amp; more</obo:IAO_0000115>
+    <owl:disjointWith rdf:resource="http://example.org/test#C5"/>
+    <owl:deprecated>false</owl:deprecated>
+  </owl:Class>
+  <owl:Class rdf:about="http://example.org/test#C7"><Code>C7</Code><Label>Nested Parent</Label></owl:Class>
+  <owl:Class rdf:about="http://example.org/test#C8">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="http://example.org/test#C7"/>
+    </rdfs:subClassOf>
+    <Code>C8</Code>
+    <Label>Nested Child</Label>
+  </owl:Class>
+  <owl:Axiom>
+    <owl:annotatedSource rdf:resource="http://example.org/test#C1"/>
+    <owl:annotatedProperty rdf:resource="http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P108"/>
+    <owl:annotatedTarget>Preferred One</owl:annotatedTarget>
+    <TermType>PT</TermType>
+    <Source>Alpha</Source>
+  </owl:Axiom>
+  <owl:Axiom>
+    <owl:annotatedSource rdf:resource="http://example.org/test#C1"/>
+    <owl:annotatedProperty rdf:resource="http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P107"/>
+    <owl:annotatedTarget>Preferred One</owl:annotatedTarget>
+    <TermType>PT</TermType>
+  </owl:Axiom>
+  <owl:Axiom>
+    <owl:annotatedSource rdf:resource="http://example.org/test#C1"/>
+    <owl:annotatedProperty rdf:resource="http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#P108"/>
+    <owl:annotatedTarget>Preferred Two</owl:annotatedTarget>
+    <TermType>SY</TermType>
+    <Source>Beta</Source>
+  </owl:Axiom>
+  <owl:Class rdf:about="http://example.org/test#Deprecated">
+    <Code>C6</Code>
+    <owl:deprecated>true</owl:deprecated>
+  </owl:Class>
+  <owl:Class rdf:about="http://example.org/test#NoCode">
+    <owl:deprecated>true</owl:deprecated>
+  </owl:Class>
+</rdf:RDF>

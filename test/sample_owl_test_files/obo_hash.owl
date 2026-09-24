@@ -1,0 +1,16 @@
+<rdf:RDF xml:base="http://example.org/obo-hash"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xmlns:obo="http://purl.obolibrary.org/obo/">
+  <owl:ObjectProperty rdf:about="http://purl.obolibrary.org/obo/cl#lacks_part"/>
+  <owl:Class rdf:about="#EmptyContainer"><Code>OBIB_0000025</Code>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty rdf:resource="http://purl.obolibrary.org/obo/cl#lacks_part"/>
+        <owl:someValuesFrom rdf:resource="http://purl.obolibrary.org/obo/IAO_0000178"/>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:about="http://purl.obolibrary.org/obo/IAO_0000178"><Code>IAO_0000178</Code></owl:Class>
+</rdf:RDF>
