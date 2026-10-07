@@ -1,70 +1,216 @@
 #!/bin/bash
 set -e
 
-# This is the inference stage migrated from legacy/MasterCTRP.sh. Publication
-# and host-specific post-processing are intentionally left to later workflows.
-TERMINOLOGY="ncit"
-PID=$2
-INPUT_FILE=$1
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-EVS_OPS_HOME=$DIR/../..
-WORK_DIRECTORY=$EVS_OPS_HOME/bin/work_$PID
-INPUT_DIRECTORY=$WORK_DIRECTORY/input
-OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
-INFERENCE_JAR=$EVS_OPS_HOME/legacy/GenerateOWLAPIInferred/GenerateOWLAPIInferred-2.0-jar-with-dependencies.jar
-JAVA_COMMAND=${JAVA_COMMAND:-java}
+# Setup java environment
+export PATH="/usr/local/corretto-jdk17/bin:$PATH"
 
-pre_condition_check() {
-  if [[ ! -s $INPUT_FILE ]]; then
-    echo "No NCIt input file ($INPUT_FILE) found or file is empty. Exiting"
-    exit 1
-  fi
-  if [[ ! -d $INPUT_DIRECTORY ]]; then
-    echo "No input directory ($INPUT_DIRECTORY) found. Exiting"
-    exit 1
-  fi
-  if [[ ! -d $OUTPUT_DIRECTORY ]]; then
-    echo "No output directory ($OUTPUT_DIRECTORY) found. Exiting"
-    exit 1
-  fi
-  if [[ ! -f $INFERENCE_JAR ]]; then
-    echo "NCIt inference JAR ($INFERENCE_JAR) not found. Exiting"
-    exit 1
-  fi
-  if [[ $(basename "$INPUT_FILE") != *"Thesaurus"* ]]; then
-    echo "NCIt asserted input filename must contain Thesaurus: $INPUT_FILE"
-    exit 1
-  fi
-  if ! command -v "$JAVA_COMMAND" >/dev/null 2>&1; then
-    echo "Java command ($JAVA_COMMAND) not found. Exiting"
-    exit 1
-  fi
-}
+echo The current asserted filename to be processed is $1
 
-generate_inferred_owl() {
-  local input_uri="file://$INPUT_FILE"
-  local generated_file=${INPUT_FILE/Thesaurus/ThesaurusInf}
-  local asserted_basename
-  local output_basename
-  local inferred_file
-  local java_options
+# Variables
+mainDir=${PWD}
+echo Main Directory $mainDir
+dataDir="/local/content/vocab_processing_OWL2/ProcessingData"
+disjointDir="/local/content/vocab_processing_OWL2/disjoint"
+downloadDir="/local/content/downloads"
+echo Data Directory $dataDir
+prefix="file://"
+assertedFilename=CTRP$1
+memeDate=$(date +"%Y%m%d")
+uploadHost="ncicbftp2.nci.nih.gov"
+uploadDir="cacore/EVS/upload"
+ftpUser1=***
+ftpPassword1=***
+awsdevUser=***
+awsdevPassword=***
+awsdevServer="ncias-d2175-c.nci.nih.gov"
+awsdevDir="/local/content/downloads"
+awsqaServer="ncidb-q294-c.nci.nih.gov"
+awsqaDir="/local/content/downloads"
+cleanBeforeDays=180
 
-  asserted_basename=$(basename "$INPUT_FILE")
-  asserted_basename=${asserted_basename#f$PID.}
-  output_basename=${asserted_basename/Thesaurus/ThesaurusInf}
-  inferred_file=$OUTPUT_DIRECTORY/$output_basename
-  read -r -a java_options <<<"${NCIT_INFERENCE_JAVA_OPTS:--Xmx20000m}"
+# Start script
+echo MASTER SCRIPT START RUN
+echo "***********************"
+echo
 
-  echo "Generating inferred NCIt OWL from $INPUT_FILE"
-  "$JAVA_COMMAND" "${java_options[@]}" -jar "$INFERENCE_JAR" "$input_uri" 2>&1
-  if [[ ! -s $generated_file ]]; then
-    echo "NCIt inference did not create the expected file: $generated_file"
-    return 1
-  fi
-  mv "$generated_file" "$inferred_file"
-  echo "$inferred_file"
-}
+echo "Cleaning up old files"
+./cleanup.sh $downloadDir $dataDir $cleanBeforeDays
+echo
+ 
+echo FETCH FILE
+echo "***********************"
+echo 
+echo $dataDir/$1
+#cp $downloadDir/$1 $dataDir/$1
+cp $downloadDir/$1 $dataDir/$assertedFilename
 
-pre_condition_check
-INPUT_FILE="$(cd "$(dirname "$INPUT_FILE")" >/dev/null 2>&1 && pwd)/$(basename "$INPUT_FILE")"
-generate_inferred_owl
+inferredFileName=`echo $assertedFilename | sed 's/^C[a-zA-Z]*/&Inf/'`
+echo Inferred File Name $inferredFileName
+
+thisVersion=`echo $1 | sed 's/^T[a-zA-Z]*-//' | sed 's/[0-9]*//' | sed 's/\.[^\.]*$//' | sed 's/\-//'`
+echo This Version $thisVersion
+
+echo
+echo "***************************"
+echo 
+echo Generate OWL Inferred file
+echo
+echo "***************************"
+echo
+
+cd ./GenerateOWLAPIInferred
+java -Xmx20000m -jar ./GenerateOWLAPIInferred-2.0-jar-with-dependencies.jar $prefix$dataDir/$assertedFilename
+cd ..
+
+
+assertedPath=$prefix$dataDir/$assertedFilename
+inferredPath=$prefix$dataDir/$inferredFileName
+sedFile=$inferredFileName-forProduction.owl
+echo $sedFile
+
+#Get the version and filenames
+version=$(echo $1 | sed 's/.*\-//' | sed 's/\.owl//')
+
+
+echo "Working with asserted file: " $assertedPath
+echo "Working with inferred file: " $inferredPath
+
+echo
+echo "*************************"
+echo
+echo  "Processed Inferred File"
+echo
+echo "***********************"
+echo
+
+
+
+#Run LVG
+echo ----------------------------
+echo STARTING LVG
+sh runLVG.sh $inferredPath
+LVGOutput=$inferredPath-lvg.owl
+echo LVG FINISHED
+echo LVG output $LVGOutput
+
+#ProtegeKbQA
+#echo ----------------------------
+#echo PERFORMING PROTEGEKBQA
+#cd ./ProtegeKbQA
+#QAOutput=$1_CTRP_QA.txt
+#echo The output file is $QAOutput
+#java -jar ./owlnciqa-2.0.0-jar-with-dependencies.jar -c config/nciowlqa.properties -i $assertedFilename -o $QAOutput
+#cd /local/content/vocab_processing_OWL2
+
+#Scrub inferred file for Production
+echo SCRUBBING INFERRED FILE FOR PRODUCTION
+cd OWLScrubber
+
+ProdOutput=$inferredPath-forProduction.owl
+echo the output file is $ProdOutput
+java -Xmx15000M -jar ./owlscrubber-2.1.0-jar-with-dependencies.jar -C ./owlscrubber.properties -E -N $LVGOutput -O $ProdOutput
+cd /local/content/vocab_processing_OWL2
+
+#echo Check that NCI-DEFCURATOR replaced
+#./grepTest.sh $ProdOutput
+
+
+#Run through OWLDiff and grep
+#echo -------------------------------
+#echo RUN OWLDIFF
+#cd OWLDiff
+#outputDiff="file:///local/content/ProcessingData/CTRP_Diff.txt"
+#java -Xmx8000m -jar ./owldiff-2.0.0-jar-with-dependencies.jar -i $inferredPath -p $previousInferredPath -o $outputDiff
+
+#grep --file=./config/diffClean.txt /local/content/ProcessingData/CTRP_Diff.txt > /local/content/ProcessingData/Grepped_CTRP_Diff.txt
+#cd /local/content/vocab_processing_OWL2
+
+
+#TEMPORARY
+echo Making ByCode through Sed
+#Sed the file to get rid of Term Source, etc
+ cd OWLScrubber/scripts
+ ./Sed_Command_Script_byCode.sh $dataDir/$sedFile
+ cd ../../
+cp $dataDir/$sedFile $dataDir/ThesaurusInferred_forTS.owl
+
+
+
+##########################
+### Apply Disjoint 
+cd $disjointDir 
+java -Xms512m -Xmx8g OWLDisjointWithProcessor  $dataDir/ThesaurusInferred_forTS.owl
+
+sleep 10s
+cp $dataDir/ThesaurusInferred_forTS_disjoint.owl $dataDir/ThesaurusInferred_forTS.owl
+
+##########################
+
+echo
+echo "********************"
+echo
+echo  "Preparing FTP"
+echo
+echo "*******************"
+echo
+echo "Changing to the data directory"
+cd $dataDir
+
+echo "Creating Flat File"
+../bin/owl2rdf $dataDir/ThesaurusInferred_forTS.owl > $dataDir/ThesaurusInferred_forTS.rdf
+
+echo "zipping Stardog data" 
+inferredByCodeStardog="ThesaurusInf-"$version".STARDOG.zip"
+zip $inferredByCodeStardog ThesaurusInferred_forTS.owl ThesaurusInferred_forTS.rdf
+zip ThesaurusInferred_forTS.both.zip ThesaurusInferred_forTS.owl ThesaurusInferred_forTS.rdf
+
+echo "Creating CTRP zip filenames"
+#Set zip filenames
+inferredByCodeZip="ThesaurusInf_"$version".CTRP.zip"
+
+echo "Zipping files for publication"
+##Zip the files
+zip $inferredByCodeZip ThesaurusInferred_forTS.owl
+echo Zip file is $inferredByCodeZip
+## wait for zipping to complete
+sleep 10s
+
+#echo "Connecting to CTRP AWS and uploading files"
+#aws s3 cp $inferredByCodeZip  s3://stardog-upload-int/$inferredByCodeZip --sse=AES256 --profile ctrp
+
+cp $inferredByCodeZip ThesaurusInferred_forTS.zip
+
+echo "Placing file on FTP"
+ftp -n $uploadHost <<ENDSCRIPT1
+quote USER $ftpUser1
+quote PASS $ftpPassword1
+cd $uploadDir
+binary
+put ThesaurusInferred_forTS.zip
+put ThesaurusInferred_forTS.both.zip
+quit
+ENDSCRIPT1
+
+#echo "Placing file on AWS"
+#login = $awsdevUser@awsdevServer
+#echo $login
+#ftp $awsdevUser@$awsdevServer <<ENDSCRIPT1
+#cd $awsdevDir
+#binary
+#put ThesaurusInferred_forTS.zip
+#quit
+#ENDSCRIPT1
+
+#echo "Placing file on AWS"
+#login = $awsqaUser@awsqaServer
+#echo $login
+#ftp $awsqaUser@$awsqaServer <<ENDSCRIPT1
+#cd $awsqaDir
+#binary
+#put ThesaurusInferred_forTS.zip
+#quit
+#ENDSCRIPT1
+
+echo ""
+echo "**********************"
+echo "MASTER SCRIPT FINISHED"
