@@ -1,216 +1,203 @@
 #!/bin/bash
 set -e
 
-# Setup java environment
-export PATH="/usr/local/corretto-jdk17/bin:$PATH"
+# Keep the known Java 17 locations available for local and server runs. An
+# installation can select another executable explicitly with JAVA_COMMAND.
+export PATH="/opt/homebrew/opt/openjdk@17/bin:/usr/local/corretto-jdk17/bin:$PATH"
 
-echo The current asserted filename to be processed is $1
+TERMINOLOGY="ncit"
+INPUT_FILE=$1
+PID=$2
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+EVS_OPS_HOME=$DIR/../..
+WORK_DIRECTORY=${NCIT_WORK_DIRECTORY:-$EVS_OPS_HOME/bin/work_$PID}
+INPUT_DIRECTORY=$WORK_DIRECTORY/input
+OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
 
-# Variables
-mainDir=${PWD}
-echo Main Directory $mainDir
-dataDir="/local/content/vocab_processing_OWL2/ProcessingData"
-disjointDir="/local/content/vocab_processing_OWL2/disjoint"
-downloadDir="/local/content/downloads"
-echo Data Directory $dataDir
-prefix="file://"
-assertedFilename=CTRP$1
-memeDate=$(date +"%Y%m%d")
-uploadHost="ncicbftp2.nci.nih.gov"
-uploadDir="cacore/EVS/upload"
-ftpUser1=***
-ftpPassword1=***
-awsdevUser=***
-awsdevPassword=***
-awsdevServer="ncias-d2175-c.nci.nih.gov"
-awsdevDir="/local/content/downloads"
-awsqaServer="ncidb-q294-c.nci.nih.gov"
-awsqaDir="/local/content/downloads"
-cleanBeforeDays=180
+# MasterCTRP.sh expected these tools under this installation. Each location is
+# configurable so the transform can also be exercised outside that server.
+PROCESSING_HOME=${NCIT_PROCESSING_HOME:-/local/content/vocab_processing_OWL2}
+INFERENCE_JAR=${NCIT_INFERENCE_JAR:-$EVS_OPS_HOME/legacy/GenerateOWLAPIInferred/GenerateOWLAPIInferred-2.0-jar-with-dependencies.jar}
+LVG_DIRECTORY=${NCIT_LVG_DIRECTORY:-$PROCESSING_HOME/lvg2015}
+LVG_COMMAND=${NCIT_LVG_COMMAND:-$LVG_DIRECTORY/bin/lvg}
+SCRUBBER_DIRECTORY=${NCIT_SCRUBBER_DIRECTORY:-$PROCESSING_HOME/OWLScrubber}
+SCRUBBER_JAR=${NCIT_SCRUBBER_JAR:-$SCRUBBER_DIRECTORY/owlscrubber-2.1.0-jar-with-dependencies.jar}
+SCRUBBER_PROPERTIES=${NCIT_SCRUBBER_PROPERTIES:-$SCRUBBER_DIRECTORY/owlscrubber.properties}
+DISJOINT_DIRECTORY=${NCIT_DISJOINT_DIRECTORY:-$PROCESSING_HOME/disjoint}
+DISJOINT_CLASSPATH=${NCIT_DISJOINT_CLASSPATH:-.}
+DISJOINT_CLASS=${NCIT_DISJOINT_CLASS:-OWLDisjointWithProcessor}
+JAVA_COMMAND=${JAVA_COMMAND:-java}
 
-# Start script
-echo MASTER SCRIPT START RUN
-echo "***********************"
-echo
+FINAL_OWL=$OUTPUT_DIRECTORY/ThesaurusInferred_forTS.owl
+CREATE_ARCHIVES=${NCIT_CREATE_ARCHIVES:-true}
+PUBLISH_FTP=${NCIT_PUBLISH_FTP:-false}
+FTP_HOST=${NCIT_FTP_HOST:-ncicbftp2.nci.nih.gov}
+FTP_DIRECTORY=${NCIT_FTP_DIRECTORY:-cacore/EVS/upload}
 
-echo "Cleaning up old files"
-./cleanup.sh $downloadDir $dataDir $cleanBeforeDays
-echo
- 
-echo FETCH FILE
-echo "***********************"
-echo 
-echo $dataDir/$1
-#cp $downloadDir/$1 $dataDir/$1
-cp $downloadDir/$1 $dataDir/$assertedFilename
+log() {
+  echo "$TERMINOLOGY.sh: $*"
+}
 
-inferredFileName=`echo $assertedFilename | sed 's/^C[a-zA-Z]*/&Inf/'`
-echo Inferred File Name $inferredFileName
+fail() {
+  log "ERROR: $*"
+  exit 1
+}
 
-thisVersion=`echo $1 | sed 's/^T[a-zA-Z]*-//' | sed 's/[0-9]*//' | sed 's/\.[^\.]*$//' | sed 's/\-//'`
-echo This Version $thisVersion
+require_file() {
+  [[ -f $1 ]] || fail "$2 ($1) not found"
+}
 
-echo
-echo "***************************"
-echo 
-echo Generate OWL Inferred file
-echo
-echo "***************************"
-echo
+require_executable() {
+  [[ -x $1 ]] || fail "$2 ($1) not found or not executable"
+}
 
-cd ./GenerateOWLAPIInferred
-java -Xmx20000m -jar ./GenerateOWLAPIInferred-2.0-jar-with-dependencies.jar $prefix$dataDir/$assertedFilename
-cd ..
+pre_condition_check() {
+  [[ $# -eq 2 ]] || fail "Usage: $0 <asserted-owl-file> <stardog-load-pid>"
+  [[ -s $INPUT_FILE ]] || fail "NCIt input file ($INPUT_FILE) not found or empty"
+  [[ -d $INPUT_DIRECTORY ]] || fail "Input directory ($INPUT_DIRECTORY) not found"
+  [[ -d $OUTPUT_DIRECTORY ]] || fail "Output directory ($OUTPUT_DIRECTORY) not found"
+  [[ $(basename "$INPUT_FILE") == *"Thesaurus"* ]] ||
+    fail "NCIt asserted input filename must contain Thesaurus: $INPUT_FILE"
 
+  command -v "$JAVA_COMMAND" >/dev/null 2>&1 || fail "Java command ($JAVA_COMMAND) not found"
+  require_file "$INFERENCE_JAR" "NCIt inference JAR"
+  require_file "$SCRUBBER_JAR" "OWL scrubber JAR"
+  require_file "$SCRUBBER_PROPERTIES" "OWL scrubber properties"
+  command -v perl >/dev/null 2>&1 || fail "perl command not found"
+  [[ -d $DISJOINT_DIRECTORY ]] || fail "Disjoint processor directory ($DISJOINT_DIRECTORY) not found"
 
-assertedPath=$prefix$dataDir/$assertedFilename
-inferredPath=$prefix$dataDir/$inferredFileName
-sedFile=$inferredFileName-forProduction.owl
-echo $sedFile
+  if [[ $CREATE_ARCHIVES == true ]]; then
+    command -v zip >/dev/null 2>&1 || fail "zip command not found"
+  fi
+  if [[ $PUBLISH_FTP == true ]]; then
+    [[ $CREATE_ARCHIVES == true ]] ||
+      fail "NCIT_CREATE_ARCHIVES must be true when NCIT_PUBLISH_FTP=true"
+    command -v ftp >/dev/null 2>&1 || fail "ftp command not found"
+    [[ -n $NCIT_FTP_USER && -n $NCIT_FTP_PASSWORD ]] ||
+      fail "NCIT_FTP_USER and NCIT_FTP_PASSWORD are required when NCIT_PUBLISH_FTP=true"
+  fi
+}
 
-#Get the version and filenames
-version=$(echo $1 | sed 's/.*\-//' | sed 's/\.owl//')
+generate_inferred_owl() {
+  local generated_file=${INPUT_FILE/Thesaurus/ThesaurusInf}
+  local java_options
+  read -r -a java_options <<<"${NCIT_INFERENCE_JAVA_OPTS:--Xmx20000m}"
 
+  log "Generating inferred OWL from $INPUT_FILE"
+  "$JAVA_COMMAND" "${java_options[@]}" -jar "$INFERENCE_JAR" "file://$INPUT_FILE" 2>&1
+  [[ -s $generated_file ]] || fail "Inference did not create the expected file: $generated_file"
+  INFERRED_OWL=$generated_file
+}
 
-echo "Working with asserted file: " $assertedPath
-echo "Working with inferred file: " $inferredPath
+run_lvg() {
+  # LVG's command parser treats hyphens in -i/-o path values as new options.
+  # Preserve MasterCTRP's runLVG.sh behavior by using fixed, hyphen-free names.
+  local lvg_input=$OUTPUT_DIRECTORY/lvg_input.owl
+  LVG_OWL=$OUTPUT_DIRECTORY/lvg_output.owl
+  log "Running LVG"
+  cp "$INFERRED_OWL" "$lvg_input"
+  (
+    cd "$LVG_DIRECTORY"
+    "$LVG_COMMAND" -f:q0 '-s:\t' -F:2 -i:"$lvg_input" -o:"$LVG_OWL"
+  ) 2>&1
+  [[ -s $LVG_OWL ]] || fail "LVG did not create the expected file: $LVG_OWL"
 
-echo
-echo "*************************"
-echo
-echo  "Processed Inferred File"
-echo
-echo "***********************"
-echo
+  # LVG transliterates the Unicode less-than-or-equal sign to a raw "<=",
+  # which is not legal XML character data. Keep the transliteration XML-safe.
+  perl -pi -e 's/ <= / \&lt;= /g' "$LVG_OWL"
+}
 
+scrub_inferred_owl() {
+  local java_options
+  SCRUBBED_OWL=$OUTPUT_DIRECTORY/$(basename "$INFERRED_OWL")-forProduction.owl
+  read -r -a java_options <<<"${NCIT_SCRUBBER_JAVA_OPTS:---add-opens=java.base/java.lang=ALL-UNNAMED -Xmx15000M}"
 
+  log "Scrubbing inferred OWL for production"
+  (
+    cd "$SCRUBBER_DIRECTORY"
+    "$JAVA_COMMAND" "${java_options[@]}" -jar "$SCRUBBER_JAR" \
+      -C "$SCRUBBER_PROPERTIES" -E -N "file://$INFERRED_OWL" -O "file://$SCRUBBED_OWL"
+  ) 2>&1
+  [[ -s $SCRUBBED_OWL ]] || fail "OWL scrubber did not create the expected file: $SCRUBBED_OWL"
+}
 
-#Run LVG
-echo ----------------------------
-echo STARTING LVG
-sh runLVG.sh $inferredPath
-LVGOutput=$inferredPath-lvg.owl
-echo LVG FINISHED
-echo LVG output $LVGOutput
+make_by_code_owl() {
+  log "Converting production OWL to by-code form"
+  perl -pi -e '
+    s#<P386 rdf:datatype="http://www.w3.org/2001/XMLSchema\#string"></P386>##g;
+    s#<P385 rdf:datatype="http://www.w3.org/2001/XMLSchema\#string"></P385>##g;
+    s#<P378 rdf:datatype="http://www.w3.org/2001/XMLSchema\#string"></P378>##g;
+    s#<P378 rdf:datatype="http://www.w3.org/2001/XMLSchema\#string">NCI</P378>#<P378>NCI</P378>#g;
+    s#<term-group#<P383#g;
+    s#</term-group#</P383#g;
+    s#<term-source#<P384#g;
+    s#</term-source#</P384#g;
+  ' "$SCRUBBED_OWL"
+  [[ -s $SCRUBBED_OWL ]] || fail "By-code conversion left an empty OWL file: $SCRUBBED_OWL"
+  cp "$SCRUBBED_OWL" "$FINAL_OWL"
+}
 
-#ProtegeKbQA
-#echo ----------------------------
-#echo PERFORMING PROTEGEKBQA
-#cd ./ProtegeKbQA
-#QAOutput=$1_CTRP_QA.txt
-#echo The output file is $QAOutput
-#java -jar ./owlnciqa-2.0.0-jar-with-dependencies.jar -c config/nciowlqa.properties -i $assertedFilename -o $QAOutput
-#cd /local/content/vocab_processing_OWL2
+apply_disjoint_axioms() {
+  local legacy_disjoint_owl=${FINAL_OWL%.owl}_disjoint.owl
+  local current_disjoint_owl=$FINAL_OWL-disjoint.owl
+  local disjoint_owl
+  local java_options
+  read -r -a java_options <<<"${NCIT_DISJOINT_JAVA_OPTS:--Xms512m -Xmx8g}"
 
-#Scrub inferred file for Production
-echo SCRUBBING INFERRED FILE FOR PRODUCTION
-cd OWLScrubber
+  log "Applying disjoint axioms"
+  (
+    cd "$DISJOINT_DIRECTORY"
+    "$JAVA_COMMAND" "${java_options[@]}" -cp "$DISJOINT_CLASSPATH" "$DISJOINT_CLASS" "$FINAL_OWL"
+  ) 2>&1
+  if [[ -s $legacy_disjoint_owl ]]; then
+    disjoint_owl=$legacy_disjoint_owl
+  elif [[ -s $current_disjoint_owl ]]; then
+    disjoint_owl=$current_disjoint_owl
+  else
+    fail "Disjoint processing did not create $legacy_disjoint_owl or $current_disjoint_owl"
+  fi
+  mv "$disjoint_owl" "$FINAL_OWL"
+}
 
-ProdOutput=$inferredPath-forProduction.owl
-echo the output file is $ProdOutput
-java -Xmx15000M -jar ./owlscrubber-2.1.0-jar-with-dependencies.jar -C ./owlscrubber.properties -E -N $LVGOutput -O $ProdOutput
-cd /local/content/vocab_processing_OWL2
+create_publication_artifacts() {
+  local ftp_zip=$OUTPUT_DIRECTORY/ThesaurusInferred_forTS.zip
 
-#echo Check that NCI-DEFCURATOR replaced
-#./grepTest.sh $ProdOutput
+  [[ $CREATE_ARCHIVES == true ]] || return 0
 
+  log "Creating FTP publication archive"
+  (
+    cd "$OUTPUT_DIRECTORY"
+    zip "$(basename "$ftp_zip")" "$(basename "$FINAL_OWL")"
+  )
+}
 
-#Run through OWLDiff and grep
-#echo -------------------------------
-#echo RUN OWLDIFF
-#cd OWLDiff
-#outputDiff="file:///local/content/ProcessingData/CTRP_Diff.txt"
-#java -Xmx8000m -jar ./owldiff-2.0.0-jar-with-dependencies.jar -i $inferredPath -p $previousInferredPath -o $outputDiff
+publish_ftp_artifacts() {
+  [[ $PUBLISH_FTP == true ]] || return 0
 
-#grep --file=./config/diffClean.txt /local/content/ProcessingData/CTRP_Diff.txt > /local/content/ProcessingData/Grepped_CTRP_Diff.txt
-#cd /local/content/vocab_processing_OWL2
-
-
-#TEMPORARY
-echo Making ByCode through Sed
-#Sed the file to get rid of Term Source, etc
- cd OWLScrubber/scripts
- ./Sed_Command_Script_byCode.sh $dataDir/$sedFile
- cd ../../
-cp $dataDir/$sedFile $dataDir/ThesaurusInferred_forTS.owl
-
-
-
-##########################
-### Apply Disjoint 
-cd $disjointDir 
-java -Xms512m -Xmx8g OWLDisjointWithProcessor  $dataDir/ThesaurusInferred_forTS.owl
-
-sleep 10s
-cp $dataDir/ThesaurusInferred_forTS_disjoint.owl $dataDir/ThesaurusInferred_forTS.owl
-
-##########################
-
-echo
-echo "********************"
-echo
-echo  "Preparing FTP"
-echo
-echo "*******************"
-echo
-echo "Changing to the data directory"
-cd $dataDir
-
-echo "Creating Flat File"
-../bin/owl2rdf $dataDir/ThesaurusInferred_forTS.owl > $dataDir/ThesaurusInferred_forTS.rdf
-
-echo "zipping Stardog data" 
-inferredByCodeStardog="ThesaurusInf-"$version".STARDOG.zip"
-zip $inferredByCodeStardog ThesaurusInferred_forTS.owl ThesaurusInferred_forTS.rdf
-zip ThesaurusInferred_forTS.both.zip ThesaurusInferred_forTS.owl ThesaurusInferred_forTS.rdf
-
-echo "Creating CTRP zip filenames"
-#Set zip filenames
-inferredByCodeZip="ThesaurusInf_"$version".CTRP.zip"
-
-echo "Zipping files for publication"
-##Zip the files
-zip $inferredByCodeZip ThesaurusInferred_forTS.owl
-echo Zip file is $inferredByCodeZip
-## wait for zipping to complete
-sleep 10s
-
-#echo "Connecting to CTRP AWS and uploading files"
-#aws s3 cp $inferredByCodeZip  s3://stardog-upload-int/$inferredByCodeZip --sse=AES256 --profile ctrp
-
-cp $inferredByCodeZip ThesaurusInferred_forTS.zip
-
-echo "Placing file on FTP"
-ftp -n $uploadHost <<ENDSCRIPT1
-quote USER $ftpUser1
-quote PASS $ftpPassword1
-cd $uploadDir
+  log "Publishing NCIt archive to $FTP_HOST/$FTP_DIRECTORY"
+  (
+    cd "$OUTPUT_DIRECTORY"
+    ftp -n "$FTP_HOST" <<EOF
+quote USER $NCIT_FTP_USER
+quote PASS $NCIT_FTP_PASSWORD
+cd $FTP_DIRECTORY
 binary
 put ThesaurusInferred_forTS.zip
-put ThesaurusInferred_forTS.both.zip
 quit
-ENDSCRIPT1
+EOF
+  )
+}
 
-#echo "Placing file on AWS"
-#login = $awsdevUser@awsdevServer
-#echo $login
-#ftp $awsdevUser@$awsdevServer <<ENDSCRIPT1
-#cd $awsdevDir
-#binary
-#put ThesaurusInferred_forTS.zip
-#quit
-#ENDSCRIPT1
+pre_condition_check "$@"
+INPUT_FILE="$(cd "$(dirname "$INPUT_FILE")" >/dev/null 2>&1 && pwd)/$(basename "$INPUT_FILE")"
+log "Processing asserted OWL: $INPUT_FILE"
+generate_inferred_owl
+# run_lvg
+scrub_inferred_owl
+make_by_code_owl
+apply_disjoint_axioms
+create_publication_artifacts
+publish_ftp_artifacts
 
-#echo "Placing file on AWS"
-#login = $awsqaUser@awsqaServer
-#echo $login
-#ftp $awsqaUser@$awsqaServer <<ENDSCRIPT1
-#cd $awsqaDir
-#binary
-#put ThesaurusInferred_forTS.zip
-#quit
-#ENDSCRIPT1
-
-echo ""
-echo "**********************"
-echo "MASTER SCRIPT FINISHED"
+# stardog_load.sh consumes the last output line as the transformed OWL path.
+echo "$FINAL_OWL"
