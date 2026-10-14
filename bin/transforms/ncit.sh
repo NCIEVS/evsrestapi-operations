@@ -197,7 +197,7 @@ scrub_inferred_owl
 make_by_code_owl
 apply_disjoint_axioms
 create_publication_artifacts
-publish_ftp_artifacts
+#publish_ftp_artifacts
 
 # stardog_load.sh consumes the last output line as the transformed OWL path.
 echo "$FINAL_OWL"
