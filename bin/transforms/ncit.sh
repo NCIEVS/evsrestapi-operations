@@ -14,18 +14,16 @@ WORK_DIRECTORY=${NCIT_WORK_DIRECTORY:-$EVS_OPS_HOME/bin/work_$PID}
 INPUT_DIRECTORY=$WORK_DIRECTORY/input
 OUTPUT_DIRECTORY=$WORK_DIRECTORY/output
 
-# MasterCTRP.sh expected these tools under this installation. Each location is
-# configurable so the transform can also be exercised outside that server.
-PROCESSING_HOME=${NCIT_PROCESSING_HOME:-/local/content/vocab_processing_OWL2}
-INFERENCE_JAR=${NCIT_INFERENCE_JAR:-$EVS_OPS_HOME/legacy/GenerateOWLAPIInferred/GenerateOWLAPIInferred-2.0-jar-with-dependencies.jar}
-LVG_DIRECTORY=${NCIT_LVG_DIRECTORY:-$PROCESSING_HOME/lvg2015}
-LVG_COMMAND=${NCIT_LVG_COMMAND:-$LVG_DIRECTORY/bin/lvg}
-SCRUBBER_DIRECTORY=${NCIT_SCRUBBER_DIRECTORY:-$PROCESSING_HOME/OWLScrubber}
+# The operations archive contains the NCIt tools under Maven-style resources.
+# Keep individual overrides for installations that supply their own tools.
+NCIT_RESOURCES=$EVS_OPS_HOME/src/main/resources/ncit
+INFERENCE_JAR=${NCIT_INFERENCE_JAR:-$NCIT_RESOURCES/inference/GenerateOWLAPIInferred-2.0-jar-with-dependencies.jar}
+SCRUBBER_DIRECTORY=${NCIT_SCRUBBER_DIRECTORY:-$NCIT_RESOURCES/OWLScrubber}
 SCRUBBER_JAR=${NCIT_SCRUBBER_JAR:-$SCRUBBER_DIRECTORY/owlscrubber-2.1.0-jar-with-dependencies.jar}
 SCRUBBER_PROPERTIES=${NCIT_SCRUBBER_PROPERTIES:-$SCRUBBER_DIRECTORY/owlscrubber.properties}
-DISJOINT_DIRECTORY=${NCIT_DISJOINT_DIRECTORY:-$PROCESSING_HOME/disjoint}
-DISJOINT_CLASSPATH=${NCIT_DISJOINT_CLASSPATH:-$DISJOINT_DIRECTORY}
-DISJOINT_CLASS=${NCIT_DISJOINT_CLASS:-OWLDisjointWithProcessor}
+DISJOINT_DIRECTORY=${NCIT_DISJOINT_DIRECTORY:-$NCIT_RESOURCES/disjoint}
+DISJOINT_CLASSPATH=${NCIT_DISJOINT_CLASSPATH:-$DISJOINT_DIRECTORY/classes}
+DISJOINT_CLASS=${NCIT_DISJOINT_CLASS:-gov.nih.nci.evs.OWLDisjointWithProcessor}
 JAVA_COMMAND=${JAVA_COMMAND:-java}
 
 FINAL_OWL=$OUTPUT_DIRECTORY/ThesaurusInferred_forTS.owl
@@ -138,7 +136,7 @@ make_by_code_owl() {
 }
 
 apply_disjoint_axioms() {
-  local legacy_disjoint_owl=${FINAL_OWL%.owl}_disjoint.owl
+  local underscored_disjoint_owl=${FINAL_OWL%.owl}_disjoint.owl
   local current_disjoint_owl=$FINAL_OWL-disjoint.owl
   local disjoint_owl
   local java_options
@@ -149,12 +147,12 @@ apply_disjoint_axioms() {
     cd "$OUTPUT_DIRECTORY"
     "$JAVA_COMMAND" "${java_options[@]}" -cp "$DISJOINT_CLASSPATH" "$DISJOINT_CLASS" "$FINAL_OWL"
   ) 2>&1
-  if [[ -s $legacy_disjoint_owl ]]; then
-    disjoint_owl=$legacy_disjoint_owl
+  if [[ -s $underscored_disjoint_owl ]]; then
+    disjoint_owl=$underscored_disjoint_owl
   elif [[ -s $current_disjoint_owl ]]; then
     disjoint_owl=$current_disjoint_owl
   else
-    fail "Disjoint processing did not create $legacy_disjoint_owl or $current_disjoint_owl"
+    fail "Disjoint processing did not create $underscored_disjoint_owl or $current_disjoint_owl"
   fi
   mv "$disjoint_owl" "$FINAL_OWL"
 }

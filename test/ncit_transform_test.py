@@ -34,7 +34,6 @@ def test_ncit_transform_runs_master_ctrp_pipeline(tmp_path: Path) -> None:
     inference_jar = tool_directory / "inference.jar"
     scrubber_jar = tool_directory / "scrubber.jar"
     scrubber_properties = tool_directory / "scrubber.properties"
-    by_code_script = ROOT / "legacy" / "OWLScrubber" / "scripts" / "Sed_Command_Script_byCode.sh"
     inference_jar.write_text("mock\n")
     scrubber_jar.write_text("mock\n")
     scrubber_properties.write_text("mock\n")
@@ -77,7 +76,6 @@ fi
             "NCIT_SCRUBBER_DIRECTORY": str(tool_directory),
             "NCIT_SCRUBBER_JAR": str(scrubber_jar),
             "NCIT_SCRUBBER_PROPERTIES": str(scrubber_properties),
-            "NCIT_BY_CODE_SCRIPT": str(by_code_script),
             "NCIT_DISJOINT_DIRECTORY": str(disjoint_directory),
         }
     )
