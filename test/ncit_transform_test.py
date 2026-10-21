@@ -27,14 +27,17 @@ def test_ncit_transform_runs_master_ctrp_pipeline(tmp_path: Path) -> None:
     input_file.write_text(
         '<term-group rdf:datatype="test">PT</term-group>\n'
         '<term-source rdf:datatype="test">NCI</term-source>\n'
+        '<P378 rdf:datatype="http://www.w3.org/2001/XMLSchema#string">NCI</P378>\n'
+        '<P385 rdf:datatype="http://www.w3.org/2001/XMLSchema#string"></P385>\n'
+        '<rdf:Description rdf:about="term-group">\n'
     )
     inference_jar = tool_directory / "inference.jar"
     scrubber_jar = tool_directory / "scrubber.jar"
     scrubber_properties = tool_directory / "scrubber.properties"
+    by_code_script = ROOT / "legacy" / "OWLScrubber" / "scripts" / "Sed_Command_Script_byCode.sh"
     inference_jar.write_text("mock\n")
     scrubber_jar.write_text("mock\n")
     scrubber_properties.write_text("mock\n")
-
     java_command = tool_directory / "java"
     write_executable(
         java_command,
@@ -74,6 +77,7 @@ fi
             "NCIT_SCRUBBER_DIRECTORY": str(tool_directory),
             "NCIT_SCRUBBER_JAR": str(scrubber_jar),
             "NCIT_SCRUBBER_PROPERTIES": str(scrubber_properties),
+            "NCIT_BY_CODE_SCRIPT": str(by_code_script),
             "NCIT_DISJOINT_DIRECTORY": str(disjoint_directory),
         }
     )
@@ -91,6 +95,9 @@ fi
     final_content = final_owl.read_text()
     assert '<P383 rdf:datatype="test">PT</P383>' in final_content
     assert '<P384 rdf:datatype="test">NCI</P384>' in final_content
+    assert '<P378>NCI</P378>' in final_content
+    assert '<rdf:Description rdf:about="P383">' in final_content
+    assert '<P385' not in final_content
     assert final_content.endswith("disjoint\n")
     ftp_zip = output_directory / "ThesaurusInferred_forTS.zip"
     assert ftp_zip.is_file()
