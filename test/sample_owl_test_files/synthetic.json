@@ -1,0 +1,9 @@
+{
+    "code": "Code",
+    "preferredName": "ncit:P108",
+    "synonym": ["P107", "P108"],
+    "definition": ["IAO_0000115"],
+    "synonymTermType": "TermType",
+    "conceptStatus": "owl:deprecated",
+    "hierarchy": true
+}

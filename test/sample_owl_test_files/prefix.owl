@@ -1,0 +1,8 @@
+<r:RDF xml:base="http://example.org/prefix"
+       xmlns:r="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+       xmlns:o="http://www.w3.org/2002/07/owl#">
+  <o:Class r:about="http://example.org/prefix#Deprecated">
+    <Code>C1</Code>
+    <o:deprecated>true</o:deprecated>
+  </o:Class>
+</r:RDF>
