@@ -34,15 +34,26 @@ JENKINS_URL + JENKINS_USER + JENKINS_TOKEN
 
 3. If multiple complete Jenkins credential sets are present, ask the user which one to use.
 4. If no complete Jenkins credential set is present, stop and ask the user to set Jenkins URL, username, and API token environment variables.
-5. Assign the selected values to local shell variables for commands in that run:
+5. Assign the selected values to local shell variables for commands in that run. `NCI_JENKINS_URL` may contain only the origin (`https://evs-jenkins.nci.nih.gov`), while the API is served under `/jenkins`; normalize it before constructing job URLs:
 
 ```bash
-JENKINS_BASE_URL="https://evs-jenkins.nci.nih.gov/jenkins"
+JENKINS_BASE_URL="${NCI_JENKINS_URL%/}"
+case "$JENKINS_BASE_URL" in
+  */jenkins) ;;
+  *) JENKINS_BASE_URL="$JENKINS_BASE_URL/jenkins" ;;
+esac
 JENKINS_AUTH_USER="$NCI_JENKINS_USER"
 JENKINS_AUTH_TOKEN="$NCI_JENKINS_API_TOKEN"
 ```
 
-Memory from prior successful session: credentials were loaded from `~/.zprofile` using `NCI_JENKINS_USER` and `NCI_JENKINS_API_TOKEN`. The Jenkins API base was `https://evs-jenkins.nci.nih.gov/jenkins/`.
+6. Validate the normalized API base before composing job URLs. A `200` response confirms both the context path and credentials:
+
+```bash
+curl -sS --fail -u "$JENKINS_AUTH_USER:$JENKINS_AUTH_TOKEN" \
+  "$JENKINS_BASE_URL/api/json?tree=url"
+```
+
+Known working values: credentials are loaded from `~/.zprofile` using `NCI_JENKINS_USER` and `NCI_JENKINS_API_TOKEN`; the API base is `https://evs-jenkins.nci.nih.gov/jenkins` even when `NCI_JENKINS_URL` omits `/jenkins`.
 
 ## User Choices
 
@@ -100,28 +111,35 @@ The Makefile pushes the tag to `origin`.
 
 ## Jenkins Jobs
 
-Build job:
+Construct the known job URLs from the validated base rather than appending job paths directly to the raw environment value:
 
-```text
-https://evs-jenkins.nci.nih.gov/jenkins/job/_default/job/_lower/job/_Evsrestapi/job/operations_build_AWS/
+```bash
+EVSRESTAPI_FOLDER_URL="$JENKINS_BASE_URL/job/_default/job/_lower/job/_Evsrestapi"
+BUILD_JOB_URL="$EVSRESTAPI_FOLDER_URL/job/operations_build_AWS"
+DEV_DEPLOY_JOB_URL="$EVSRESTAPI_FOLDER_URL/job/operations_deploy_dev_AWS"
+QA_DEPLOY_JOB_URL="$EVSRESTAPI_FOLDER_URL/job/operations_deploy_qa_AWS"
 ```
 
-Dev deploy job:
+If a known job URL returns `404`, list the EVSRESTAPI folder once rather than guessing paths:
 
-```text
-https://evs-jenkins.nci.nih.gov/jenkins/job/_default/job/_lower/job/_Evsrestapi/job/operations_deploy_dev_AWS/
+```bash
+curl -sS --fail -u "$JENKINS_AUTH_USER:$JENKINS_AUTH_TOKEN" \
+  "$EVSRESTAPI_FOLDER_URL/api/json?tree=jobs[name,url]"
 ```
 
-QA deploy job:
+Expected job names are:
 
 ```text
-https://evs-jenkins.nci.nih.gov/jenkins/job/_default/job/_lower/job/_Evsrestapi/job/operations_deploy_qa_AWS/
+operations_build_AWS
+operations_deploy_dev_AWS
+operations_deploy_qa_AWS
 ```
 
 Before triggering a job, read its parameter schema:
 
 ```bash
-curl -sS -u "$JENKINS_AUTH_USER:$JENKINS_AUTH_TOKEN" "$JOB_URL/api/json?tree=name,url,buildable,nextBuildNumber,property%5BparameterDefinitions%5Bname,type,description,defaultParameterValue%5Bvalue%5D,choices%5D%5D"
+curl -sS --fail -u "$JENKINS_AUTH_USER:$JENKINS_AUTH_TOKEN" \
+  "$JOB_URL/api/json?tree=name,url,buildable,nextBuildNumber,property%5BparameterDefinitions%5Bname,type,description,defaultParameterValue%5Bvalue%5D,choices%5D%5D"
 ```
 
 ## Build Workflow
@@ -191,5 +209,6 @@ Poll deploy queue and build results the same way as the build job. Report each J
 ## Failure Handling
 
 - If Jenkins returns a login page or anonymous permission error, credentials were not applied correctly; re-check loaded environment variables.
+- If the API or job URL returns `404`, first confirm that `JENKINS_BASE_URL` ends in `/jenkins`, validate `$JENKINS_BASE_URL/api/json`, and then list jobs from `$EVSRESTAPI_FOLDER_URL`; do not keep guessing URL variants.
 - If a deploy fails immediately, read `consoleText` and verify `BUILD_TAG_OR_BRANCH` was the build display name.
 - If build fails, do not deploy; report the build URL and the relevant console output.
