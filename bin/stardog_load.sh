@@ -11,7 +11,7 @@ config=1
 help=0
 weekly=0
 transform_only=0
-commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db" "init")
+commands=("print_env" "list" "remove" "patch" "metadata" "drop_ctrp_db" "init" "audit")
 
 l_graph_db_type=${GRAPH_DB_TYPE:-"stardog"}
 l_graph_db_home=""
@@ -57,11 +57,12 @@ print_help(){
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
   echo "  e.g. $0 init"
+  echo "  e.g. $0 audit --csv load ncit"
   echo "  e.g. $0 list_compaction_tasks"
   exit 1
 }
 
-if [[ "${arr[0]}" != "remove" && "${arr[0]}" != "patch" && "${arr[0]}" != "metadata" ]]; then
+if [[ "${arr[0]}" != "remove" && "${arr[0]}" != "patch" && "${arr[0]}" != "metadata" && "${arr[0]}" != "audit" ]]; then
   if [[ ${#arr[@]} -ne 1 ]]; then
     print_help
   fi
@@ -669,7 +670,7 @@ run_commands(){
   for command in "${commands[@]}"; do
     if [[ $data == $command* ]]; then
       echo "running command $data"
-      if [[ $ncflag == 0 ]]; then
+      if [[ $config -eq 1 ]]; then
         $DIR/run_command.sh "${arr[@]}" 2>&1
       else
         $DIR/run_command.sh --noconfig "${arr[@]}" 2>&1

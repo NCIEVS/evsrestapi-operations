@@ -1,0 +1,30 @@
+<rdf:RDF xml:base="http://example.org/equivalent"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:ObjectProperty rdf:about="#has_part"><Code>has_part</Code></owl:ObjectProperty>
+  <owl:Class rdf:about="#Parent"><Code>PARENT</Code></owl:Class>
+  <owl:Class rdf:about="#ParentTwo"><Code>PARENT2</Code></owl:Class>
+  <owl:Class rdf:about="#NestedNotParent"><Code>NESTED</Code></owl:Class>
+  <owl:Class rdf:about="#Child">
+    <Code>CHILD</Code>
+    <owl:equivalentClass>
+      <owl:Class>
+        <owl:intersectionOf rdf:parseType="Collection">
+          <rdf:Description rdf:about="#Parent"/>
+          <rdf:Description rdf:about="#ParentTwo"/>
+          <owl:Restriction>
+            <owl:onProperty rdf:resource="#has_part"/>
+            <owl:someValuesFrom>
+              <owl:Class>
+                <owl:intersectionOf rdf:parseType="Collection">
+                  <rdf:Description rdf:about="#NestedNotParent"/>
+                </owl:intersectionOf>
+              </owl:Class>
+            </owl:someValuesFrom>
+          </owl:Restriction>
+        </owl:intersectionOf>
+      </owl:Class>
+    </owl:equivalentClass>
+  </owl:Class>
+</rdf:RDF>
