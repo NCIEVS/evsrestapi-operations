@@ -324,9 +324,46 @@ if [[ $es -eq 1 ]]; then
 
 if [[ $quiet -eq 0 ]]; then echo "  List elasticsearch indexes ...`/bin/date`"; fi
 
-curl -s "$ES/evs_metadata/_search?size=10000"  |\
-    $jq | grep terminologyVersion | perl -pe 's/(?<!snomedct)_/ /; s/.*"\: ?"//; s/".*//' |\
-    sort -u -o /tmp/x.txt
+# latest and tags are stored on the nested terminology object in evs_metadata.
+curl -s "$ES/evs_metadata/_search?size=10000" | jq -r '
+    def terminology_version_parts($terminologyVersion):
+      ($terminologyVersion // "") as $value |
+      if ($value | startswith("snomedct_us_")) then
+        ["snomedct_us", ($value | sub("^snomedct_us_"; ""))]
+      else
+        try ($value | capture("^(?<terminology>[^_]+)_(?<version>.*)$") | [.terminology, .version])
+        catch [$value, ""]
+      end;
+    def tag_keys:
+      if . == null then
+        []
+      elif type == "object" then
+        to_entries | sort_by(.key) | map(.key)
+      elif type == "array" then
+        map(tostring) | sort
+      else
+        []
+      end;
+    .hits.hits[]._source as $source |
+    (if ($source.terminology | type) == "object" then $source.terminology else {} end) as $terminology |
+    (if (($terminology.terminology // "") != "" and ($terminology.version // "") != "") then
+      [$terminology.terminology, $terminology.version]
+    else
+      terminology_version_parts($source.terminologyVersion)
+    end) as $terminologyVersion |
+    [
+      $terminologyVersion[0],
+      $terminologyVersion[1],
+      (if ($terminology | has("latest")) then
+        $terminology.latest
+      elif ($source | has("latest")) then
+        $source.latest
+      else
+        null
+      end | tostring),
+      ((($terminology.tags // $source.tags) | tag_keys) | join(" "))
+    ] | @tsv
+' | perl -pe 's/\t/ /g;' | sort -u -o /tmp/x.$$.txt
 
 if [[ $? -ne 0 ]]; then
     echo "ERROR: problem looking up indexes"
@@ -335,43 +372,43 @@ fi
 
 if [[ $quiet -eq 0 ]]; then
 
-    sort /tmp/x.txt| sed 's/^/    /'
+    sort /tmp/x.$$.txt| sed 's/^/    /'
 
     # Fix up versions for compare
     curl -s "$ES/_cat/indices" | grep concept_ | cut -d\  -f 3 | perl -pe 's/concept_//; s/_/ /; s/ us_/_us /;' |\
        perl -ne 'chop; @_=split/ /; print "$_[0] $_[1]\n" ' |\
-       sort -u -o /tmp/y.txt
+       sort -u -o /tmp/y.$$.txt
 
     curl -s "$ES/_cat/indices" | grep evs_object_ | cut -d\  -f 3 | perl -pe 's/evs_object_//; s/_/ /; s/ us_/_us /;' |\
        perl -ne 'chop; @_=split/ /; print "$_[0] $_[1]\n" ' |\
-       sort -u -o /tmp/z.txt
+       sort -u -o /tmp/z.$$.txt
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -23 - /tmp/y.$$.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: evs_metadata entries without concept indexes"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/y.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -23 - /tmp/y.$$.txt | sed 's/^/    /'
     fi
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -13 - /tmp/y.$$.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: concept indexes without evs_metadata entries"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/y.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -13 - /tmp/y.$$.txt | sed 's/^/    /'
     fi
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -23 - /tmp/z.$$.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: evs_metadata entries without evs_object indexes"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -23 - /tmp/z.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -23 - /tmp/z.$$.txt | sed 's/^/    /'
     fi
 
-    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | wc -l`
+    ct=`perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -13 - /tmp/z.$$.txt | wc -l`
     if [ $ct -ne 0 ]; then
         echo "WARNING: evs_object indexes without evs_metadata entries"
-        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.txt | comm -13 - /tmp/z.txt | sed 's/^/    /'
+        perl -ne 'chop; @_=split/ /; $_[1]=~ s/[\-\.]//g; $_[1] = lc($_[1]); print "$_[0] $_[1]\n"' /tmp/x.$$.txt | comm -13 - /tmp/z.$$.txt | sed 's/^/    /'
     fi
 
 else
-    sort /tmp/x.$$ | sed 's/^/es|/'
+    sort /tmp/x.$$.txt | sed 's/^/es|/'
 fi
 
 fi

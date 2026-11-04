@@ -1,0 +1,13 @@
+<rdf:RDF xml:base="http://example.org/hgnc"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#">
+  <owl:Class rdf:about="http://www.w3.org/2002/07/owl#Thing"/>
+  <owl:Class rdf:about="http://example.org/hgnc#gene_with_protein_product">
+    <rdfs:label>gene with protein product</rdfs:label>
+  </owl:Class>
+  <owl:Class rdf:about="http://example.org/hgnc#HGNC_1">
+    <hgnc_id>HGNC:1</hgnc_id>
+    <rdfs:subClassOf rdf:resource="http://example.org/hgnc#gene_with_protein_product"/>
+  </owl:Class>
+</rdf:RDF>

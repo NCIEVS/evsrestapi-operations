@@ -14,6 +14,7 @@ print_help(){
   echo "  e.g. $0 metadata ncit 20.09d /local/content/downloads/ncit.json"
   echo "  e.g. $0 drop_ctrp_db"
   echo "  e.g. $0 init"
+  echo "  e.g. $0 audit --csv load ncit"
   echo "  e.g. $0 list_compaction_tasks"
   exit 1
 }
@@ -230,6 +231,25 @@ run_init() {
     exit 0
 }
 
+run_audit_command(){
+    echo "  Running audit.sh ...$(/bin/date)"
+    audit_args=()
+    for token in "${arr[@]}"; do
+      if [[ $token == "audit" ]]; then
+        continue
+      fi
+      audit_args+=("$token")
+    done
+    "$DIR/audit.sh" $ncflag "${audit_args[@]}" 2>&1
+    exit_code=$?
+    if [[ $exit_code -ne 0 ]]; then
+      echo "ERROR: audit.sh failed with exit code $exit_code"
+      exit $exit_code
+    fi
+    print_completion
+    exit 0
+}
+
 list_compaction_tasks(){
   echo "Listing compaction tasks ..."
   curl -i -X GET "$GRAPH_DB_URL/$/tasks"
@@ -256,6 +276,9 @@ run_commands(){
   fi
   if [[ $data == "init" ]]; then
     run_init
+  fi
+  if [[ $data == "audit" ]]; then
+    run_audit_command
   fi
   if [[ $data == "list_compaction_tasks" ]]; then
     list_compaction_tasks
