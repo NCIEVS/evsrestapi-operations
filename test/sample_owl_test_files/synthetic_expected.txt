@@ -1,0 +1,23 @@
+http://example.org/test#C0	C0	Label	Root Parent
+http://example.org/test#C1	C1	ncit:P108	Preferred One
+http://example.org/test#C1	C1	IAO_0000115	Line one line two & more
+http://example.org/test#C1	C1	owl:disjointWith	C5
+http://example.org/test#C1	C1	rdfs:subClassOf/owl:Restriction~has_part	C2
+http://example.org/test#C1	C1	owl:equivalentClass/owl:Restriction~related_to	C4
+http://example.org/test#Deprecated	C6	owl:deprecated	true
+http://example.org/test#C1	C1	qualifier-P108~TermType~PT	Preferred One~PT
+http://example.org/test#C1	C1	qualifier-P108~Source	Preferred One~Alpha
+http://example.org/test#C1	C1	qualifier-P108~TermType~SY	Preferred Two~SY
+http://example.org/test#C1	C1	parent-style1	C0
+http://example.org/test#C1	C0	child-style1	C1
+http://example.org/test#C1	C1	parent-style2	C3
+http://example.org/test#C1	C3	child-style2	C1
+http://example.org/test#C0	C0	max-children	1
+http://example.org/test#C8	C8	parent-count1
+http://example.org/test#C1	C1	parent-count2
+http://example.org/test#C0	C0	root
+http://example.org/test#C2	C2	root
+http://example.org/test#C3	C3	root
+http://example.org/test#C4	C4	root
+http://example.org/test#C5	C5	root
+http://example.org/test#C7	C7	root

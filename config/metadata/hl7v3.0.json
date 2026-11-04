@@ -21,5 +21,6 @@
   "detailsColumns": {
     "synonyms-source": true,
     "synonyms-termType": true
-  }
+  },
+  "duplicateCodes": true
 }
