@@ -21,8 +21,12 @@ into the operations installation, so that `bin/`, `lib/`, `config/`, and `data/`
 directly under `EVS_OPS_HOME`. Gradle and the source checkouts are not needed at
 runtime. `build-info.json` records the evsrestapi and operations commits the ZIP was
 built from; deploy a server and operations built from the same pair. The operations
-CI workflow builds against the evsrestapi commit in the `EVSRESTAPI_CORE_REF`
-repository variable.
+CI workflow uses the full commit SHA supplied by the manual `evsrestapi_ref` input
+or the `EVSRESTAPI_CORE_REF` repository variable. When neither is set, it uses the
+matching branch name in evsrestapi. It resolves that branch once and pins all three
+platform jobs to the resulting SHA, recorded in the job summary. A matching branch
+must exist and contain `evsrestapi-core`; CI does not fall back to an unrelated
+default branch. Set an explicit SHA for release builds or operations-only branches.
 
 The scripts and the API read the existing
 `${APP_HOME:-/local/content/evsrestapi}/config/setenv.sh` (or

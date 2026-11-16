@@ -3,11 +3,47 @@ on:
   workflow_dispatch:
     inputs:
       evsrestapi_ref:
-        description: Exact paired evsrestapi migration commit SHA
-        required: true
+        description: Paired evsrestapi commit SHA (defaults to the matching branch)
+        required: false
+        type: string
   pull_request:
 jobs:
+  paired_source:
+    name: Resolve paired evsrestapi revision
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      api_ref: ${{ steps.pin.outputs.sha }}
+    steps:
+      - name: Select paired source
+        id: select
+        env:
+          API_REF: ${{ inputs.evsrestapi_ref || vars.EVSRESTAPI_CORE_REF }}
+          API_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          if [[ -n "$API_REF" ]]; then
+            [[ "$API_REF" =~ ^[0-9a-f]{40}$ ]] || { echo 'evsrestapi_ref or EVSRESTAPI_CORE_REF must be a full commit SHA'; exit 1; }
+            source_ref="$API_REF"
+          else
+            [[ -n "$API_BRANCH" ]] || { echo 'No matching branch; set EVSRESTAPI_CORE_REF to the paired commit SHA'; exit 1; }
+            source_ref="refs/heads/$API_BRANCH"
+          fi
+          printf 'ref=%s\n' "$source_ref" >> "$GITHUB_OUTPUT"
+      - name: Checkout paired source
+        uses: actions/checkout@v4
+        with:
+          repository: NCIEVS/evsrestapi
+          ref: ${{ steps.select.outputs.ref }}
+      - name: Pin paired source revision
+        id: pin
+        run: |
+          [[ -f evsrestapi-core/build.gradle ]] || { echo 'The paired checkout must contain evsrestapi-core'; exit 1; }
+          api_sha=$(git rev-parse HEAD)
+          printf 'sha=%s\n' "$api_sha" >> "$GITHUB_OUTPUT"
+          printf 'Paired evsrestapi commit: `%s`\n' "$api_sha" >> "$GITHUB_STEP_SUMMARY"
   verify:
+    needs: paired_source
     strategy:
       fail-fast: false
       matrix:
@@ -28,15 +64,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: evsrestapi-operations
-      - name: Require an explicitly paired source revision
-        env:
-          API_REF: ${{ inputs.evsrestapi_ref || vars.EVSRESTAPI_CORE_REF }}
-        run: |
-          [[ "$API_REF" =~ ^[0-9a-f]{40}$ ]] || { echo 'Set EVSRESTAPI_CORE_REF to the tested paired commit SHA'; exit 1; }
       - uses: actions/checkout@v4
         with:
           repository: NCIEVS/evsrestapi
-          ref: ${{ inputs.evsrestapi_ref || vars.EVSRESTAPI_CORE_REF }}
+          ref: ${{ needs.paired_source.outputs.api_ref }}
           path: evsrestapi
       - uses: actions/setup-java@v4
         with:
