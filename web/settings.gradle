@@ -1,0 +1,11 @@
+pluginManagement { repositories { gradlePluginPortal(); mavenCentral() } }
+rootProject.name = 'evsrestapi-operations'
+def apiHome = providers.gradleProperty('evsrestapiDir').orElse(providers.environmentVariable('EVSRESTAPI_SOURCE')).getOrElse('../../evsrestapi')
+def source = file(apiHome)
+if (!new File(source, 'evsrestapi-core/build.gradle').isFile()) {
+  throw new GradleException("Missing migrated evsrestapi checkout: ${source}. Set -PevsrestapiDir or EVSRESTAPI_SOURCE.")
+}
+includeBuild(source) {
+  name = 'evsrestapi'
+  dependencySubstitution { substitute module('gov.nih.nci.evs.api:evsrestapi-core') using project(':evsrestapi-core') }
+}

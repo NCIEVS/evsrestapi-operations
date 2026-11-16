@@ -1,10 +1,9 @@
 #!/bin/bash -f
-#
-# This script is maintained in both evsrestapi and evsrestapi-operations.
-# If this script is changed, make the same change in the other repository.
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
 #
 # This script produces audit reports by querying Elasticsearch for evs_audit data.
 #
+set -o pipefail
 
 config=1
 help=0
@@ -82,15 +81,7 @@ setup_configuration() {
     # Set directory of this script so we can call relative scripts
     DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
     if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    if [[ -e $CONFIG_ENV_FILE ]]; then
-      . $CONFIG_ENV_FILE
-    else
-      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-      exit 1
-    fi
+    ops_load_config 1 || exit 1
   fi
 }
 
@@ -168,12 +159,17 @@ fi
 
 # recent flag restricts only to audits that happened in the last 24 hours
 if [[ $recent -eq 1 ]]; then
-    start_date=$(date -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-    end_date=$(date +%Y-%m-%dT%H:%M:%SZ)
+    date_range=$("${OPS_PYTHON:-python3}" - <<'PY'
+from datetime import datetime, timedelta, timezone
+end = datetime.now(timezone.utc)
+print((end - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ"), end.strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+    ) || exit 1
+    read -r start_date end_date <<< "$date_range"
     q="$q AND (date:[$start_date TO $end_date] OR startDate:[$start_date TO $end_date])"
 fi
 
-data=$(query_es "$q" | jq -r "$filter")
+data=$(query_es "$q" | jq -r "$filter") || exit 1
 
 # Final output with format conversion if needed
 if [[ -n "$data" ]]; then

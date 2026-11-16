@@ -1,4 +1,8 @@
 #!/bin/bash
+set -e
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/ops-common.sh"
+ops_lock "$@"
+[[ "$#" -ge 2 && "$2" =~ ^[0-9]+$ ]] || { echo "Usage: $0 <input-file> <process-id> [options]" >&2; exit 1; }
 TERMINOLOGY="medrt"
 TERMINOLOGY_URL="${3:-http://ncicb.nci.nih.gov/MEDRT.owl}"
 PID=$2
@@ -22,25 +26,31 @@ cleanup() {
   fi
 }
 pre_condition_check(){
-if [ ! -d $INPUT_DIRECTORY ]; then
+if [ ! -d "$INPUT_DIRECTORY" ]; then
   echo "No input directory ($INPUT_DIRECTORY) found. Exiting"
   cleanup 1
 fi
 
-if [ ! -d $OUTPUT_DIRECTORY ]; then
+if [ ! -d "$OUTPUT_DIRECTORY" ]; then
   echo "No output directory ($OUTPUT_DIRECTORY) found. Exiting"
   cleanup 1
 fi
 }
 setup() {
-  python3 -m venv "$VENV_DIRECTORY" 2>&1
+  "${OPS_PYTHON:-python3}" -m venv "$VENV_DIRECTORY" 2>&1
+  if [[ -d "$VENV_DIRECTORY/Scripts" ]]; then
+    VENV_BIN_DIRECTORY="$VENV_DIRECTORY/Scripts"
+    VENV_PYTHON="$VENV_BIN_DIRECTORY/python.exe"
+  else
+    VENV_PYTHON="$VENV_BIN_DIRECTORY/python"
+  fi
   source "$VENV_BIN_DIRECTORY"/activate
-  "$VENV_BIN_DIRECTORY"/pip install poetry 2>&1
+  "$VENV_PYTHON" -m pip install poetry 2>&1
   # Setting the URL lib to a specific version to avoid upgrading OpenSSL version
-  "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15" 2>&1
+  "$VENV_PYTHON" -m pip install "urllib3 <=1.26.15" 2>&1
   pushd "$EVS_OPS_HOME" || exit
-  "$VENV_BIN_DIRECTORY"/poetry install 2>&1
-  popd "$EVS_OPS_HOME" || exit
+  "$VENV_PYTHON" -m poetry install 2>&1
+  popd || exit
 }
 
 get_input_file() {
@@ -50,7 +60,7 @@ get_input_file() {
 
 generate_standard_format_files() {
   echo "generating MED-RT standard format files at $OUTPUT_DIRECTORY. Input XML:$1"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/med_rt.py -d "$1" -o "$OUTPUT_DIRECTORY" 2>&1
+  "$VENV_PYTHON" -m poetry run python "$EVS_OPS_HOME"/src/terminology_converter/converter/med_rt.py -d "$1" -o "$OUTPUT_DIRECTORY" 2>&1
 }
 
 generate_owl_file() {
@@ -58,8 +68,8 @@ generate_owl_file() {
   local terminology_upper=$(echo "$TERMINOLOGY" | tr '[:lower:]' '[:upper:]')
   local version=$(grep '<version>' "$1" | perl -pe 's/.*<version>//; s/<\/version>//; s/^\s+|\s+$//g;')
   local versioned_owl_file="$dir/${terminology_upper}_$version.owl"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${version}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}" 2>&1
-  mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file"
+  "$VENV_PYTHON" -m poetry run python "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${version}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}" 2>&1 || return $?
+  mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file" || return $?
   echo "$versioned_owl_file"
 }
 

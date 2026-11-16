@@ -1,4 +1,6 @@
 #!/bin/bash -f
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
+ops_lock "$@"
 #
 # This script takes a reference to a terminology metadata .json file
 # and overrides the evs_metadata entry for the specified terminology/version.
@@ -55,16 +57,8 @@ echo "uri = $uri"
 # Setup configuration
 echo "  Setup configuration"
 if [[ $config -eq 1 ]]; then
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
+    ops_load_config 1 || exit 1
     echo "    config = $CONFIG_ENV_FILE"
-    . $CONFIG_ENV_FILE
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: $CONFIG_ENV_FILE does not exist or has a problem"
-        echo "       consider using --noconfig (if working in dev environment)"
-        exit 1
-    fi
 elif [[ -z $ES_SCHEME ]]; then
     echo "ERROR: ES_SCHEME is not set"
     exit 1

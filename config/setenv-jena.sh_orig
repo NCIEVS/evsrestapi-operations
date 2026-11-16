@@ -1,6 +1,6 @@
 
 #
-# Stardog config
+# Jena config
 #
 
 # Path to jena installation
@@ -8,13 +8,18 @@ export GRAPH_DB_HOME=/local/content/apache-jena-fuseki-5.1.0
 
 # Credentials with write permissions needed
 export GRAPH_DB_TYPE=jena
-export GRAPH_DB_DB=NCIT2
+export GRAPH_DB=NCIT2
+export GRAPH_DB_DB="$GRAPH_DB"
 export GRAPH_DB_USERNAME=admin
 export GRAPH_DB_PASSWORD=admin
 export GRAPH_DB_SCHEME=http
 export GRAPH_DB_HOST=localhost
 export GRAPH_DB_PORT=3030
 export GRAPH_DB_URL=${GRAPH_DB_SCHEME}://${GRAPH_DB_HOST}:${GRAPH_DB_PORT}
+# Let loader query URLs follow GRAPH_DB when workflows switch databases.
+# Leave GRAPH_DB_MONTHLY_QUERY_URL unset for operations loaders.
+# Seconds the loader waits for one concept batch from the graph DB.
+# export GRAPH_DB_BATCH_TIMEOUT=900
 
 #
 # Elasticsearch config
@@ -23,3 +28,14 @@ export ES_SCHEME=http
 export ES_HOST=localhost
 export ES_PORT=9200
 export ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
+# Private operations API. Set ADMIN_KEY in the protected local setenv.sh.
+export ADMIN_KEY=""
+export ADMIN_BIND=127.0.0.1
+export ADMIN_PORT=8083
+# export EVS_OPS_HOME=/local/content/evsrestapi-operations
+# Keep this state directory stable across distribution upgrades.
+# export OPS_STATE_DIR=/local/content/evsrestapi/config/operations-state
+# export OPS_PYTHON=python3
+# export OPS_BASH=bash
+# export ADMIN_JAVA_OPTS="-Xmx512m"
+# JAVA_OPTS remains the loader JVM setting.

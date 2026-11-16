@@ -1,4 +1,6 @@
 #!/bin/bash -f
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
+ops_lock "$@"
 #
 # This script takes a parameter locating a data file.
 # If the data file is a remote file, it downloads that file
@@ -71,6 +73,9 @@ elif [[ $help -eq 1 ]]; then
 fi
 
 data=${arr[0]}
+if command -v cygpath >/dev/null 2>&1 && [[ -e "$data" ]]; then
+  data=$(cygpath -u "$data")
+fi
 
 print_env(){
   echo "Printing Environment"
@@ -85,7 +90,7 @@ print_env(){
   java -version
   if [[ $config -eq 1 ]]; then
     echo "Printing config file: $CONFIG_ENV_FILE"
-    cat "$CONFIG_ENV_FILE"
+    echo "Configuration values are omitted; inspect the protected file locally."
   fi
   if [[ $l_graph_db_type == "jena" ]]; then
     if [[ -n $GRAPH_DB_URL ]]; then
@@ -168,7 +173,7 @@ optimize_stardog_db() {
   optimize_db=$1
   if [[ $l_graph_db_type == "stardog" ]]; then
     echo "  optimize_stardog_db ($optimize_db) ...$(/bin/date)"
-    $l_graph_db_home/bin/stardog-admin db optimize -n $optimize_db -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+    "$l_graph_db_home/bin/stardog-admin" db optimize -n "$optimize_db" -u "$l_graph_db_username" -p "$l_graph_db_password" | sed 's/^/    /'
     if [[ $? -ne 0 ]]; then
       echo "    ERROR: Problem optimizing stardog ($optimize_db)"
       cleanup 1
@@ -215,16 +220,8 @@ compact_db(){
 
 setup_configuration() {
   if [[ $config -eq 1 ]]; then
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    if [[ -e $CONFIG_ENV_FILE ]]; then
-      echo "    config = $CONFIG_ENV_FILE"
-      . $CONFIG_ENV_FILE
-    else
-      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-      exit 1
-    fi
+    ops_load_config 1 || exit 1
+    echo "    config = $CONFIG_ENV_FILE"
   fi
 }
 
@@ -276,7 +273,7 @@ validate_setup() {
 }
 
 get_file_extension() {
-  local extension=$(echo $1 | perl -pe 's/.*\.//;')
+  local extension=$(echo "$1" | perl -pe 's/.*\.//;')
   if [[ "x$extension" == "" ]]; then
     echo "    ERROR: unable to find file extension = $1"
     exit 1
@@ -285,7 +282,7 @@ get_file_extension() {
 }
 
 get_file_name() {
-  echo $1 | perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'
+  echo "$1" | perl -pe 's/^.*\///; s/([^\.]+)\..{2,5}$/$1/;'
 }
 
 get_owl_files() {
@@ -298,9 +295,9 @@ get_owl_files() {
   # Loop through all the owl files in $INPUT_DIRECTORY. Ignore the OWL specified as the first
   while IFS= read -r filename; do
     # Add filename to the array 
-    filenames+=("$filename")
+    [[ -z "$filename" ]] || filenames+=("$filename")
   done <<<"$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" ! -name "*$2*" -print | sort)"
-  echo "${filenames[*]}"
+  printf '%s\n' "${filenames[@]}"
 }
 
 set_transformed_owl() {
@@ -355,7 +352,7 @@ get_terminology() {
 }
 
 get_version() {
-  version=$(grep '<owl:versionInfo' $1 | perl -pe 's/.*<owl:versionInfo[^>]*>(.*?)<\/owl:versionInfo>.*/\1/')
+  version=$(grep '<owl:versionInfo' "$1" | perl -pe 's/.*<owl:versionInfo[^>]*>(.*?)<\/owl:versionInfo>.*/\1/')
   if [[ -z "$version" ]]; then
     echo $(head -100 "$1" | grep 'owl:versionIRI' | perl -pe "s/.*\/(.*)\/$2.*/\1/")
   else
@@ -382,8 +379,8 @@ get_data() {
     first_file_name="$INPUT_DIRECTORY"/f$$."$first_file_datafile"."$first_file_dataext"
     for url in "${array[@]}"; do
       echo "    download = $url"
-      datafile=$(get_file_name $url)
-      dataext=$(get_file_extension $url)
+      datafile=$(get_file_name "$url")
+      dataext=$(get_file_extension "$url")
       # there is no usable file name at the end of Canmed URLs. So using known string in the URL as file names
       if [[ $url == *"hcpcs"* ]]; then
         datafile="hcpcs"
@@ -418,7 +415,7 @@ extract_zipped_files() {
   if [ -f "$1" ]; then
     if [[ $dataext == "zip" ]]; then
       echo "    extracting zip file"
-      unzip "$1" -d "$INPUT_DIRECTORY"
+      unzip "$1" -d "$INPUT_DIRECTORY" || { echo "ERROR: Problem unzipping file $1"; cleanup 1; }
       first_file_name=$(find "$INPUT_DIRECTORY" -maxdepth 1 -type f -name "*.owl" | head -n 1)
       first_file_datafile=$(get_file_name "$first_file_name")
       first_file_dataext=$(get_file_extension "$first_file_name")
@@ -426,7 +423,7 @@ extract_zipped_files() {
     if [[ $dataext == "gz" ]]; then
       echo "    extracting gz file"
       # Based on gz naming convention, assuming the first part of the gz file name is the owl file name.
-      gunzip "$INPUT_DIRECTORY"/f$$."$datafile"
+      gunzip "$1" || { echo "ERROR: Problem unzipping file $1"; cleanup 1; }
       dataext=$(get_file_extension "$datafile")
       datafile=$(get_file_name "$datafile")
       first_file_datafile="$datafile"
@@ -453,7 +450,11 @@ apply_transformations() {
       transformation_script=$DIR/transforms/"$terminology_lower".sh
       if [[ -e $transformation_script ]]; then
         echo "    Applying transformations for $terminology"
-        script_output=$("$transformation_script" "$file" $$)
+        script_output=$("$transformation_script" "$file" $$) || {
+          echo "$script_output"
+          echo "ERROR: failed to create $terminology owl file"
+          cleanup 1
+        }
         set_transformed_owl "$terminology" "$script_output"
         set_load_variables_of_transform
         break
@@ -472,7 +473,7 @@ apply_transformations() {
 
 validate_owl_file() {
   # Verify that owl file is an owl file
-  if [[ $dataext == "owl" ]] && [[ $(head -100 $file | grep -c owl:Ontology) -eq 0 ]]; then
+  if [[ $dataext == "owl" ]] && [[ $(head -100 "$file" | grep -c owl:Ontology) -eq 0 ]]; then
     echo "ERROR: no owl:Ontology declaration in first 100 lines"
     cleanup 1
   fi
@@ -527,7 +528,7 @@ qa_owl_file() {
     echo "  SKIP QA on $file ...$(/bin/date)"
   else
     echo "  Run QA on $file ...$(/bin/date)"
-    $DIR/stardog_qa.sh $terminology $file $weekly $INPUT_DIRECTORY >/tmp/x.$$.log 2>&1
+    "$DIR/stardog_qa.sh" "$terminology" "$file" "$weekly" "$INPUT_DIRECTORY" >/tmp/x.$$.log 2>&1
     if [[ $? -ne 0 ]]; then
       cat /tmp/x.$$.log | sed 's/^/    /;'
       echo "ERROR: QA errors, re-run with --force to bypass this"
@@ -538,7 +539,7 @@ qa_owl_file() {
 
 check_if_version_exists() {
   # determine if there's a problem (duplicate graph/version)
-  ct=$($DIR/list.sh $ncflag --quiet --graphdb | perl -pe 's/$l_graph_db_type/    /; s/\|/ /g;' | grep "$db.*$graph" | wc -l)
+  ct=$("$DIR/list.sh" $ncflag --quiet --graphdb | perl -pe 's/$l_graph_db_type/    /; s/\|/ /g;' | grep "$db.*$graph" | wc -l)
   if [[ $? -ne 0 ]]; then
     echo "ERROR: problem running list.sh"
     cleanup 1
@@ -553,7 +554,7 @@ check_if_version_exists() {
 remove_graph() {
   echo "    Removing graph: $1. Db: $2"
   if [[ $l_graph_db_type == "stardog" ]]; then
-    $l_graph_db_home/bin/stardog data remove -g $1 $2 -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+    "$l_graph_db_home/bin/stardog" data remove -g "$1" "$2" -u "$l_graph_db_username" -p "$l_graph_db_password" | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
     curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f "$l_graph_db_url/$2/update" -d"update=DROP GRAPH <$1>"
   fi
@@ -576,7 +577,7 @@ force_remove_graph() {
 load_data() {
   echo "  Load data ($db) ...$(/bin/date)"
   if [[ $l_graph_db_type == "stardog" ]]; then
-    $l_graph_db_home/bin/stardog data add $db -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+    "$l_graph_db_home/bin/stardog" data add "$db" -g "$graph" "$file" -u "$l_graph_db_username" -p "$l_graph_db_password" | sed 's/^/    /'
   elif [[ $l_graph_db_type == "jena" ]]; then
     echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/$db/data?graph=$graph"
     curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph"
@@ -589,7 +590,7 @@ load_data() {
   if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then
     echo "  Load data weekly_db ...$(/bin/date)"
     if [[ $l_graph_db_type == "stardog" ]]; then
-      $l_graph_db_home/bin/stardog data add "$weekly_db" -g $graph $file -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+      "$l_graph_db_home/bin/stardog" data add "$weekly_db" -g "$graph" "$file" -u "$l_graph_db_username" -p "$l_graph_db_password" | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
       echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $file $l_graph_db_url/$weekly_db/data?graph=$graph"
       curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$weekly_db/data?graph=$graph"
@@ -607,10 +608,10 @@ load_extra_owl_files() {
   for of in "${owl_files[@]:1}"; do
     echo "    Loading $of"
     if [[ $l_graph_db_type == "stardog" ]]; then
-      $l_graph_db_home/bin/stardog data add $db -g $graph $of -u $l_graph_db_username -p $l_graph_db_password | sed 's/^/    /'
+      "$l_graph_db_home/bin/stardog" data add "$db" -g "$graph" "$of" -u "$l_graph_db_username" -p "$l_graph_db_password" | sed 's/^/    /'
     elif [[ $l_graph_db_type == "jena" ]]; then
       echo "    curl -i -s -u ${l_graph_db_username}:**** -f -X POST -H \"Content-Type: application/rdf+xml\" -T $of $l_graph_db_url/$db/data?graph=$graph"
-      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$file" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
+      curl -i -s -u "${l_graph_db_username}:$l_graph_db_password" -f -X POST -H "Content-Type: application/rdf+xml" -T "$of" "$l_graph_db_url/$db/data?graph=$graph" > /dev/null
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: Problem loading $l_graph_db_type ($db)"
@@ -622,11 +623,11 @@ load_extra_owl_files() {
 remove_older_versions() {
   # Remove older versions here
   maxVersions=1
-  if [[ $(grep -c maxVersions $DIR/../config/metadata/$terminology.json) -gt 0 ]]; then
-    maxVersions=$(grep maxVersions $DIR/../config/metadata/$terminology.json | perl -pe 's/.*\:\s*(\d+),.*/$1/;')
+  if [[ $(grep -c maxVersions "$DIR/../config/metadata/$terminology.json") -gt 0 ]]; then
+    maxVersions=$(grep maxVersions "$DIR/../config/metadata/$terminology.json" | perl -pe 's/.*\:\s*(\d+),.*/$1/;')
   fi
   echo "  Remove old monthly version (maxVersions=$maxVersions) ...$(/bin/date)"
-  monthly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w NCIT2 | awk -F\| '{print $5}' | sort)
+  monthly_graphs=$("$DIR/list.sh" $ncflag --quiet --graphdb | grep -w $terminology | grep -w NCIT2 | awk -F\| '{print $5}' | sort)
   monthly_graphs_array=(${monthly_graphs})
   echo "  Found ${#monthly_graphs_array[@]} versions"
   if [[ ${#monthly_graphs_array[@]} -gt maxVersions ]]; then
@@ -636,7 +637,7 @@ remove_older_versions() {
   fi
 
   echo "  Remove old weekly versions (will keep only 1)...$(/bin/date)"
-  weekly_graphs=$($DIR/list.sh $ncflag --quiet --graphdb | grep -w $terminology | grep -w "$weekly_db" | awk -F\| '{print $5}' | sort)
+  weekly_graphs=$("$DIR/list.sh" $ncflag --quiet --graphdb | grep -w $terminology | grep -w "$weekly_db" | awk -F\| '{print $5}' | sort)
   weekly_graphs_array=(${weekly_graphs})
   for graph_to_remove in "${weekly_graphs_array[@]:0:${#weekly_graphs_array[@]}-1}"; do
     remove_graph "$graph_to_remove" "$weekly_db"
@@ -646,7 +647,7 @@ remove_older_versions() {
 cleanup() {
   # cleanup log files
   local code=$1
-  /bin/rm $DIR/f$$.$datafile.$dataext /tmp/x.$$.log >/dev/null 2>&1
+  /bin/rm "$DIR/f$$.$datafile.$dataext" /tmp/x.$$.log >/dev/null 2>&1
 
   # if there are work* directories in $DIR then remove an directories that are older than 30 days
   find "$DIR" -maxdepth 1 -type d -name "work*" -mtime +30 -exec /bin/rm -rf {} \; >/dev/null 2>&1
@@ -671,9 +672,9 @@ run_commands(){
     if [[ $data == $command* ]]; then
       echo "running command $data"
       if [[ $config -eq 1 ]]; then
-        $DIR/run_command.sh "${arr[@]}" 2>&1
+        "$DIR/run_command.sh" "${arr[@]}" 2>&1
       else
-        $DIR/run_command.sh --noconfig "${arr[@]}" 2>&1
+        "$DIR/run_command.sh" --noconfig "${arr[@]}" 2>&1
       fi
 
       exit_code=$?
@@ -729,8 +730,8 @@ run_commands
 validate_and_populate_dbs
 
 echo "  Put data in standard location - $INPUT_DIRECTORY ...$(/bin/date)"
-dataext=$(get_file_extension $data)
-datafile=$(get_file_name $data)
+dataext=$(get_file_extension "$data")
+datafile=$(get_file_name "$data")
 echo "  get_data...$(/bin/date)"
 get_data
 file="$INPUT_DIRECTORY"/f$$.$datafile.$dataext
@@ -740,9 +741,11 @@ if [[ $dataext == "zip" ]] || [[ $dataext == "gz" ]]; then
 fi
 echo "  first_file_name: $first_file_name"
 echo "  first_file_datafile: $first_file_datafile"
-str_owl_files=$(get_owl_files "$first_file_name" "$first_file_datafile")
-echo "  str_owl_files:$str_owl_files"
-read -r -a owl_files <<<"$str_owl_files"
+owl_files=()
+while IFS= read -r owl; do
+  [[ -z "$owl" ]] || owl_files+=("$owl")
+done < <(get_owl_files "$first_file_name" "$first_file_datafile")
+printf '  owl_file:%s\n' "${owl_files[@]}"
 if [ "${#owl_files[@]}" -gt 0 ]; then
   owl_file=${owl_files[0]}
 fi
@@ -781,7 +784,7 @@ echo "  load_data...$(/bin/date)"
 load_data
 load_extra_owl_files
 remove_older_versions
-optimize_stardog_db $db
+optimize_stardog_db "$db"
 compact_dbs
 # For monthly ncit, also loaded into weekly db. So optimize
 if [[ $terminology == "ncit" ]] && [[ $weekly -eq 0 ]]; then

@@ -1,4 +1,8 @@
 #!/bin/bash
+set -e
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/ops-common.sh"
+ops_lock "$@"
+[[ "$#" -ge 2 && "$2" =~ ^[0-9]+$ ]] || { echo "Usage: $0 <input-file> <process-id> [options]" >&2; exit 1; }
 TERMINOLOGY="canmed"
 TERMINOLOGY_URL="${3:-http://seer.nci.nih.gov/CanMED.owl}"
 PID=$2
@@ -22,34 +26,42 @@ cleanup() {
   fi
 }
 pre_condition_check(){
-if [ ! -d $INPUT_DIRECTORY ]; then
+if [ ! -d "$INPUT_DIRECTORY" ]; then
   echo "No input directory ($INPUT_DIRECTORY) found. Exiting"
   cleanup 1
 fi
 
-if [ ! -d $OUTPUT_DIRECTORY ]; then
+if [ ! -d "$OUTPUT_DIRECTORY" ]; then
   echo "No output directory ($OUTPUT_DIRECTORY) found. Exiting"
   cleanup 1
 fi
 }
 setup() {
-  python3 -m venv "$VENV_DIRECTORY" 2>&1
+  "${OPS_PYTHON:-python3}" -m venv "$VENV_DIRECTORY" 2>&1
+  if [[ -d "$VENV_DIRECTORY/Scripts" ]]; then
+    VENV_BIN_DIRECTORY="$VENV_DIRECTORY/Scripts"
+    VENV_PYTHON="$VENV_BIN_DIRECTORY/python.exe"
+  else
+    VENV_PYTHON="$VENV_BIN_DIRECTORY/python"
+  fi
   source "$VENV_BIN_DIRECTORY"/activate
-  "$VENV_BIN_DIRECTORY"/pip install poetry 2>&1
+  "$VENV_PYTHON" -m pip install poetry 2>&1
   # Setting the URL lib to a specific version to avoid upgrading OpenSSL version
-  "$VENV_BIN_DIRECTORY"/pip install "urllib3 <=1.26.15" 2>&1
+  "$VENV_PYTHON" -m pip install "urllib3 <=1.26.15" 2>&1
   pushd "$EVS_OPS_HOME" || exit
-  "$VENV_BIN_DIRECTORY"/poetry install 2>&1
-  popd "$EVS_OPS_HOME" || exit
+  "$VENV_PYTHON" -m poetry install 2>&1
+  popd || exit
 }
 
 generate_standard_format_files() {
   echo "generating ${TERMINOLOGY} standard format files at $OUTPUT_DIRECTORY"
-  local hcpcs_file=${1/canmed/hcpcs}
-  local ndconc_file=${1/canmed/ndconc}
+  local input_directory="$(dirname -- "$1")"
+  local input_file="$(basename -- "$1")"
+  local hcpcs_file="$input_directory/${input_file/canmed/hcpcs}"
+  local ndconc_file="$input_directory/${input_file/canmed/ndconc}"
   echo "hcpcs_file:$hcpcs_file. ndconc_file:${ndconc_file}"
   if [ -e "$hcpcs_file" ] && [ -e "$ndconc_file" ]; then
-    "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/canmed.py -d "$hcpcs_file" -n "$ndconc_file" -o "$OUTPUT_DIRECTORY" 2>&1
+    "$VENV_PYTHON" -m poetry run python "$EVS_OPS_HOME"/src/terminology_converter/converter/canmed.py -d "$hcpcs_file" -n "$ndconc_file" -o "$OUTPUT_DIRECTORY" 2>&1
   else
     echo "hcpcs.csv and ndconc.csv not found in $INPUT_DIRECTORY. Cannot perform Canmed transformation"
     exit 1
@@ -60,8 +72,8 @@ generate_owl_file() {
   echo "generating ${TERMINOLOGY} owl file at $OUTPUT_DIRECTORY"
   local terminology_upper=$(echo "$TERMINOLOGY" | tr '[:lower:]' '[:upper:]')
   local versioned_owl_file="$dir/${terminology_upper}_$date.owl"
-  "$VENV_BIN_DIRECTORY"/poetry run python3 "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${date}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}" 2>&1
-  mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file"
+  "$VENV_PYTHON" -m poetry run python "$EVS_OPS_HOME"/src/terminology_converter/converter/owl_file_converter.py -u "${TERMINOLOGY_URL}" -v "${date}" -i "${OUTPUT_DIRECTORY}" -o "${OUTPUT_DIRECTORY}" -t "${TERMINOLOGY}" 2>&1 || return $?
+  mv "$OUTPUT_DIRECTORY/$TERMINOLOGY.owl" "$versioned_owl_file" || return $?
   echo "$versioned_owl_file"
 }
 

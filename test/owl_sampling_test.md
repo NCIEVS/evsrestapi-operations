@@ -1,4 +1,4 @@
-﻿# owl_sampling_test.py Notes
+# owl_sampling_test.py Notes
 
 This file explains what each test in `owl_sampling_test.py` is protecting.  The
 tests exercise `bin/owl_sampling.py` directly because the sampler is an
@@ -17,7 +17,7 @@ If this loader fails, first check whether someone moved, renamed, or changed
 
 ## Shared Synthetic Fixture
 
-`SYNTHETIC_OWL` lives in `sample_test_files/synthetic.owl`.  It is a small
+`SYNTHETIC_OWL` lives in `sample_owl_test_files/synthetic.owl`.  It is a small
 OWL/RDF file made for tests.  It puts many edge cases in one place so the
 golden test stays fast and stable:
 
@@ -39,7 +39,7 @@ golden test stays fast and stable:
 - duplicate synonym qualifier checks, which the sampler should de-dupe
 - multiple qualifier values for unique qualifier sampling
 
-`SYNTHETIC_CONFIG` lives in `sample_test_files/synthetic.json`.  It is the
+`SYNTHETIC_CONFIG` lives in `sample_owl_test_files/synthetic.json`.  It is the
 metadata JSON for that small OWL file:
 
 - `code`: concept code property
@@ -53,9 +53,9 @@ metadata JSON for that small OWL file:
 ## test_generate_samples_from_synthetic_owl
 
 This is the main exact-output test.  It passes the `synthetic.owl` and
-`synthetic.json` files from `sample_test_files/` to `generate_samples()`, then
+`synthetic.json` files from `sample_owl_test_files/` to `generate_samples()`, then
 asserts the exact TSV row sequence matches
-`sample_test_files/synthetic_expected.txt`.
+`sample_owl_test_files/synthetic_expected.txt`.
 
 It protects these behaviors:
 
@@ -412,7 +412,7 @@ If one of these fails, check these first:
 
 ## When Adding Tests
 
-Prefer a small synthetic OWL fixture in `sample_test_files/` for one edge case.
+Prefer a small synthetic OWL fixture in `sample_owl_test_files/` for one edge case.
 Real OWL smoke tests help, but they are slower and depend on external files in
 `UNIT_TEST_DATA_DIR`.
 

@@ -1,4 +1,5 @@
 #!/bin/bash -f
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
 #
 # This script lists databases, terminologies, versions, graphs
 # available in the configured graph db and elasticsearch.
@@ -61,16 +62,8 @@ fi
 
 setup_configuration() {
   if [[ $config -eq 1 ]]; then
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    if [[ -e $CONFIG_ENV_FILE ]]; then
-      echo "    config = $CONFIG_ENV_FILE"
-      . $CONFIG_ENV_FILE
-    else
-      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-      exit 1
-    fi
+    ops_load_config 1 || exit 1
+    echo "    config = $CONFIG_ENV_FILE"
   fi
 }
 
@@ -142,7 +135,7 @@ get_databases(){
     echo "    curl -s -g -u \"${l_graph_db_username}:****\" \"http://${l_graph_db_host}:${l_graph_db_port}/admin/databases\""
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
         "http://${l_graph_db_host}:${l_graph_db_port}/admin/databases" |\
-        python3 "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
+        "${OPS_PYTHON:-python3}" "$DIR/get_databases.py" "$GRAPH_DB_TYPE" > /tmp/db.$$.txt
   elif [[ $l_graph_db_type == "jena" ]]; then
     # query ES for the databases. The databases are stored in the configuration index. if the index does not exist, print an error and exit
     # check if the configuration index exists
@@ -278,7 +271,7 @@ for db in `cat /tmp/db.$$.txt`; do
     curl -s -g -u "${l_graph_db_username}:$l_graph_db_password" \
         http://${l_graph_db_host}:${l_graph_db_port}/$db/query \
         --data-urlencode "$query" -H "Accept: application/sparql-results+json" |\
-        python3 "$DIR/get_graphs.py" "$db" >> /tmp/y.$$.txt
+        "${OPS_PYTHON:-python3}" "$DIR/get_graphs.py" "$db" >> /tmp/y.$$.txt
     if [[ $? -ne 0 ]]; then
         echo "ERROR: unexpected problem obtaining $db versions from $l_graph_db_type"
         exit 1

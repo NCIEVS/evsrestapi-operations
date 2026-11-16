@@ -1,4 +1,6 @@
 #!/bin/bash -f
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
+ops_lock "$@"
 
 force=0
 config=1
@@ -48,10 +50,12 @@ URLS=(
 
 echo "Bulk Stardog Load Started: $(date)" | tee -a "$logfile"
 
+failed=0
 for url in "${URLS[@]}"; do
   echo "Loading: $url" | tee -a "$logfile"
-  "$DIR"/stardog_load.sh $ncflag $( [[ $force -eq 1 ]] && echo "--force" ) "$url" >>"$logfile" 2>&1
-  if [[ $? -ne 0 ]]; then
+  "$DIR"/stardog_load.sh $ncflag $( [[ $force -eq 1 ]] && echo "--force" ) "$url" 2>&1 | tee -a "$logfile"
+  if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+    failed=1
     echo "  ERROR loading $url (see $logfile)" | tee -a "$logfile"
   else
     echo "  SUCCESS loading $url" | tee -a "$logfile"
@@ -59,3 +63,4 @@ for url in "${URLS[@]}"; do
 done
 
 echo "Bulk Stardog Load Complete: $(date)" | tee -a "$logfile"
+exit "$failed"
