@@ -22,16 +22,21 @@ For development testing, pass
 `--output-dir ./output/dev`. Select the environment explicitly; the script
 uses the supplied endpoint or exported configuration.
 
-From the operations repository root:
+Python 3.9 or later is required. Poetry is optional: generation and the
+PharmSub tests can use Python's built-in `venv` and pip.
+
+From the operations repository root, run this setup once:
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install 'openpyxl==3.1.5' 'lxml==5.4.0'
 ```
 
-The dependency versions match `poetry.lock`. Include `lxml` so multiline
-text, including carriage returns, is preserved by the Excel writer. The
-project-local `.venv` is ignored by Git and does not need shell activation.
+The dependency versions match the repository's lock file. Include `lxml`
+so multiline text, including carriage returns, is preserved by the Excel
+writer. The project-local `.venv` is ignored by Git and does not need shell
+activation. Subsequent reports use the existing `.venv/bin/python` directly;
+there is no need to reinstall the dependencies for each run.
 If you already use Poetry, run `poetry install` and replace `.venv/bin/python`
 with `poetry run python` in the commands below.
 
@@ -199,9 +204,14 @@ workbook is publicly available after synchronization.
 
 ## Tests
 
+After the setup above, install the test runner and run the PharmSub tests:
+
 ```bash
-PYTHONPATH=.:src poetry run pytest test/pharmsub_report_test.py
+.venv/bin/python -m pip install 'pytest==7.4.4'
+.venv/bin/python -m pytest test/pharmsub_report_test.py
 ```
+
+The test runner is only needed for development, not monthly report generation.
 
 The tests use small synthetic SPARQL responses and a local HTTP server for
 query and authentication checks. They do not depend on an NCI connection.

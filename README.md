@@ -50,8 +50,8 @@ PYTHONPATH=.:src poetry run pytest test/stardog_qa_test.py
 writes the publication workbook directly, with every populated cell stored as
 text. It replaces the browser export and Excel Power Query import steps.
 
-For standalone generation, create a local Python environment and install the
-Excel dependencies (the versions below match `poetry.lock`):
+PharmSub requires Python 3.9 or later; Poetry is optional. Create a local
+Python environment and install the two Excel dependencies with pip:
 
 ```bash
 python3 -m venv .venv
