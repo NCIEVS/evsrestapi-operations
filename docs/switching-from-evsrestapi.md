@@ -39,8 +39,8 @@ reindex is needed for the switch.
 | `lib/evsrestapi.jar` | `$EVS_OPS_HOME/lib/evsrestapi-loader.jar`. Scripts find it, so they can run from any directory. |
 | Java 17 from `/usr/local/corretto-jdk17` | Java 25 from `JAVA_HOME` in setenv.sh. |
 
-The old paths still work for one release. They print `Deprecated: use <new path>` on
-stderr, then run the new script with the same arguments and exit code.
+The old script paths and `make devreset` target have been removed from evsrestapi.
+Update scheduled jobs and local commands to call operations directly.
 
 ## Local development
 
@@ -51,12 +51,12 @@ workspace/evsrestapi
 workspace/evsrestapi-operations
 ```
 
-Full reset, as before. This builds the loader in `../evsrestapi-operations` and runs
-in the background:
+For a full reset, build the loader and run the script from operations:
 
 ```bash
-cd evsrestapi
-make devreset
+cd evsrestapi-operations
+(cd web && ./gradlew loaderJar)
+bin/devreset.sh /absolute/path/to/UnitTestData > log 2>&1 &
 tail -f log
 ```
 
@@ -87,7 +87,6 @@ bin/reindex.sh --noconfig --terminology ncit
 |---|---|
 | `loader preflight failed; the loader needs Java 25` | Set `JAVA_HOME` in setenv.sh to a Java 25 JDK. |
 | `loader JAR not found` | Run `make build` in evsrestapi-operations, or `./gradlew loaderJar` in its `web/`. |
-| `evsrestapi-operations not found` | Set `EVS_OPS_HOME` in setenv.sh, or clone evsrestapi-operations next to evsrestapi. |
 | `another data-changing operation is running` (exit 75) | Another script holds the lock. Wait for it to finish. |
 | `previous worker still exists` | A process from an interrupted run is still alive. Stop it, then retry. |
 | `.../setenv.sh does not exist; use --noconfig ...` | Create setenv.sh, or pass `--noconfig` with the settings exported in your shell. |

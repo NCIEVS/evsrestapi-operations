@@ -36,13 +36,14 @@ script usage, and API calls.
 
 ### Loading test data locally
 
-* Follow "Steps for Loading NCI Thesaurus Data and Indexes Locally" in the
-  [evsrestapi README](https://github.com/NCIEVS/evsrestapi#steps-for-loading-nci-thesaurus-data-and-indexes-locally)
-  for the UnitTestData download and environment variables
-* `make devreset` in the evsrestapi checkout builds the loader in this checkout and runs `bin/devreset.sh`
-* To run it from this checkout instead:
+* Download the [Unit Test Data folder](https://drive.google.com/drive/u/1/folders/11RcXLTsbOZ34_7ofKdVxLKHp_8aJGgTI),
+  unpack it outside the repositories, and run its `prep.sh`
+* Start [Jena/Fuseki](https://github.com/NCIEVS/evsrestapi/blob/develop/JENA.md) and
+  [OpenSearch](https://github.com/NCIEVS/evsrestapi/blob/develop/OPENSEARCH.md)
+* Export the settings from `config/setenv-jena.sh_orig`, edited for those local services
+* From this checkout, build the loader and run the reset:
 
-```
+```bash
 (cd web && ./gradlew loaderJar)
 bin/devreset.sh /path/to/UnitTestData > log 2>&1 &
 tail -f log

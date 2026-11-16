@@ -6,7 +6,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import time
 
 import pytest
 
@@ -99,16 +98,6 @@ def installation(tmp_path, names):
     return root
 
 
-def legacy_forwarder(tmp_path, name):
-    api = Path(os.environ.get("EVSRESTAPI_SOURCE", REPO.parent / "evsrestapi"))
-    root = tmp_path / "site/evsrestapi/evsrestapi"
-    target = root / "bin"
-    target.mkdir(parents=True, exist_ok=True)
-    for filename in (name, "ops-forward.sh"):
-        shutil.copyfile(api / "src/main/bin" / filename, target / filename)
-    return root
-
-
 def record_arguments(path, exit_code):
     program = (
         "import json,os,sys; from pathlib import Path; "
@@ -116,50 +105,6 @@ def record_arguments(path, exit_code):
         "'args':sys.argv[1:],'cwd':os.getcwd()}),encoding='utf-8')"
     )
     script(path, '"$OPS_PYTHON" -c ' + shlex.quote(program) + ' "$@"\nexit ' + str(exit_code) + '\n')
-
-
-@pytest.mark.parametrize("name", ["reindex.sh", "devreset.sh", "ncim-part.sh", "ncim.sh", "load.sh", "audit.sh", "report.sh"])
-@pytest.mark.parametrize("parent_layout", [False, True])
-def test_legacy_forwarders_find_operations_in_existing_config(tmp_path, name, parent_layout):
-    env, _ = environment(tmp_path)
-    env.pop("EVS_OPS_HOME")
-    old = legacy_forwarder(tmp_path, name)
-    home = tmp_path / "new operations with spaces"
-    record_arguments(home / "bin" / name, 37)
-    app = tmp_path / "configuration home"
-    config = app / ("evsrestapi/config/setenv.sh" if parent_layout else "config/setenv.sh")
-    config.parent.mkdir(parents=True)
-    config.write_text("export EVS_OPS_HOME=" + shlex.quote(home.as_posix()) + "\n", encoding="utf-8")
-    args_file = tmp_path / "forwarded.json"
-    env.update(APP_HOME=app.as_posix(), APP_NAME="evsrestapi", OPS_TEST_ARGS=str(args_file))
-    args = ["--terminology", "name with spaces", "literal;$(not-a-command)"]
-    result = subprocess.run([env["OPS_BASH"], str(old / "bin" / name), *args],
-                            cwd=tmp_path, env=env, capture_output=True, text=True, timeout=15)
-    assert result.returncode == 37, result.stdout + result.stderr
-    observed = json.loads(args_file.read_text(encoding="utf-8"))
-    assert observed["args"] == args
-    assert Path(observed["cwd"]).resolve() == tmp_path.resolve()
-    assert "Deprecated:" not in result.stdout
-    assert "Deprecated:" in result.stderr
-
-
-def test_legacy_forwarder_noconfig_preserves_environment(tmp_path):
-    env, _ = environment(tmp_path)
-    old = legacy_forwarder(tmp_path, "reindex.sh")
-    home = tmp_path / "chosen operations"
-    record_arguments(home / "bin/reindex.sh", 0)
-    app = tmp_path / "configuration home"
-    config = app / "config/setenv.sh"
-    config.parent.mkdir(parents=True)
-    marker = tmp_path / "config-read"
-    config.write_text('touch "$OPS_TEST_MARKER"\nexport EVS_OPS_HOME=/wrong/path\n', encoding="utf-8")
-    args_file = tmp_path / "forwarded.json"
-    env.update(EVS_OPS_HOME=home.as_posix(), APP_HOME=app.as_posix(), OPS_TEST_MARKER=str(marker), OPS_TEST_ARGS=str(args_file))
-    result = subprocess.run([env["OPS_BASH"], str(old / "bin/reindex.sh"), "--noconfig"],
-                            cwd=tmp_path, env=env, capture_output=True, text=True, timeout=15)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert not marker.exists()
-    assert json.loads(args_file.read_text(encoding="utf-8"))["args"] == ["--noconfig"]
 
 
 @pytest.mark.parametrize("parent_layout", [False, True])
@@ -239,46 +184,3 @@ def test_devreset_preflight_happens_before_data_checks_or_backend_calls(tmp_path
             assert "loader preflight failed" in result.stderr
         else:
             assert "unexpectedly missing NCIM" in result.stdout
-
-
-@pytest.mark.parametrize("build_exit", [0, 23])
-def test_make_devreset_builds_loader_before_forwarding(tmp_path, build_exit):
-    env, _ = environment(tmp_path)
-    api = Path(os.environ.get("EVSRESTAPI_SOURCE", REPO.parent / "evsrestapi"))
-    source = tmp_path / "server source with spaces"
-    target = source / "src/main/bin"
-    target.mkdir(parents=True)
-    shutil.copyfile(api / "Makefile", source / "Makefile")
-    shutil.copyfile(api / "src/main/bin/ops-forward.sh", target / "ops-forward.sh")
-    (source / "build.gradle").write_text('version = "2.6.0.RELEASE"\n', encoding="utf-8")
-    home = installation(tmp_path, [])
-    gradle_call = tmp_path / "gradle-call"
-    script(home / "web/gradlew", 'printf "%s\n" "$@" > "$OPS_TEST_GRADLE_CALL"\nexit ' + str(build_exit) + '\n')
-    calls = tmp_path / "reset-call.json"
-    record_arguments(home / "bin/devreset.sh", 0)
-    script(Path(env["OPS_TEST_TOOLS"]) / "docker", "exit 0\n")
-    env.update(EVS_OPS_HOME=home.as_posix(), APP_HOME=(tmp_path / "no config").as_posix(),
-               OPS_TEST_ARGS=str(calls), OPS_TEST_GRADLE_CALL=str(gradle_call))
-    available = subprocess.run([env["OPS_BASH"], "-c", "command -v make"], env=env, capture_output=True, text=True)
-    if available.returncode:
-        pytest.skip("make is required for the legacy target check")
-    result = subprocess.run([env["OPS_BASH"], "-c", 'export PATH="$OPS_TEST_TOOLS:$PATH"; make "$@"',
-                             "make-probe", "DOCKER_IMG=", "GIT_VERSION=review", "GIT_COMMIT=review",
-                             "GIT_COMMITTED_AT=0", "UNIT_TEST_DATA=data with spaces", "devreset"],
-                            cwd=source, env=env, capture_output=True, text=True, timeout=15)
-    assert gradle_call.read_text(encoding="utf-8").splitlines() == ["-p", home.as_posix() + "/web", "loaderJar"]
-    if build_exit:
-        assert result.returncode != 0
-        assert not calls.exists()
-    else:
-        assert result.returncode == 0, result.stdout + result.stderr
-        # As before the migration, the reset itself runs in the background and writes ./log.
-        deadline, observed = time.monotonic() + 15, None
-        while observed is None and time.monotonic() < deadline:
-            try:
-                observed = json.loads(calls.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                time.sleep(0.1)
-        assert observed and observed["args"] == ["data with spaces"]
-        assert (source / "log").exists()
-        assert "Deprecated" not in (source / "log").read_text(encoding="utf-8")

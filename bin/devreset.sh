@@ -77,7 +77,7 @@ ES="$ES_SCHEME://$ES_HOST:$ES_PORT"
 # Prerequisites - check the UnitTest
 echo "  Check prerequisites"
 
-# Check that reindex.sh is at src/main/bin
+# Check that reindex.sh is in the operations installation
 if [[ ! -e "$EVS_OPS_HOME/bin/reindex.sh" ]]; then
     echo "ERROR: $EVS_OPS_HOME/bin/reindex.sh does not exist, check EVS_OPS_HOME"
     exit 1

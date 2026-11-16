@@ -11,8 +11,8 @@ If you're used to the evsrestapi scripts, start with
 - `OPS_STATE_DIR` holds the lock, API job history, and logs. Use one for every script
   and API process on the host, and keep it across upgrades.
 - Existing indexes keep working; this change alone does not require a reindex.
-- For one release, the old evsrestapi script paths forward to the scripts here, with
-  the same arguments and exit codes.
+- Call scripts from operations directly; the old evsrestapi script paths and
+  `make devreset` target have been removed.
 
 ## Install and configure
 
@@ -110,8 +110,8 @@ file's path as their last line of output.
 indexes and updates the latest flags for all terminologies. It skips indexes that
 already exist; it does not force a rebuild.
 
-In an evsrestapi checkout, `make devreset` builds the operations loader and then runs
-`bin/devreset.sh` in the background, writing to `log`, as before. The script checks
+For a full reset, build the loader with `(cd web && ./gradlew loaderJar)`, then run
+`bin/devreset.sh /absolute/path/to/UnitTestData` from operations. The script checks
 that the loader JAR and Java work before it changes the graph database or OpenSearch.
 `reindex.sh`, `ncim.sh`, `ncim-part.sh`, and `report.sh` make the same check first.
 
