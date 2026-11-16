@@ -9,3 +9,5 @@ owls/*
 bin/temp/
 __pycache__/
 *.py[cod]
+/output/
+/.venv/

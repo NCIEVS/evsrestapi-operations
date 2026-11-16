@@ -44,6 +44,39 @@ To run a specific test file:
 PYTHONPATH=.:src poetry run pytest test/stardog_qa_test.py
 ```
 
+### Generating the monthly PharmSub Excel report
+
+`bin/pharmsub_report.py` queries the requested NCIT named graph in Jena and
+writes the publication workbook directly, with every populated cell stored as
+text. It replaces the browser export and Excel Power Query import steps.
+
+For standalone generation, create a local Python environment and install the
+Excel dependencies (the versions below match `poetry.lock`):
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install 'openpyxl==3.1.5' 'lxml==5.4.0'
+```
+
+For development, use the NCIT2 query endpoint on `ncias-d2175-c`:
+
+```bash
+.venv/bin/python bin/pharmsub_report.py \
+  --version 26.09d \
+  --release-date 20260928 \
+  --endpoint http://ncias-d2175-c.nci.nih.gov:3030/NCIT2/query \
+  --output-dir ./output
+```
+
+If you already use Poetry, `poetry install` and `poetry run python` work too.
+
+Use the actual release version and publication date. The date is required;
+the script does not substitute today's date. Run after that version has
+finished loading and passed monthly content QA.
+
+See [the PharmSub instructions](docs/pharmsub_report.md) for environment
+configuration, validation, offline reruns, and the publication handoff.
+
 ### Generating OWL samples for EVSRESTAPI content QA
 
 `bin/owl_sampling.py` generates TSV sample files from terminology OWL release
