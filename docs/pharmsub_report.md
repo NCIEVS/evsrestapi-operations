@@ -9,12 +9,18 @@ rows for a concept. The script preserves all returned rows and their order.
 
 ## Generate a report
 
-Development uses the NCIT2 dataset on `ncias-d2175-c.nci.nih.gov:3030`.
+Normal monthly reports use the production NCIT2 dataset on
+`ncidb-p335-c.nci.nih.gov:3030`.
 The browser page is
-`http://ncias-d2175-c.nci.nih.gov:3030/#/dataset/NCIT2/query`.
-Pass the service URL `http://ncias-d2175-c.nci.nih.gov:3030/NCIT2/query`
+`http://ncidb-p335-c.nci.nih.gov:3030/#/dataset/NCIT2/query`.
+Pass the service URL `http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query`
 to `--endpoint`; the browser URL's `/#/dataset/...` fragment is not a query
-service endpoint. Use the appropriate endpoint for another environment.
+service endpoint.
+
+For development testing, pass
+`--endpoint http://ncias-d2175-c.nci.nih.gov:3030/NCIT2/query` and
+`--output-dir ./output/dev`. Select the environment explicitly; the script
+uses the supplied endpoint or exported configuration.
 
 From the operations repository root:
 
@@ -33,7 +39,7 @@ with `poetry run python` in the commands below.
 .venv/bin/python bin/pharmsub_report.py \
   --version 26.09d \
   --release-date 20260928 \
-  --endpoint http://ncias-d2175-c.nci.nih.gov:3030/NCIT2/query \
+  --endpoint http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query \
   --output-dir ./output
 ```
 
@@ -43,7 +49,7 @@ A backslash must be the last character on its line. The generation command
 can also be pasted as one line:
 
 ```bash
-.venv/bin/python bin/pharmsub_report.py --version 26.09d --release-date 20260928 --endpoint http://ncias-d2175-c.nci.nih.gov:3030/NCIT2/query --output-dir ./output
+.venv/bin/python bin/pharmsub_report.py --version 26.09d --release-date 20260928 --endpoint http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query --output-dir ./output
 ```
 
 Replace the example version and date with the intended release. The date
@@ -77,7 +83,7 @@ server address; increasing the query timeout will not resolve it.
 Try opening the Jena query page on the same computer:
 
 ```text
-http://ncias-d2175-c.nci.nih.gov:3030/#/dataset/NCIT2/query
+http://ncidb-p335-c.nci.nih.gov:3030/#/dataset/NCIT2/query
 ```
 
 If it also fails, connect to the NIH/NCI network or VPN required for that
@@ -158,8 +164,9 @@ exact string values rather than reproducing Excel's conversions. If the
 against that response. Only compare ordering across different runs within
 the query's specified sort keys; ties are not ordered by the query.
 
-Development validation on 2026-11-16 used the `26.09d` graph and release
-date `20260928` on `ncias-d2175-c`. Generation, download, and verification
+Validation on 2026-11-16 used the development server `ncias-d2175-c`
+because production was unavailable. The September example used the `26.09d`
+graph and release date `20260928`. Generation, download, and verification
 took approximately six minutes and produced 112,578 rows and 26,988 concepts.
 The saved workbook matched every raw result value and text type. Reference
 comparison ignored ordering among tied sort keys: 111,609 rows matched
@@ -168,7 +175,12 @@ and 67 differed because the reference had character encoding errors (for
 example, `na√Øve` instead of the raw `naïve`). Every concept's row count
 matched, and no unexplained row differences remained. The generator
 preserves the raw query strings rather than reproducing those conversions.
-Runtime depends on server load and download speed.
+
+The October example (`26.10d` / `20261112`) was also generated and verified
+on dev: 112,798 rows and 27,013 concepts, with all rows matching the October
+reference after treating empty optional strings as blank. The saved reports
+retain their actual development endpoint as provenance. Runtime depends on
+server load and download speed.
 
 ## Publication handoff
 

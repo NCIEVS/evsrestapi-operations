@@ -58,13 +58,13 @@ python3 -m venv .venv
 .venv/bin/python -m pip install 'openpyxl==3.1.5' 'lxml==5.4.0'
 ```
 
-For development, use the NCIT2 query endpoint on `ncias-d2175-c`:
+For monthly production runs, use the NCIT2 query endpoint on `ncidb-p335-c`:
 
 ```bash
 .venv/bin/python bin/pharmsub_report.py \
   --version 26.09d \
   --release-date 20260928 \
-  --endpoint http://ncias-d2175-c.nci.nih.gov:3030/NCIT2/query \
+  --endpoint http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query \
   --output-dir ./output
 ```
 
