@@ -7,6 +7,29 @@ fields, `DISTINCT`, and `ORDER BY ?Concept_Name ?SY`. It includes C1909 itself.
 Multiple synonyms, sources, CAS values, or definitions can produce multiple
 rows for a concept. The script preserves all returned rows and their order.
 
+## Run with Codex
+
+Open this repository as your project in Codex. The repository includes the
+[PharmSub Report skill](../.agents/skills/pharmsub-report/SKILL.md), which can be
+used with a request such as:
+
+```text
+Use $pharmsub-report to create the production report for NCIT 26.10d,
+release date 20261112.
+```
+
+Replace those example values with the intended release. If you do not know
+them, ask for help; the skill will request the missing details rather than
+substituting today's date. For a dev test, explicitly say "use the dev server".
+The skill handles Python setup without Poetry, checks access, runs the existing
+generator, validates the result, and returns the full Excel path. Upload and
+publication remain separate manual steps.
+
+Codex discovers repository skills under `.agents/skills`; see the
+[official skill documentation](https://learn.chatgpt.com/docs/build-skills).
+If the skill does not appear after checking out the updated repository,
+restart Codex. Other Codex projects can use an installed personal copy too.
+
 ## Generate a report
 
 Normal monthly reports use the production NCIT2 dataset on
@@ -58,8 +81,10 @@ can also be pasted as one line:
 ```
 
 Replace the example version and date with the intended release. The date
-must be an explicit, valid `YYYYMMDD` date. The graph must have finished
-loading and passed the monthly content QA process before generation.
+must be an explicit, valid `YYYYMMDD` date. Generate publication workbooks only
+after graph loading has finished and monthly content QA has passed. Explicit
+dev tests and offline replays can validate the generator; those runs do not by
+themselves establish release content QA or publication readiness.
 
 The script uses exported `GRAPH_DB_USERNAME` and `GRAPH_DB_PASSWORD` for
 HTTP Basic or Digest authentication when configured. Set both or neither.

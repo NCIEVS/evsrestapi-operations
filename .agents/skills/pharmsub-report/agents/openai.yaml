@@ -1,0 +1,3 @@
+interface:
+  display_name: "PharmSub Report"
+  short_description: "Create and validate monthly PharmSub Excel reports"

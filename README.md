@@ -58,6 +58,12 @@ python3 -m venv .venv
 .venv/bin/python -m pip install 'openpyxl==3.1.5' 'lxml==5.4.0'
 ```
 
+For guided operation in Codex, use the
+[PharmSub Report skill](.agents/skills/pharmsub-report/SKILL.md). It handles
+setup, missing release details, connection checks, generation, and the exact
+output path. See [Run with Codex](docs/pharmsub_report.md#run-with-codex) for an
+example prompt.
+
 For monthly production runs, use the NCIT2 query endpoint on `ncidb-p335-c`:
 
 ```bash
