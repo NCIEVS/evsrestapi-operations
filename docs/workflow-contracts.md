@@ -38,7 +38,8 @@ described in [Jobs, locking, and recovery](operations-api.md#jobs-locking-and-re
 Transforms work in `bin/work_$PID` and print the generated OWL file's path as their
 last line. `command patch <version> ...` runs the versioned patches.
 
-`audit.sh` used to exist in both repositories; the evsrestapi copy now forwards here.
+`audit.sh` used to exist in both repositories; only this copy remains. It is the newer
+evsrestapi version, including the `stats` report and newest-first results.
 These are not available through the API: the Stardog `CTRP_Weekly.sh` and
 `NCIEVS_Monthly.sh` templates, scripts under `legacy/`, packaging, and starting or
 stopping the API service.
