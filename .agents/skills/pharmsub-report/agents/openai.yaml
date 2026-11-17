@@ -1,3 +1,3 @@
 interface:
   display_name: "PharmSub Report"
-  short_description: "Create and validate monthly PharmSub Excel reports"
+  short_description: "Generate and publish validated PharmSub reports"

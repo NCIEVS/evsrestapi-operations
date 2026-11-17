@@ -22,8 +22,17 @@ Replace those example values with the intended release. If you do not know
 them, ask for help; the skill will request the missing details rather than
 substituting today's date. For a dev test, explicitly say "use the dev server".
 The skill handles Python setup without Poetry, checks access, runs the existing
-generator, validates the result, and returns the full Excel path. Upload and
-publication remain separate manual steps.
+generator, validates the result, and returns the full Excel path. When asked
+separately, it can also guide internal FTP upload, run the production sync
+action with available authorized tools, and verify the public download:
+
+```text
+Use $pharmsub-report to upload the approved workbook, run the production
+sync action, and verify the public download.
+```
+
+Identify the exact approved workbook when requesting publication. A request to
+generate a report alone does not start the upload or sync action.
 
 Codex discovers repository skills under `.agents/skills`; see the
 [official skill documentation](https://learn.chatgpt.com/docs/build-skills).
@@ -212,20 +221,33 @@ reference after treating empty optional strings as blank. The saved reports
 retain their actual development endpoint as provenance. Runtime depends on
 server load and download speed.
 
-## Publication handoff
+## Upload and public promotion
 
-Upload only the validated `.xlsx` to the designated publication folder.
-Keep the raw results, query, and report with the release records. Generation
-does not upload files, invoke GitHub Actions, or change the monthly loader.
+Follow the skill's detailed
+[upload and promotion guide](../.agents/skills/pharmsub-report/references/publication.md).
+It includes the operator-confirmed FTP profile for `ncias-p3388-v.nci.nih.gov`
+(user `cacore`) and this exact **Remote site** folder:
 
-The supplied procedure identifies `ncias-p3388-v` and
-`/ftp/ftpcacore/pub/cacore/EVS/NCI_Thesaurus/Branches` as the upload target.
-Before automating the transfer, confirm the supported transfer protocol and
-how that target maps to the sync workflow's source,
-`ncils-av-62s9yh:/share/content/evs/ftp1`. The
-[production sync workflow](https://github.com/CBIIT/evs-utils/actions/workflows/evs-ftp-s3sync-prod.yaml)
-must run after the upload for public publication. Verify that the exact
-workbook is publicly available after synchronization.
+```text
+/ftp/ftpcacore/pub/cacore/EVS/NCI_Thesaurus/Branches
+```
+
+Upload only the approved, validated `.xlsx`; retain the raw results, query, and
+report locally with release records. Confirm that the upload feeds the workflow
+source at `ncils-av-62s9yh:/share/content/evs/ftp1/NCI_Thesaurus/Branches` before
+promotion. Do not infer that mapping from similar folder names.
+
+Then run
+[EVS NFS to AWS S3 Sync in Prod](https://github.com/CBIIT/evs-utils/actions/workflows/evs-ftp-s3sync-prod.yaml)
+in **CBIIT/evs-utils**, using its verified production branch (`main` at the latest
+review). This action mirrors the whole FTP tree with deletion enabled and may
+report success with warnings. Verify the exact public workbook by downloading
+it from `https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Branches/` and comparing its
+SHA-256 with the approved local file. The guide provides browser and CLI steps,
+failure handling, and the evidence to record.
+
+The generator itself still creates local files only. Upload and promotion happen
+only when requested; editing the skill does not upload or publish a workbook.
 
 ## Tests
 

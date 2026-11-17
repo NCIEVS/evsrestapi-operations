@@ -1,11 +1,12 @@
 ---
 name: pharmsub-report
-description: Generate, replay, validate, or locate monthly NCIT PharmSub Excel reports using evsrestapi-operations. Use when an operator asks to create or rerun a PharmSub report, including setup and Jena connection troubleshooting. Publication and terminology loading are separate workflows.
+description: Generate, replay, validate, locate, or help publish monthly NCIT PharmSub Excel reports. Use for report creation and troubleshooting, internal FTP upload, and promotion through the production GitHub sync action with public-download verification. Terminology loading is outside this skill.
 ---
 
 # PharmSub Report
 
-Help an operator obtain a validated local PharmSub workbook. Run the existing
+Help an operator obtain a validated PharmSub workbook and, when requested,
+upload and promote it to the public download site. Run the existing
 `bin/pharmsub_report.py`; it owns the SPARQL query, Excel conversion, validation,
 and audit bundle. Read the checkout's `docs/pharmsub_report.md` for additional
 configuration or troubleshooting. Poetry and Microsoft Excel are not required.
@@ -140,8 +141,16 @@ State any unresolved content-QA status and distinguish local generation from
 public publication. Retain the raw JSON, rendered query, and validation report
 with the workbook.
 
-This skill ends at local generation. Upload and public synchronization remain
-separate: the transfer method and publication path mapping in the run guide
-need confirmation before automation. Do not upload, trigger synchronization,
-modify Jena, or commit/push repository changes as a side effect of creating a
-report. Handle any separately requested publication work with its own context.
+## Upload and promote on request
+
+For upload, promotion, or publication requests, read
+[Upload and promote a PharmSub workbook](references/publication.md). It contains
+the operator-confirmed FTP profile/folder, source-mapping checks, the exact
+production GitHub action and optional CLI, and public-download verification.
+Use it for an existing approved report without requiring regeneration.
+
+Generation alone ends with the local handoff above. Editing this skill or
+requesting a report does not itself request public publication. Follow the
+operator's actual upload/promotion scope, preserve recorded dev/replay provenance,
+and establish publication approval for the selected file. Do not modify Jena or
+commit/push repository changes as a side effect of report publication.
