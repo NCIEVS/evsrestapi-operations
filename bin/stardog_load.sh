@@ -40,10 +40,11 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 print_help(){
-  echo "Usage: $0 [--noconfig] [--force] [--weekly] [--help] <data>"
+  echo "Usage: $0 [--noconfig] [--force] [--weekly] [--transform-only] [--help] <data>"
   echo "  e.g. $0 /local/content/downloads/Thesaurus.owl --weekly --force"
   echo "  e.g. $0 ../../data/ncit_22.07c/ThesaurusInferred_forTS.owl"
   echo "  e.g. $0 https://evs.nci.nih.gov/ftp1/upload/ThesaurusInferred_forTS.zip"
+  echo "  e.g. $0 s3://wci-us-west-2/NCI/Thesaurus/Thesaurus-260908-26.09a.owl --transform-only"
   echo "  e.g. $0 http://current.geneontology.org/ontology/go.owl"
   echo "  e.g. $0 /local/content/downloads/HGNC_202209.owl"
   echo "  e.g. $0 /local/content/downloads/chebi_213.owl"
@@ -407,8 +408,21 @@ get_data() {
         datafile="canmed"
       fi
     done
+  elif [[ $data = s3://* ]]; then
+    first_file_datafile=$(get_file_name "$data")
+    first_file_dataext=$(get_file_extension "$data")
+    first_file_name="$INPUT_DIRECTORY"/f$$."$first_file_datafile"."$first_file_dataext"
+    echo "    download = $data"
+    if ! command -v aws >/dev/null 2>&1; then
+      echo "ERROR: aws CLI is required to download $data"
+      cleanup 1
+    fi
+    if ! aws s3 cp "$data" "$first_file_name"; then
+      echo "ERROR: problem downloading file from S3"
+      cleanup 1
+    fi
   else
-    echo "ERROR: $data is not local or http/ftp"
+    echo "ERROR: $data is not local, http/ftp, or S3"
     cleanup 1
   fi
 }
@@ -444,7 +458,19 @@ extract_zipped_files() {
 }
 
 apply_transformations() {
-  if [[ ! -e $owl_file ]]; then
+  local lower_datafile
+  lower_datafile=$(echo "$datafile" | tr '[:upper:]' '[:lower:]')
+
+  # Asserted NCIt OWL files require the legacy inference step before loading.
+  # Already inferred Thesaurus files continue through the normal OWL path.
+  if [[ $dataext == "owl" ]] && [[ $lower_datafile == *"thesaurus"* ]] &&
+    [[ $lower_datafile != *"thesaurusinf"* ]] && [[ $lower_datafile != *"inferred"* ]]; then
+    transformation_script=$DIR/transforms/ncit.sh
+    echo "    Applying transformations for NCIt"
+    script_output=$("$transformation_script" "$file" $$)
+    set_transformed_owl "NCIt" "$script_output"
+    set_load_variables_of_transform
+  elif [[ ! -e $owl_file ]]; then
     echo "  Looking for transformations"
     IFS='_' read -r -a array <<<"$datafile"
     for terminology in "${array[@]}"; do
