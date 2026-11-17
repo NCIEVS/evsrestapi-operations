@@ -87,7 +87,7 @@ def run_smoke(archive, temporary):
     with socket.socket() as available:
         available.bind(("127.0.0.1", 0))
         port = available.getsockname()[1]
-    key = "distribution-smoke-private-key"
+    key = "distribution-smoke-private-key-0123456789"
     env = dict(os.environ, ADMIN_KEY=key, ADMIN_PORT=str(port), ADMIN_BIND="127.0.0.1",
                EVS_OPS_HOME=str(installation), APP_HOME=str(temporary / "empty configuration"),
                OPS_STATE_DIR=str(temporary / "process state"), OPS_PYTHON=sys.executable,
@@ -148,6 +148,9 @@ def run_smoke(archive, temporary):
     try:
         start()
         assert call("/commands", authenticated=False)[0] == 401
+        with http.open(urllib.request.Request(base + "/admin/commands", headers={"X-Admin-Key": key}),
+                       timeout=10) as response:
+            assert response.status == 200
         assert call("/processes", authenticated=False)[0] == 401
         assert call("/exec", {"command": "list", "args": []}, authenticated=False)[0] == 401
         assert call("/exec", {"command": "unknown", "args": []})[0] == 400

@@ -31,6 +31,10 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public final class JobService {
   public static final int MAX_OUTPUT = 1024 * 1024;
+  public static final int MIN_KEY_LENGTH = 32;
+  // Environment variables whose values are masked in job arguments and output.
+  private static final String SECRET_NAMES =
+      "(?i).*(PASSW|PASSPHRASE|SECRET|TOKEN|CREDENTIAL|ADMIN_KEY|API_KEY).*";
   private final AdminProperties properties;
   private final CommandRegistry registry;
   private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
@@ -47,16 +51,20 @@ public final class JobService {
   public JobService(AdminProperties properties, CommandRegistry registry) throws IOException {
     this.properties = properties;
     this.registry = registry;
-    if (properties.getApiKey() == null || properties.getApiKey().isBlank())
-      throw new IllegalArgumentException("ADMIN_KEY must be configured and nonblank");
+    if (properties.getApiKey() == null
+        || properties.getApiKey().isBlank()
+        || properties.getApiKey().length() < MIN_KEY_LENGTH)
+      throw new IllegalArgumentException(
+          "ADMIN_KEY must be configured with at least " + MIN_KEY_LENGTH + " characters");
     secrets = new ArrayList<>();
     secrets.add(properties.getApiKey());
     System.getenv()
         .forEach(
             (key, value) -> {
-              if (key.matches("(?i).*(PASSWORD|SECRET|TOKEN|ADMIN_KEY|API_KEY).*")
-                  && !value.isEmpty()) secrets.add(value);
+              if (key.matches(SECRET_NAMES) && !value.isEmpty()) secrets.add(value);
             });
+    // Longest first, so a secret that contains another is never partly revealed.
+    secrets.sort(Comparator.comparingInt(String::length).reversed());
     if (properties.getWaitSeconds() < 0 || properties.getRetentionDays() < 1)
       throw new IllegalArgumentException("Invalid process retention or wait settings");
     Files.createDirectories(properties.getStateDir().resolve("jobs"));
@@ -170,6 +178,8 @@ public final class JobService {
     }
     // API callers cannot inherit a stale lock bypass context from service startup.
     builder.environment().remove("EVS_OPS_LOCK_TOKEN");
+    // Scripts and the tools they run never need the API key.
+    builder.environment().remove("ADMIN_KEY");
     Process process;
     CompletableFuture<Void> completed = new CompletableFuture<>();
     synchronized (lifecycle) {
@@ -216,7 +226,9 @@ public final class JobService {
   private String redact(String text) {
     String result = text;
     for (String secret : secrets) result = result.replace(secret, "****");
-    return result.replaceAll("(?i)(apiKey|password|token|secret)=([^\\s&]+)", "$1=****");
+    return result
+        .replaceAll("(?i)(apiKey|password|token|secret)=([^\\s&]+)", "$1=****")
+        .replaceAll("(://[^/\\s:@]+:)[^/\\s@]+@", "$1****@");
   }
 
   private void run(Job job, Process process, CompletableFuture<Void> completed) {

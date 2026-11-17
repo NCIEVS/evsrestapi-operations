@@ -33,7 +33,10 @@ def main():
                                 "audit_reports", "NCIT_HISTORY", "fhir_transforms")
                        or part.startswith("work_") or part.endswith(".egg-info") for part in relative.parts):
                     continue
-                if path.name in ("setenv.sh", ".DS_Store", "DownloadSuccessfull.lck") or path.name.startswith("._") or path.suffix in (".log", ".pyc", ".pyo", ".hprof"):
+                # Ship only the setenv templates, never a local copy holding credentials.
+                if path.name.startswith("setenv") and not path.name.endswith("_orig"):
+                    continue
+                if path.name in (".DS_Store", "DownloadSuccessfull.lck") or path.name.startswith("._") or path.suffix in (".log", ".pyc", ".pyo", ".hprof"):
                     continue
                 info = zipfile.ZipInfo(relative.as_posix())
                 info.create_system = 3  # Unix permissions must survive Windows-built ZIPs.

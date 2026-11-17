@@ -36,6 +36,11 @@ terminology=${arr[0]}
 version=${arr[1]}
 indexVersion=`echo $version | perl -ne 's/[\.\-]//g; print lc($_)'`
 uri=${arr[2]}
+# These become part of OpenSearch URLs; they must not add path segments or query strings.
+if [[ ! "$terminology" =~ ^[A-Za-z0-9_-]+$ || ! "$version" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "ERROR: invalid terminology or version"
+    exit 1
+fi
 
 # Verify jq installed
 jq --help >> /dev/null 2>&1
@@ -77,7 +82,7 @@ echo ""
 
 # Verify that terminology/version is valid
 echo "  Verify $terminology $indexVersion exists"
-curl -s $ES/evs_metadata/_doc/concept_${terminology}_${indexVersion} > /tmp/x.$$ 2>&1
+curl -s "$ES/evs_metadata/_doc/concept_${terminology}_${indexVersion}" > /tmp/x.$$ 2>&1
 if [[ $? -ne 0 ]]; then
     echo "ERROR: unexpected error looking up index in elasticsearch, check config"
     exit 1
@@ -90,10 +95,9 @@ if [ $ct -ne 0 ]; then
 fi
 
 echo "  Verify '$uri' exists"
-ct=`echo $uri | grep -c 'http'`
-# handle the uri case
-if [ $ct -ne 0 ]; then
-    curl -s -o /tmp/y.$$ $uri > /tmp/x.$$ 2>&1
+# handle the uri case; quoted so it is one URL, never extra curl options or output files
+if [[ "$uri" == http://* || "$uri" == https://* ]]; then
+    curl -s -o /tmp/y.$$ "$uri" > /tmp/x.$$ 2>&1
     if [ $? -ne 0 ]; then
         cat /tmp/x.$$
         echo "ERROR: Problem downloading $uri"
@@ -106,14 +110,14 @@ fi
 
 # At this point $file is set to a file that exists
 echo "  Verfiy $file is valid json"
-cat $file | $jq > /tmp/x.$$ 2>&1
+cat "$file" | $jq > /tmp/x.$$ 2>&1
 if [ $? -ne 0 ]; then
    echo "ERROR: Unable to parse $file as json"
    exit 1
 fi
 
 # All checks passed, proceed with updating
-data=`cat $file`
+data=`cat "$file"`
 curl -X POST "$ES/evs_metadata/_doc/concept_${terminology}_${indexVersion}/_update" \
   -H 'Content-type: application/json' \
   -d '{"doc": {"terminology": {"metadata": '"$data"'}}}' > /tmp/x.$$ 2>&1

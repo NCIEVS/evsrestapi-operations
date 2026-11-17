@@ -94,12 +94,13 @@ bin/reindex.sh --noconfig --terminology ncit
 ## Optional: run scripts over HTTP
 
 evsrestapi-operations can also run as a private service that runs these scripts through
-an API. Add `export ADMIN_KEY=<value>` to setenv.sh, using a long random hex value (for
-example, from `openssl rand -hex 32`). Then:
+an API. Add `export ADMIN_KEY=<value>` to setenv.sh, using a random hex value of at least
+32 characters (for example, from `openssl rand -hex 32`). Then:
 
 ```bash
 $EVS_OPS_HOME/bin/evsrestapi-operations start
-curl -s "http://127.0.0.1:8083/admin/exec?apiKey=$ADMIN_KEY" \
+printf 'header = "X-Admin-Key: %s"\n' "$ADMIN_KEY" | curl -s -K - \
+  http://127.0.0.1:8083/admin/exec \
   -H 'Content-Type: application/json' -d '{"command":"list","args":["--es","--quiet"]}'
 ```
 

@@ -188,6 +188,11 @@ run_patch_command(){
       echo "ERROR: No patch version specified"
       exit 1
     fi
+    # A patch version names a directory under patches/, never a path.
+    if [[ ! "${patch_args[0]}" =~ ^[A-Za-z0-9._-]+$ || "${patch_args[0]}" == *..* ]]; then
+      echo "ERROR: Invalid patch version ${patch_args[0]}"
+      exit 1
+    fi
     l_patches_directory=$PATCHES_DIRECTORY/${patch_args[0]}
     # check if patches directory exists
     if [[ ! -d "$l_patches_directory" ]]; then

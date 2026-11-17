@@ -13,13 +13,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 /** Exercises actual supervisor/script processes without graph or OpenSearch. */
 class JobServiceTest {
+  private static final String KEY = "test-private-key-0123456789abcdef";
   @TempDir Path directory;
   private JobService service;
   private int waitSeconds = 10;
 
   private AdminProperties properties() {
     AdminProperties p = new AdminProperties();
-    p.setApiKey("test-private-key");
+    p.setApiKey(KEY);
     p.setHome(directory);
     p.setPython(System.getProperty("os.name").startsWith("Windows") ? "python" : "python3");
     p.setBash(
@@ -60,14 +61,14 @@ class JobServiceTest {
 
   @Test
   void capturesBothStreamsAndLiteralArguments() throws Exception {
-    start("#!/bin/bash\nprintf '%s\\n' \"$1\"\necho stderr >&2\necho test-private-key\n");
+    start("#!/bin/bash\nprintf '%s\\n' \"$1\"\necho stderr >&2\necho " + KEY + "\n");
     String literal = "spaces $(do-not-execute) ; & quote'";
     Job job = service.submit("fixture", List.of(literal));
     job = service.await(job.getId());
     assertEquals("SUCCEEDED", job.getState());
     assertTrue(job.getOutput().contains(literal));
     assertTrue(job.getOutput().contains("stderr"));
-    assertFalse(job.getOutput().contains("test-private-key"));
+    assertFalse(job.getOutput().contains(KEY));
     assertEquals(0, job.getExitCode());
   }
 
@@ -109,7 +110,9 @@ class JobServiceTest {
 
   @Test
   void preservesLogsWithoutNewlinesAndMasksSplitSecrets() throws Exception {
-    start("#!/bin/bash\nprintf 'prefix-test-'; sleep 0.1; printf 'private-key-suffix'\n");
+    start(
+        "#!/bin/bash\n"
+            + "printf 'prefix-test-'; sleep 0.1; printf 'private-key-0123456789abcdef-suffix'\n");
     Job job = service.await(service.submit("fixture", List.of()).getId());
     assertEquals("prefix-****-suffix", job.getOutput());
   }
@@ -175,9 +178,21 @@ class JobServiceTest {
   }
 
   @Test
-  void rejectsMissingKey() {
+  void masksCredentialsInUrls() throws Exception {
+    start("#!/bin/bash\necho \"$1\" http://localhost:3030/b\n");
+    String url = "https://user:hunter2@example.org/a";
+    Job job = service.await(service.submit("fixture", List.of(url)).getId());
+    assertEquals(List.of("https://user:****@example.org/a"), job.getArgs());
+    assertTrue(job.getOutput().contains("https://user:****@example.org/a http://localhost:3030/b"));
+    assertFalse(job.getOutput().contains("hunter2"));
+  }
+
+  @Test
+  void rejectsMissingOrShortKey() {
     AdminProperties p = properties();
     p.setApiKey(" ");
+    assertThrows(IllegalArgumentException.class, () -> new JobService(p, new CommandRegistry()));
+    p.setApiKey("x".repeat(JobService.MIN_KEY_LENGTH - 1));
     assertThrows(IllegalArgumentException.class, () -> new JobService(p, new CommandRegistry()));
   }
 }

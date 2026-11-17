@@ -23,7 +23,9 @@ public class AdminAuthenticationFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    String key = request.getParameter("apiKey");
+    // The header keeps the key out of URLs and logs; the apiKey parameter still works.
+    String key = request.getHeader("X-Admin-Key");
+    if (key == null) key = request.getParameter("apiKey");
     String expected = expectedKey;
     if (key == null
         || expected == null

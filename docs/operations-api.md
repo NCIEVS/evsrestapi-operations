@@ -39,9 +39,14 @@ export EVS_OPS_HOME=/local/content/evsrestapi-operations
 export OPS_STATE_DIR=/local/content/evsrestapi/config/operations-state
 export JAVA_OPTS='-Xmx4096M'
 
-# Required only when running the private API:
+# Required only when running the private API. At least 32 characters; generate with:
+#   openssl rand -hex 32
 export ADMIN_KEY='replace-with-a-private-random-value'
 ```
+
+Only the API service keeps `ADMIN_KEY`. The scripts drop it when they start, the API
+does not pass it to the jobs it runs, and the evsrestapi launcher unsets it, so the public
+server never has it even though it reads the same setenv.sh.
 
 The `config/setenv-*.sh_orig` templates include these settings. Put `OPS_STATE_DIR`
 on a local disk the service account can write to, outside anything a deployment
@@ -126,8 +131,9 @@ bin/evsrestapi-operations foreground
 # Or: bin/evsrestapi-operations start|stop|restart|status
 ```
 
-The API does not start without a non-blank `ADMIN_KEY`. It listens on
-`127.0.0.1:8083` by default (`ADMIN_BIND` and `ADMIN_PORT` change this). It starts and
+The API does not start unless `ADMIN_KEY` has at least 32 characters. It listens on
+`127.0.0.1:8083` by default (`ADMIN_BIND` and `ADMIN_PORT` change this; the launcher
+treats an empty `ADMIN_BIND` as `127.0.0.1`). It starts and
 serves job history without the graph database or OpenSearch. With `start`, its log is
 `$OPS_STATE_DIR/logs/admin.log`.
 
@@ -139,8 +145,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now evsrestapi-operations
 ```
 
-Keep the port private, and leave access logging off: the key is sent in the query
-string. To reach the API from another machine, use an SSH tunnel:
+Keep the port private, and leave access logging off. Send the key in the `X-Admin-Key`
+header, as below, so it stays out of URLs and logs. To reach the API from another machine,
+use an SSH tunnel:
 
 ```bash
 ssh -N -L 8083:127.0.0.1:8083 operations-host
@@ -148,7 +155,8 @@ ssh -N -L 8083:127.0.0.1:8083 operations-host
 
 ## API calls
 
-Every request needs the `apiKey` query parameter. `exec` runs a registered script with
+Every request needs the key, in the `X-Admin-Key` header (preferred) or the `apiKey`
+query parameter; if both are sent, the header is used. `exec` runs a registered script with
 a list of arguments, which are passed as-is and never interpreted by a shell.
 `GET /admin/commands` lists each command's name, script, usage, and `mutation` flag
 (`true` means it takes the lock). The [command reference](workflow-contracts.md) maps
@@ -166,26 +174,27 @@ List commands, run a short command, then submit indexing and poll it:
 
 ```bash
 api='http://127.0.0.1:8083/admin'
-api_key=$(printf '%s' "$ADMIN_KEY" | jq -sRr @uri)
-curl -fsS "$api/commands?apiKey=$api_key"
+# curl reads the key header from stdin (-K -), so the key never shows in ps or shell history.
+admin() { printf 'header = "X-Admin-Key: %s"\n' "$ADMIN_KEY" | curl -fsS -K - "$@"; }
+admin "$api/commands"
 
 # Short commands return their output in the response.
-curl -fsS "$api/exec?apiKey=$api_key" -H 'Content-Type: application/json' \
+admin "$api/exec" -H 'Content-Type: application/json' \
   -d '{"command":"list","args":["--es","--quiet"]}' | jq -r .output
 
 # Long commands: submit in the background, then poll.
-job_id=$(curl -fsS "$api/exec?apiKey=$api_key&background=true" \
+job_id=$(admin "$api/exec?background=true" \
   -H 'Content-Type: application/json' \
   -d '{"command":"reindex","args":["--terminology","ncit"]}' | jq -er .id)
 
-curl -fsS "$api/processes/$job_id?apiKey=$api_key"
-curl -fsS "$api/processes/$job_id/log?apiKey=$api_key&full=true" > process.log
+admin "$api/processes/$job_id"
+admin "$api/processes/$job_id/log?full=true" > process.log
 ```
 
 By default `exec` waits up to `OPS_WAIT_SECONDS` (default 300). A job that finishes
 in that time returns 200 with up to 1 MiB of output; check `state` and `exitCode`
 for command failure. A job still running returns 202 and keeps running; poll its
-process URL. Add `&background=true` to return 202 immediately.
+process URL. Add `?background=true` to return 202 immediately.
 `outputTruncated=true` means the rest is available from the log endpoint.
 
 To read a log in pieces, pass `offset` and `limit` (up to 1 MiB). The response has

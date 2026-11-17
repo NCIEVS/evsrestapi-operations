@@ -11,6 +11,7 @@ import pytest
 
 
 REPO = Path(__file__).resolve().parents[1]
+ADMIN_KEY = "synthetic-key-0123456789abcdef0123456789"
 
 
 def script(path, content):
@@ -141,21 +142,90 @@ def test_admin_launcher_uses_same_config_resolver(tmp_path, parent_layout):
     jar = root / "lib/evsrestapi-operations.jar"
     jar.parent.mkdir()
     jar.write_bytes(b"synthetic")
-    script(jdk / "bin/java", 'printf "%s|%s\n" "$OPS_STATE_DIR" "$ADMIN_KEY"\n')
+    script(jdk / "bin/java", 'printf "%s|%s|%s\n" "$OPS_STATE_DIR" "$ADMIN_KEY" "$ADMIN_BIND"\n')
     app = tmp_path / "configuration home"
     config = app / ("evsrestapi/config/setenv.sh" if parent_layout else "config/setenv.sh")
     config.parent.mkdir(parents=True)
     state = tmp_path / "shared state"
     config.write_text("export OPS_STATE_DIR=" + shlex.quote(state.as_posix()) +
-                      "\nexport ADMIN_KEY=synthetic-key\n", encoding="utf-8")
+                      "\nexport ADMIN_KEY=" + ADMIN_KEY + "\n", encoding="utf-8")
     env.pop("OPS_STATE_DIR")
     env.pop("ADMIN_KEY", None)
-    env.update(EVS_OPS_HOME=root.as_posix(), APP_HOME=app.as_posix(), APP_NAME="evsrestapi")
+    # An empty bind address must fall back to loopback, not every interface.
+    env.update(EVS_OPS_HOME=root.as_posix(), APP_HOME=app.as_posix(), APP_NAME="evsrestapi",
+               ADMIN_BIND="")
     result = subprocess.run([env["OPS_BASH"], str(root / "bin/evsrestapi-operations"), "foreground"],
                             env=env, capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.strip() == state.as_posix() + "|synthetic-key"
+    assert result.stdout.strip() == state.as_posix() + "|" + ADMIN_KEY + "|127.0.0.1"
     assert (state / "logs").is_dir()
+
+
+def test_admin_launcher_rejects_short_key(tmp_path):
+    env, jdk = environment(tmp_path)
+    root = installation(tmp_path, ["evsrestapi-operations"])
+    jar = root / "lib/evsrestapi-operations.jar"
+    jar.parent.mkdir()
+    jar.write_bytes(b"synthetic")
+    script(jdk / "bin/java", "exit 88\n")
+    env.update(EVS_OPS_HOME=root.as_posix(), APP_HOME=(tmp_path / "no config").as_posix(),
+               ADMIN_KEY="too-short")
+    result = subprocess.run([env["OPS_BASH"], str(root / "bin/evsrestapi-operations"), "foreground"],
+                            env=env, capture_output=True, text=True, timeout=15)
+    assert result.returncode == 1
+    assert "at least 32 characters" in result.stderr
+
+
+@pytest.mark.parametrize("no_config", [False, True])
+def test_scripts_never_keep_admin_key(tmp_path, no_config):
+    env, _ = environment(tmp_path)
+    app = tmp_path / "configuration home"
+    config = app / "config/setenv.sh"
+    config.parent.mkdir(parents=True)
+    config.write_text("export ADMIN_KEY=from-setenv\n", encoding="utf-8", newline="\n")
+    env.update(APP_HOME=str(app), ADMIN_KEY="from-caller")
+    probe = script(tmp_path / "probe.sh", 'source "$EVS_OPS_HOME/bin/ops-common.sh"\nops_lock "$@"\n'
+                   'printf "%s\n" "${ADMIN_KEY-unset}"\n')
+    result = subprocess.run([env["OPS_BASH"], str(probe), *(["--noconfig"] if no_config else [])],
+                            env=env, capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == "unset"
+
+
+def test_patch_version_cannot_leave_patches_directory(tmp_path):
+    env, _ = environment(tmp_path)
+    root = installation(tmp_path, ["run_command.sh"])
+    script(root / "bin/outside/run.sh", "echo escaped\n")
+    env["EVS_OPS_HOME"] = root.as_posix()
+    result = subprocess.run([env["OPS_BASH"], str(root / "bin/run_command.sh"), "--noconfig",
+                             "patch", "../outside"],
+                            cwd=tmp_path, env=env, capture_output=True, text=True, timeout=15)
+    assert result.returncode == 1
+    assert "escaped" not in result.stdout
+    assert "Invalid patch version" in result.stdout
+
+
+def test_metadata_arguments_cannot_add_curl_options_or_url_segments(tmp_path):
+    env, _ = environment(tmp_path)
+    root = installation(tmp_path, ["metadata.sh"])
+    calls = tmp_path / "curl-calls.jsonl"
+    program = ("import json,os,sys; open(os.environ['OPS_TEST_ARGS'],'a',encoding='utf-8')"
+               ".write(json.dumps(sys.argv[1:])+'\\n')")
+    script(Path(env["OPS_TEST_TOOLS"]) / "curl", '"$OPS_PYTHON" -c ' + shlex.quote(program) + ' "$@"\n')
+    env.update(EVS_OPS_HOME=root.as_posix(), OPS_TEST_ARGS=str(calls))
+
+    def metadata(*args):
+        return subprocess.run([env["OPS_BASH"], str(root / "bin/metadata.sh"), "--noconfig", *args],
+                              cwd=tmp_path, env=env, capture_output=True, text=True, timeout=15)
+
+    result = metadata("ncit/../../other", "2106e", "https://example.org/ncit.json")
+    assert result.returncode == 1 and "invalid terminology or version" in result.stdout
+    assert not calls.exists()
+    uri = "https://example.org/a.json -o " + (tmp_path / "written").as_posix() + " https://example.org/b"
+    metadata("ncit", "2106e", uri)
+    download = [json.loads(line) for line in calls.read_text(encoding="utf-8").splitlines()][-1]
+    assert download[-1] == uri and len(download) == 4
+    assert not (tmp_path / "written").exists()
 
 
 @pytest.mark.parametrize("failure", ["missing-jar", "bad-jvm", "none"])

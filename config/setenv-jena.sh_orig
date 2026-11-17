@@ -28,7 +28,8 @@ export ES_SCHEME=http
 export ES_HOST=localhost
 export ES_PORT=9200
 export ES=${ES_SCHEME}://${ES_HOST}:${ES_PORT}
-# Private operations API. Set ADMIN_KEY in the protected local setenv.sh.
+# Private operations API. Set ADMIN_KEY in the protected local setenv.sh;
+# at least 32 characters, e.g. from: openssl rand -hex 32
 export ADMIN_KEY=""
 export ADMIN_BIND=127.0.0.1
 export ADMIN_PORT=8083

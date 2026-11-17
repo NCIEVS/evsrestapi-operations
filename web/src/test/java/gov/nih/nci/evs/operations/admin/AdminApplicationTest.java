@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(classes = AdminApplication.class)
 @AutoConfigureMockMvc
 class AdminApplicationTest {
+  private static final String KEY = "test-key-0123456789abcdef0123456789";
   private static final Path state;
 
   static {
@@ -32,7 +33,7 @@ class AdminApplicationTest {
 
   @DynamicPropertySource
   static void properties(DynamicPropertyRegistry registry) {
-    registry.add("admin.api-key", () -> "test-key");
+    registry.add("admin.api-key", () -> KEY);
     registry.add("admin.state-dir", state::toString);
   }
 
@@ -61,10 +62,10 @@ class AdminApplicationTest {
     }
     mvc.perform(post("/admin/exec").contentType("application/json").content("{}"))
         .andExpect(status().isUnauthorized());
-    mvc.perform(get("/admin/commands").param("apiKey", "test-key")).andExpect(status().isOk());
+    mvc.perform(get("/admin/commands").param("apiKey", KEY)).andExpect(status().isOk());
     mvc.perform(
             post("/admin/exec")
-                .param("apiKey", "test-key")
+                .param("apiKey", KEY)
                 .contentType("application/json")
                 .content("{\"command\":\"../../bin/bash\",\"args\":[]}"))
         .andExpect(status().isBadRequest());
@@ -81,7 +82,7 @@ class AdminApplicationTest {
         mvc.perform(get(uri)).andExpect(status().isUnauthorized());
         mvc.perform(get(uri).param("apiKey", "wrong")).andExpect(status().isUnauthorized());
       }
-      mvc.perform(get(URI.create(prefix + "/commands")).param("apiKey", "test-key"))
+      mvc.perform(get(URI.create(prefix + "/commands")).param("apiKey", KEY))
           .andExpect(status().isOk());
       URI exec = URI.create(prefix + "/exec");
       mvc.perform(post(exec).contentType("application/json").content("{}"))
@@ -90,7 +91,7 @@ class AdminApplicationTest {
           .andExpect(status().isUnauthorized());
       mvc.perform(
               post(exec)
-                  .param("apiKey", "test-key")
+                  .param("apiKey", KEY)
                   .contentType("application/json")
                   .content("{\"command\":\"unknown\",\"args\":[]}"))
           .andExpect(status().isBadRequest());
@@ -103,6 +104,16 @@ class AdminApplicationTest {
       mvc.perform(get(path)).andExpect(status().isUnauthorized());
       mvc.perform(get(path).param("apiKey", "wrong")).andExpect(status().isUnauthorized());
     }
-    mvc.perform(get("/not-a-route").param("apiKey", "test-key")).andExpect(status().isNotFound());
+    mvc.perform(get("/not-a-route").param("apiKey", KEY)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void acceptsTheKeyInAHeader() throws Exception {
+    mvc.perform(get("/admin/commands").header("X-Admin-Key", KEY)).andExpect(status().isOk());
+    mvc.perform(get("/admin/commands").header("X-Admin-Key", "wrong"))
+        .andExpect(status().isUnauthorized());
+    // A wrong header is not rescued by a correct parameter.
+    mvc.perform(get("/admin/commands").header("X-Admin-Key", "wrong").param("apiKey", KEY))
+        .andExpect(status().isUnauthorized());
   }
 }

@@ -3,6 +3,10 @@
 EVS_OPS_HOME="${EVS_OPS_HOME:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
 export EVS_OPS_HOME
 export PYTHONUTF8="${PYTHONUTF8:-1}"
+# Only the API service launcher (bin/evsrestapi-operations) needs ADMIN_KEY. Drop it everywhere
+# else, including after setenv.sh is loaded, so scripts and the tools they run never see it.
+ops_drop_admin_key() { [[ "${_OPS_ADMIN_SERVICE:-}" == 1 ]] || unset ADMIN_KEY; }
+ops_drop_admin_key
 ops_use_bash() {
   local selected_bash="${OPS_BASH:-$BASH}"
   # Native Windows Python must not resolve bare bash to the WSL launcher on PATH.
@@ -55,6 +59,7 @@ ops_load_config() {
     export OPS_CONFIG_ENV_FILE="$config_file"
     _OPS_CONFIG_INITIALIZED=1
   fi
+  ops_drop_admin_key
   CONFIG_ENV_FILE="$OPS_CONFIG_ENV_FILE"
   CONFIG_DIR="$(dirname -- "$CONFIG_ENV_FILE")"
   if [[ "$required" == 1 && "${_OPS_CONFIG_LOADED:-0}" != 1 ]]; then
