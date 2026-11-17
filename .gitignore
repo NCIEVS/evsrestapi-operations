@@ -6,3 +6,6 @@
 /config/setenv.sh
 owls/*
 *.log
+bin/temp/
+__pycache__/
+*.py[cod]
