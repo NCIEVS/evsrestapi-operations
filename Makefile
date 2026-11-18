@@ -5,7 +5,7 @@ build:
 	@echo "Creating ${BUILD_DIR} directory if it does not exist"
 	@mkdir -p ${BUILD_DIR}
 	@echo "Creating zip file. Version: ${VERSION}"
-	@zip -r ${BUILD_DIR}/evsrestapi-operations-${VERSION}.zip ./bin ./config ./lib ./src ./poetry.lock ./pyproject.toml ./Makefile -x ".gitignore"
+	@zip -r -FS ${BUILD_DIR}/evsrestapi-operations-${VERSION}.zip ./bin ./config ./lib ./src ./poetry.lock ./pyproject.toml ./Makefile -x ".gitignore" "bin/work_*" "bin/work_*/*" "*/__pycache__" "*/__pycache__/*" "*/.pytest_cache" "*/.pytest_cache/*" "config/setenv.sh" "*.log"
 
 clean:
 	@echo "Cleaning ${BUILD_DIR} directory if it exists"

@@ -2,6 +2,53 @@
 
 Information on the operations processes for the EVSRESTAPI project
 
+## Fuseki SERVICE policy deployment
+
+`config/fuseki/NCIT2.ttl` and `config/fuseki/CTRP.ttl` are the maintained
+dataset assemblers. Both set `arq:httpServiceAllowed` to `false` on the TDB2
+dataset. They retain the DEV dataset paths and query, graph-store, update, and
+upload endpoints. Endpoint permissions need a separate review before any are
+removed. `make build` packages these files, `bin/install_fuseki_config.sh`,
+`bin/verify_fuseki_service_policy.py`, and `bin/jena.service` in the operations
+zip.
+
+The graph server's `jena.service` must use the packaged unit at
+`/etc/systemd/system/jena.service`. Its `ExecStartPre` runs the installer and
+then `--check` as `evsuser` before each Jena start. The operations artifact must
+be unpacked at `/local/content/evsrestapi/evsrestapi-operations` before restarting Jena.
+The installer writes the two assemblers into
+`/local/content/fuseki/current/run/configuration` and records the resolved Jena
+home, operations version, and SHA-256 hashes in
+`evsrestapi-operations-fuseki.txt` there. It fails on a missing database,
+unexpected `.ttl` assembler, absent SERVICE denial, or file/version drift.
+It never moves, creates, or overwrites database contents.
+
+For an upgrade, provision the new Fuseki version and its NCIT2 and CTRP
+database directories first. Preserve or migrate database contents under a
+separately reviewed plan. Then point `current` at the new version, unpack the
+operations artifact, install the packaged `bin/jena.service` into systemd,
+run `systemctl daemon-reload`, and restart Jena. The pre-start steps install
+and verify the assemblers in the new version. After startup, run:
+
+```sh
+/local/content/evsrestapi/evsrestapi-operations/bin/install_fuseki_config.sh --check
+python3 /local/content/evsrestapi/evsrestapi-operations/bin/verify_fuseki_service_policy.py
+```
+
+The verifier checks permitted reads and direct, nested, SILENT, variable, and
+URL-escaped SERVICE requests against both datasets. At the Fuseki layer,
+`SERVICE SILENT` masks the denial and returns HTTP 200; the verifier requires
+that it cause no canary HTTP request. The API blocks SILENT before forwarding.
+A local HTTP canary detects outbound HTTP attempts. Review the version record beside the installed files
+alongside the Jena version. The current `FUSEKI_BASE` and database paths remain
+inside the version selected by `current`; moving them to persistent storage
+requires a database migration and rollback plan.
+
+For rollback, restore the previous `current` target and the matching operations
+artifact and service unit, run `systemctl daemon-reload`, then restart Jena.
+Run the same configuration check and query verifier after rollback. If either
+fails, keep Jena stopped until the assemblers or database location is fixed.
+
 ### Prerequisites
 
 * Curl, jq, git
