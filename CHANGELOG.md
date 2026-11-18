@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.0.RELEASE] - 2026-10-29
+### Added
+- Add NCIt as a BLOODPAC source
+- Add the October 2026 NCIt-HGNC mapping update
+
+### Changed
+- Update the CDISC codelist in term form (P62)
+- Update terminology mapping and metadata files for October 2026
+
+### Fixed
+- Clean up transform directory stack handling across terminology transforms
+
 ## [2.4.0.RELEASE] - 2026-04-01
 ### Added
 - Handle compaction tasks through stardog_load.sh and maintenance operations

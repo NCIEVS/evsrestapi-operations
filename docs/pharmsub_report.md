@@ -1,0 +1,264 @@
+# Monthly PharmSub Excel report
+
+The generator runs the query in `config/reports/pharmsub.rq` against Jena,
+substituting the requested version in the named graph URI. It preserves the
+supplied query's C1909 hierarchy traversal, synonym/source pairing, optional
+fields, `DISTINCT`, and `ORDER BY ?Concept_Name ?SY`. It includes C1909 itself.
+Multiple synonyms, sources, CAS values, or definitions can produce multiple
+rows for a concept. The script preserves all returned rows and their order.
+
+## Run with Codex
+
+Open this repository as your project in Codex. The repository includes the
+[PharmSub Report skill](../.agents/skills/pharmsub-report/SKILL.md), which can be
+used with a request such as:
+
+```text
+Use $pharmsub-report to create the production report for NCIT 26.10d,
+release date 20261112.
+```
+
+Replace those example values with the intended release. If you do not know
+them, ask for help; the skill will request the missing details rather than
+substituting today's date. For a dev test, explicitly say "use the dev server".
+The skill handles Python setup without Poetry, checks access, runs the existing
+generator, validates the result, and returns the full Excel path. When asked
+separately, it can also guide internal FTP upload, run the production sync
+action with available authorized tools, and verify the public download:
+
+```text
+Use $pharmsub-report to upload the approved workbook, run the production
+sync action, and verify the public download.
+```
+
+Identify the exact approved workbook when requesting publication. A request to
+generate a report alone does not start the upload or sync action.
+
+Codex discovers repository skills under `.agents/skills`; see the
+[official skill documentation](https://learn.chatgpt.com/docs/build-skills).
+If the skill does not appear after checking out the updated repository,
+restart Codex. Other Codex projects can use an installed personal copy too.
+
+## Generate a report
+
+Normal monthly reports use the production NCIT2 dataset on
+`ncidb-p335-c.nci.nih.gov:3030`.
+The browser page is
+`http://ncidb-p335-c.nci.nih.gov:3030/#/dataset/NCIT2/query`.
+Pass the service URL `http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query`
+to `--endpoint`; the browser URL's `/#/dataset/...` fragment is not a query
+service endpoint.
+
+For development testing, pass
+`--endpoint http://ncias-d2175-c.nci.nih.gov:3030/NCIT2/query` and
+`--output-dir ./output/dev`. Select the environment explicitly; the script
+uses the supplied endpoint or exported configuration.
+
+Python 3.9 or later is required. Poetry is optional: generation and the
+PharmSub tests can use Python's built-in `venv` and pip.
+
+From the operations repository root, run this setup once:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install 'openpyxl==3.1.5' 'lxml==5.4.0'
+```
+
+The dependency versions match the repository's lock file. Include `lxml`
+so multiline text, including carriage returns, is preserved by the Excel
+writer. The project-local `.venv` is ignored by Git and does not need shell
+activation. Subsequent reports use the existing `.venv/bin/python` directly;
+there is no need to reinstall the dependencies for each run.
+If you already use Poetry, run `poetry install` and replace `.venv/bin/python`
+with `poetry run python` in the commands below.
+
+```bash
+.venv/bin/python bin/pharmsub_report.py \
+  --version 26.09d \
+  --release-date 20260928 \
+  --endpoint http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query \
+  --output-dir ./output
+```
+
+When copying commands into a terminal, use the plain URL from the code block.
+Do not include Markdown link syntax or blank lines between continued lines.
+A backslash must be the last character on its line. The generation command
+can also be pasted as one line:
+
+```bash
+.venv/bin/python bin/pharmsub_report.py --version 26.09d --release-date 20260928 --endpoint http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query --output-dir ./output
+```
+
+Replace the example version and date with the intended release. The date
+must be an explicit, valid `YYYYMMDD` date. Generate publication workbooks only
+after graph loading has finished and monthly content QA has passed. Explicit
+dev tests and offline replays can validate the generator; those runs do not by
+themselves establish release content QA or publication readiness.
+
+The script uses exported `GRAPH_DB_USERNAME` and `GRAPH_DB_PASSWORD` for
+HTTP Basic or Digest authentication when configured. Set both or neither.
+Credentials are not accepted in the endpoint URL and are not recorded in
+the output files. HTTP redirects are rejected so a login page or different
+endpoint cannot silently replace the configured query service.
+
+To omit `--endpoint`, export `PHARMSUB_ENDPOINT`, or use the existing graph
+environment variables. `GRAPH_DB_URL` supplies the server base URL;
+`GRAPH_DB_DB` (or `GRAPH_DB`) selects the database, defaulting to `NCIT2`.
+Alternatively, use `GRAPH_DB_HOST`, `GRAPH_DB_SCHEME` (default `http`), and
+`GRAPH_DB_PORT` (default `3030`). Explicit `--endpoint` takes precedence.
+The Python script consumes exported variables and does not source a shell
+configuration file. Source your Jena `config/setenv.sh` in your shell first
+if needed, as for operations scripts using `--noconfig`.
+
+`--timeout` sets the HTTP timeout in seconds, defaulting to 600. A failed
+request stops the run. Nothing is uploaded, and the graph is never modified.
+
+## Connection troubleshooting
+
+The script distinguishes DNS lookup failures, timeouts, refused connections,
+and HTTP errors. A DNS lookup failure means the connection cannot find a
+server address; increasing the query timeout will not resolve it.
+
+Try opening the Jena query page on the same computer:
+
+```text
+http://ncidb-p335-c.nci.nih.gov:3030/#/dataset/NCIT2/query
+```
+
+If it also fails, connect to the NIH/NCI network or VPN required for that
+server and verify that the hostname in the procedure is still current.
+If the browser opens it but Python cannot connect, compare the hostname
+and port and check whether the browser uses a proxy or tunnel that Python
+does not use. Run the script where the internal server is reachable, or
+configure the required proxy for that environment.
+
+Once the server is reachable, rerun the generation command. A reachable
+server that takes longer to answer the query may need a larger `--timeout`.
+
+## Output and validation
+
+A successful example run creates this directory:
+
+```text
+output/NCIT_PharmSub_26.09d_20260928/
+  NCIT_PharmSub_26.09d_20260928.xlsx
+  NCIT_PharmSub_26.09d_20260928.results.json
+  NCIT_PharmSub_26.09d_20260928.rq
+  NCIT_PharmSub_26.09d_20260928.report.json
+```
+
+The workbook has one worksheet, `queryResults`, with these columns:
+
+```text
+Concept_Name, Concept_ID, PT, SY, SY_Source, CAS_Registry, FDA_UNII_Code, DEFINITION
+```
+
+Every populated cell is explicitly stored as a string with Excel text
+formatting, including numeric-looking identifiers, date-like synonyms, and
+values beginning with `=`. Missing or empty optional values remain blank.
+The workbook uses the sample's plain sheet structure, with no extra tabs,
+tables, or formulas.
+
+The script rejects empty results, missing required literals, missing C1909,
+unexpected columns, invalid XML characters, and Excel row or cell length
+limits. It reopens the saved workbook and checks every value, row count,
+and populated cell's string type and text format against the response.
+The final directory appears only after validation succeeds. A failed run
+cleans up its staging directory and exits nonzero. Existing output is never
+overwritten; choose another `--output-dir` for a rerun.
+
+The JSON report records the source, version, date, counts, optional blanks,
+and SHA-256 checksums for the workbook, raw response, and rendered query.
+Distinct RDF terms can have identical displayed text, so duplicate display
+rows are counted and retained rather than collapsed.
+
+Add `--previous-report /path/to/previous.report.json` to record row and
+concept count changes from a previous generated report. Counts are not
+hardcoded across releases. Review changes as part of monthly content QA;
+matching counts alone do not establish correct content or completed loading.
+
+## Replay saved results
+
+For offline conversion or reproducing a previous run:
+
+```bash
+.venv/bin/python bin/pharmsub_report.py \
+  --version 26.09d \
+  --release-date 20260928 \
+  --results-json /path/to/NCIT_PharmSub_26.09d_20260928.results.json \
+  --output-dir ./output-replay
+```
+
+Use the version and date belonging to the saved response, and retain its
+original `.rq` and `.report.json` as provenance. SPARQL result JSON does not
+contain the queried graph, so an offline replay cannot independently verify
+the version or that the source graph finished loading. Replay mode records
+the input path and does not contact Jena or use graph credentials.
+
+The September 2026 sample has 112,578 data rows and 26,988 distinct concepts.
+It contains numeric and date-formatted identifier and synonym cells. Use it
+as a layout and count reference; use the raw query response to establish
+exact string values rather than reproducing Excel's conversions. If the
+26.09d graph remains available, regenerate it and investigate differences
+against that response. Only compare ordering across different runs within
+the query's specified sort keys; ties are not ordered by the query.
+
+Validation on 2026-11-16 used the development server `ncias-d2175-c`
+because production was unavailable. The September example used the `26.09d`
+graph and release date `20260928`. Generation, download, and verification
+took approximately six minutes and produced 112,578 rows and 26,988 concepts.
+The saved workbook matched every raw result value and text type. Reference
+comparison ignored ordering among tied sort keys: 111,609 rows matched
+exactly, 902 differed because the reference contained number/date cells,
+and 67 differed because the reference had character encoding errors (for
+example, `na√Øve` instead of the raw `naïve`). Every concept's row count
+matched, and no unexplained row differences remained. The generator
+preserves the raw query strings rather than reproducing those conversions.
+
+The October example (`26.10d` / `20261112`) was also generated and verified
+on dev: 112,798 rows and 27,013 concepts, with all rows matching the October
+reference after treating empty optional strings as blank. The saved reports
+retain their actual development endpoint as provenance. Runtime depends on
+server load and download speed.
+
+## Upload and public promotion
+
+Follow the skill's detailed
+[upload and promotion guide](../.agents/skills/pharmsub-report/references/publication.md).
+It includes the operator-confirmed FTP profile for `ncias-p3388-v.nci.nih.gov`
+(user `cacore`) and this exact **Remote site** folder:
+
+```text
+/ftp/ftpcacore/pub/cacore/EVS/NCI_Thesaurus/Branches
+```
+
+Upload only the approved, validated `.xlsx`; retain the raw results, query, and
+report locally with release records. Confirm that the upload feeds the workflow
+source at `ncils-av-62s9yh:/share/content/evs/ftp1/NCI_Thesaurus/Branches` before
+promotion. Do not infer that mapping from similar folder names.
+
+Then run
+[EVS NFS to AWS S3 Sync in Prod](https://github.com/CBIIT/evs-utils/actions/workflows/evs-ftp-s3sync-prod.yaml)
+in **CBIIT/evs-utils**, using its verified production branch (`main` at the latest
+review). This action mirrors the whole FTP tree with deletion enabled and may
+report success with warnings. Verify the exact public workbook by downloading
+it from `https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Branches/` and comparing its
+SHA-256 with the approved local file. The guide provides browser and CLI steps,
+failure handling, and the evidence to record.
+
+The generator itself still creates local files only. Upload and promotion happen
+only when requested; editing the skill does not upload or publish a workbook.
+
+## Tests
+
+After the setup above, install the test runner and run the PharmSub tests:
+
+```bash
+.venv/bin/python -m pip install 'pytest==7.4.4'
+.venv/bin/python -m pytest test/pharmsub_report_test.py
+```
+
+The test runner is only needed for development, not monthly report generation.
+
+The tests use small synthetic SPARQL responses and a local HTTP server for
+query and authentication checks. They do not depend on an NCI connection.

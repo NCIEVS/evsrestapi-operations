@@ -1,0 +1,31 @@
+PREFIX :     <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT
+    ?Concept_Name ?Concept_ID ?PT ?SY ?SY_Source
+    ?CAS_Registry ?FDA_UNII_Code ?DEFINITION
+WHERE {
+    GRAPH <http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus_{{VERSION}}.owl> {
+        VALUES ?superclass { :C1909 }
+        ?s a owl:Class ;
+           :NHC0 ?Concept_ID ;
+           rdfs:label ?Concept_Name ;
+           :P108 ?PT .
+        ?s (
+            rdfs:subClassOf |
+            (owl:equivalentClass/owl:intersectionOf/rdf:rest*/rdf:first)
+        )* ?superclass .
+        ?s :P90 ?SY .
+        ?axiom a owl:Axiom ;
+               owl:annotatedSource ?s ;
+               owl:annotatedProperty :P90 ;
+               owl:annotatedTarget ?SY ;
+               :P384 ?SY_Source .
+        OPTIONAL { ?s :P97 ?DEFINITION }
+        OPTIONAL { ?s :P210 ?CAS_Registry }
+        OPTIONAL { ?s :P319 ?FDA_UNII_Code }
+    }
+}
+ORDER BY ?Concept_Name ?SY

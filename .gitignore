@@ -28,3 +28,5 @@ audit_reports/
 /bin/NCIT_HISTORY/
 /bin/fhir_transforms/
 DownloadSuccessfull.lck
+/output/
+/.venv/

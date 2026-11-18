@@ -1,0 +1,3 @@
+interface:
+  display_name: "PharmSub Report"
+  short_description: "Generate and publish validated PharmSub reports"
