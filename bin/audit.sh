@@ -1,10 +1,9 @@
 #!/bin/bash -f
-#
-# This script is maintained in both evsrestapi and evsrestapi-operations.
-# If this script is changed, make the same change in the other repository.
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
 #
 # This script produces audit reports by querying Elasticsearch for evs_audit data.
 #
+set -o pipefail
 
 config=1
 help=0
@@ -46,6 +45,7 @@ print_help() {
   echo ""
   echo "Report Types (Required):"
   echo "  load                Terminology loading and indexing metrics"
+  echo "  stats               Terminology load statistics"
   echo "  error               Audit records with ERROR log level"
   echo "  warning             Audit records with WARN log level"
   echo "  all                 All audit records"
@@ -63,6 +63,7 @@ print_help() {
   echo "Examples:"
   echo "  $0 load                      # Load report to console"
   echo "  $0 --csv load ncit           # CSV report for NCIt"
+  echo "  $0 stats ncit                # Load statistics for NCIt"
   echo "  $0 -r -c all                 # Recent records for all types in CSV"
   echo "  $0 all -T medrt              # Use explicit flag for terminology"
   exit 1
@@ -82,15 +83,7 @@ setup_configuration() {
     # Set directory of this script so we can call relative scripts
     DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
     if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    if [[ -e $CONFIG_ENV_FILE ]]; then
-      . $CONFIG_ENV_FILE
-    else
-      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-      exit 1
-    fi
+    ops_load_config 1 || exit 1
   fi
 }
 
@@ -115,14 +108,23 @@ setup_configuration
 validate_setup
 
 query_es() {
-    local q=$1
+    local body=$1
     # Use -f to fail on HTTP errors and -S to show error on stderr
-    if ! curl -s -S -f -G "$ES/evs_audit/_search" --data-urlencode "size=1000" --data-urlencode "q=$q"; then
+    if ! curl -s -S -f "$ES/evs_audit/_search" -H "Content-Type: application/json" -d "$body"; then
       echo "ERROR: Elasticsearch query failed." >&2
       exit 1
     fi
 }
 
+add_filter() {
+    local clause=$1
+    filters=$(jq -c -n --argjson filters "$filters" --argjson clause "$clause" '$filters + [$clause]') || exit 1
+}
+
+add_must_not() {
+    local clause=$1
+    must_not=$(jq -c -n --argjson must_not "$must_not" --argjson clause "$clause" '$must_not + [$clause]') || exit 1
+}
 
 # Output handling
 if [[ $output_to_file -eq 1 ]]; then
@@ -133,26 +135,36 @@ if [[ $output_to_file -eq 1 ]]; then
     # Note: We use tsv internally for jq then convert to csv if needed
 fi
 
+filters='[]'
+must_not='[]'
+load_process_filter='{"terms":{"process":["MetaOpensearchLoadServiceImpl","MetaSourceOpensearchLoadServiceImpl","LoaderServiceImpl","GraphOpensearchLoadServiceImpl"]}}'
+
 case $report_type in
   load)
-    header="Terminology\tVersion\tElapsed Time\tCount\tDate"
-    q="process:(MetaOpensearchLoadServiceImpl OR MetaSourceOpensearchLoadServiceImpl OR LoaderServiceImpl OR GraphOpensearchLoadServiceImpl) AND NOT elapsedTime:0"
-    filter='def f: . as $ms | if $ms < 1000 then ($ms|tostring)+"ms" else ($ms/1000|floor) as $s | def pad: tostring | if length == 1 then "0" + . else . end; ($s/3600|floor|pad) + ":" + (($s%3600)/60|floor|pad) + ":" + ($s%60|pad) end; .hits.hits[] | [._source.terminology, ._source.version, (._source.elapsedTime | f), ._source.count, (._source.date // ._source.startDate)] | @tsv'
+    header="Terminology\tVersion\tElapsed Time\tCount\tCodes\tProperties\tTree Positions\tMax Parents\tMax Children\tDate"
+    add_filter "$load_process_filter"
+    add_must_not '{"term":{"elapsedTime":0}}'
+    filter='def f: . as $ms | if $ms < 1000 then ($ms|tostring)+"ms" else ($ms/1000|floor) as $s | def pad: tostring | if length == 1 then "0" + . else . end; ($s/3600|floor|pad) + ":" + (($s%3600)/60|floor|pad) + ":" + ($s%60|pad) end; def cc($x): if $x == null then "" else (($x.code // "") + ":" + (($x.count // 0)|tostring)) end; .hits.hits[] | [._source.terminology, ._source.version, (._source.elapsedTime | f), ._source.count, (._source.stats.codeCount // ""), (._source.stats.propertyCount // ""), (._source.stats.hierarchy.treePositionCount // ""), cc(._source.stats.hierarchy.maxParents), cc(._source.stats.hierarchy.maxChildren), (._source.date // ._source.startDate)] | @tsv'
     #filter='def f: . as $ms | if $ms < 1000 then ($ms|tostring)+"ms" else ($ms/1000|floor) as $s | ($s/3600|floor) as $h | (($s%3600)/60|floor) as $m | ($s%60) as $sec | (if $h>0 then ($h|tostring)+"h " else "" end) + (if $m>0 or $h>0 then ($m|tostring)+"m " else "" end) + ($sec|tostring)+"s" end; .hits.hits[] | [._source.terminology, ._source.version, (._source.elapsedTime | f), ._source.count, (._source.date // ._source.startDate)] | @tsv'
+    ;;
+  stats)
+    header="Terminology\tVersion\tConcepts\tCodes\tActive\tInactive\tSynonyms\tDefinitions\tProperties\tParents\tChildren\tAssociations\tInverse Associations\tRoles\tInverse Roles\tMaps\tHierarchy Codes\tTree Positions\tRoots\tMin Paths\tMax Paths\tMax Children\tMax Parents\tDate"
+    add_filter "$load_process_filter"
+    add_must_not '{"term":{"elapsedTime":0}}'
+    filter='def cc($x): if $x == null then "" else (($x.code // "") + ":" + (($x.count // 0)|tostring)) end; .hits.hits[] | select(._source.stats != null) | ._source as $s | [$s.terminology, $s.version, ($s.stats.conceptCount // ""), ($s.stats.codeCount // ""), ($s.stats.activeConceptCount // ""), ($s.stats.inactiveConceptCount // ""), ($s.stats.synonymCount // ""), ($s.stats.definitionCount // ""), ($s.stats.propertyCount // ""), ($s.stats.parentReferenceCount // ""), ($s.stats.childReferenceCount // ""), ($s.stats.associationCount // ""), ($s.stats.inverseAssociationCount // ""), ($s.stats.roleCount // ""), ($s.stats.inverseRoleCount // ""), ($s.stats.mapCount // ""), ($s.stats.hierarchy.codeCount // ""), ($s.stats.hierarchy.treePositionCount // ""), ($s.stats.hierarchy.rootCount // ""), cc($s.stats.hierarchy.minPaths), cc($s.stats.hierarchy.maxPaths), cc($s.stats.hierarchy.maxChildren), cc($s.stats.hierarchy.maxParents), ($s.date // $s.startDate)] | @tsv'
     ;;
   error)
     header="Terminology\tVersion\tProcess\tDetails\tDate"
-    q="logLevel:ERROR"
+    add_filter '{"term":{"logLevel":"ERROR"}}'
     filter='.hits.hits[] | [._source.terminology, ._source.version, ._source.process, ._source.details, ._source.date] | @tsv'
     ;;
   warning)
     header="Terminology\tVersion\tProcess\tDetails\tDate"
-    q="logLevel:WARN"
+    add_filter '{"term":{"logLevel":"WARN"}}'
     filter='.hits.hits[] | [._source.terminology, ._source.version, ._source.process, ._source.details, ._source.date] | @tsv'
     ;;
   all)
     header="Type\tTerminology\tVersion\tProcess\tLogLevel\tDetails\tCount\tElapsed\tDate"
-    q="*:*"
     filter='def f: . as $ms | if $ms < 1000 then ($ms|tostring)+"ms" else ($ms/1000|floor) as $s | def pad: tostring | if length == 1 then "0" + . else . end; ($s/3600|floor|pad) + ":" + (($s%3600)/60|floor|pad) + ":" + ($s%60|pad) end; .hits.hits[] | [._source.type, ._source.terminology, ._source.version, ._source.process, ._source.logLevel, ._source.details, ._source.count, (._source.elapsedTime | f), (._source.date // ._source.startDate)] | @tsv'
     #filter='def f: . as $ms | if $ms < 1000 then ($ms|tostring)+"ms" else ($ms/1000|floor) as $s | ($s/3600|floor) as $h | (($s%3600)/60|floor) as $m | ($s%60) as $sec | (if $h>0 then ($h|tostring)+"h " else "" end) + (if $m>0 or $h>0 then ($m|tostring)+"m " else "" end) + ($sec|tostring)+"s" end; .hits.hits[] | [._source.type, ._source.terminology, ._source.version, ._source.process, ._source.logLevel, ._source.details, ._source.count, (._source.elapsedTime | f), (._source.date // ._source.startDate)] | @tsv'
     ;;
@@ -162,18 +174,30 @@ case $report_type in
     ;;
 esac
 if [[ -n $terminology ]]; then
-    q="$q AND terminology:$terminology"
+    terminology_filter=$(jq -c -n --arg terminology "$terminology" '{"term":{"terminology":$terminology}}') || exit 1
+    add_filter "$terminology_filter"
 fi
 
 
 # recent flag restricts only to audits that happened in the last 24 hours
 if [[ $recent -eq 1 ]]; then
-    start_date=$(date -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-    end_date=$(date +%Y-%m-%dT%H:%M:%SZ)
-    q="$q AND (date:[$start_date TO $end_date] OR startDate:[$start_date TO $end_date])"
+    # Python instead of GNU date, so this also works on macOS and Git Bash.
+    date_range=$("${OPS_PYTHON:-python3}" - <<'PY'
+from datetime import datetime, timedelta, timezone
+end = datetime.now(timezone.utc)
+print((end - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ"), end.strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+    ) || exit 1
+    read -r start_date end_date <<< "$date_range"
+    # Not $end: "end" is a jq keyword, and jq 1.6 rejects it as a variable name.
+    recent_filter=$(jq -c -n --arg from "$start_date" --arg to "$end_date" '{"bool":{"should":[{"range":{"date":{"gte":$from,"lte":$to}}},{"range":{"startDate":{"gte":$from,"lte":$to}}}],"minimum_should_match":1}}') || exit 1
+    add_filter "$recent_filter"
 fi
 
-data=$(query_es "$q" | jq -r "$filter")
+query_body=$(jq -c -n --argjson filters "$filters" --argjson must_not "$must_not" '{"size":1000,"query":{"bool":{"filter":$filters,"must_not":$must_not}},"sort":[{"startDate":{"order":"desc","missing":"_last"}},{"date":{"order":"desc","missing":"_last"}}]}') || exit 1
+response=$(query_es "$query_body") || exit 1
+# A response jq cannot read is an error, not an empty report.
+data=$(jq -r "$filter" <<< "$response") || exit 1
 
 # Final output with format conversion if needed
 if [[ -n "$data" ]]; then

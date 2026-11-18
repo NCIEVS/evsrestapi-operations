@@ -1,4 +1,6 @@
 config=1
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
+ops_lock "$@"
 DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 if [[ "$DIR" == /cygdrive/* ]]; then DIR=$(echo "$DIR" | sed 's|^/cygdrive/\([a-zA-Z]\)/\(.*\)|\1:/\2|'); fi
 PATCHES_DIRECTORY=$DIR/patches
@@ -41,16 +43,8 @@ data="${arr[0]}"
 
 setup_configuration() {
   if [[ $config -eq 1 ]]; then
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    if [[ -e $CONFIG_ENV_FILE ]]; then
-      echo "    config = $CONFIG_ENV_FILE"
-      . $CONFIG_ENV_FILE
-    else
-      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-      exit 1
-    fi
+    ops_load_config 1 || exit 1
+    echo "    config = $CONFIG_ENV_FILE"
   fi
 }
 
@@ -67,7 +61,7 @@ print_env(){
   java -version
   if [[ $config -eq 1 ]]; then
     echo "Printing config file: $CONFIG_ENV_FILE"
-    cat "$CONFIG_ENV_FILE"
+    echo "Configuration values are omitted; inspect the protected file locally."
   fi
   if [[ -n $GRAPH_DB_URL ]]; then
     success=$(curl -s -f -o /dev/null -w "%{http_code}" "$GRAPH_DB_URL/$/server" | grep -q "200")
@@ -93,6 +87,7 @@ run_list_command(){
     fi
     if [[ $? -ne 0 ]]; then
       echo "ERROR: problem running list.sh"
+      exit 1
     fi
     print_completion
     exit 0
@@ -193,6 +188,11 @@ run_patch_command(){
       echo "ERROR: No patch version specified"
       exit 1
     fi
+    # A patch version names a directory under patches/, never a path.
+    if [[ ! "${patch_args[0]}" =~ ^[A-Za-z0-9._-]+$ || "${patch_args[0]}" == *..* ]]; then
+      echo "ERROR: Invalid patch version ${patch_args[0]}"
+      exit 1
+    fi
     l_patches_directory=$PATCHES_DIRECTORY/${patch_args[0]}
     # check if patches directory exists
     if [[ ! -d "$l_patches_directory" ]]; then
@@ -262,10 +262,10 @@ run_commands(){
   if [[ $data == "list" ]]; then
     run_list_command
   fi
-  if [[ $data =~ "remove" ]]; then
+  if [[ $data == "remove" ]]; then
     run_remove_command
   fi
-  if [[ $data =~ "patch" ]]; then
+  if [[ $data == "patch" ]]; then
     run_patch_command
   fi
   if [[ $data == "drop_ctrp_db" ]]; then
@@ -282,7 +282,10 @@ run_commands(){
   fi
   if [[ $data == "list_compaction_tasks" ]]; then
     list_compaction_tasks
+    exit $?
   fi
+  echo "ERROR: unknown command" >&2
+  exit 2
 }
 
 print_completion() {

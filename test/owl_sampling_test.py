@@ -21,7 +21,7 @@ def _load_owl_sampling_script():
 generate_samples = _load_owl_sampling_script().generate_samples
 
 
-SAMPLE_FILES_DIR = Path(__file__).parent / "sample_test_files"
+SAMPLE_FILES_DIR = Path(__file__).parent / "sample_owl_test_files"
 SYNTHETIC_OWL = (SAMPLE_FILES_DIR / "synthetic.owl").read_text(encoding="utf-8")
 SYNTHETIC_CONFIG = json.loads((SAMPLE_FILES_DIR / "synthetic.json").read_text(encoding="utf-8"))
 

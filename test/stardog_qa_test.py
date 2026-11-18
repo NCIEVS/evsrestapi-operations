@@ -1,5 +1,8 @@
 import subprocess
+import os
 from pathlib import Path
+import sys
+import zipfile
 
 from terminology_converter.qa.qa_utils import (
     EmptyProperty,
@@ -43,12 +46,34 @@ def write_ncit_owl(path: Path, class_body: str) -> None:
 
 
 def run_stardog_qa(owl_file: Path, input_directory: Path) -> subprocess.CompletedProcess:
+    environment = dict(os.environ, EVS_OPS_HOME=str(REPO_ROOT), OPS_PYTHON=sys.executable,
+                       OPS_STATE_DIR=str(input_directory / "operations-state"),
+                       APP_HOME=str(input_directory))
+    environment.pop("EVS_OPS_LOCK_TOKEN", None)
     return subprocess.run(
-        [str(STARDOG_QA), "ncit", str(owl_file), "0", str(input_directory)],
+        [os.environ.get("OPS_BASH", "bash"), str(STARDOG_QA), "ncit", str(owl_file), "0", str(input_directory)],
         check=False,
         capture_output=True,
         text=True,
+        env=environment,
     )
+
+
+def test_ncit_qa_preserves_spaced_paths_and_rejects_missing_code(tmp_path):
+    directory = tmp_path / "input with spaces"
+    directory.mkdir()
+    owl_file = directory / "Thesaurus with spaces.owl"
+    for body, expected in (("<NHC0>C123</NHC0><P108>Sample Concept</P108>", 0),
+                           ("<P108>Sample Concept</P108>", 1)):
+        write_ncit_owl(owl_file, body)
+        archive = directory / "terminology data.zip"
+        with zipfile.ZipFile(archive, "w") as zipped:
+            zipped.write(owl_file, "ThesaurusInferred_forTS.owl")
+        for source in (owl_file, archive):
+            result = run_stardog_qa(source, directory)
+            assert result.returncode == expected, result.stdout + result.stderr
+            if expected:
+                assert "ERROR: missing NHC0" in result.stdout
 
 
 def test_ncit_qa_fails_for_empty_property(tmp_path):

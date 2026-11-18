@@ -67,7 +67,7 @@ if __name__ == "__main__":
     if (terminology == "NCIM"):
     	terminology = "NCIMTH";    
 
-    with open(terminologyFileName + "-samples.txt", "w") as termFile:
+    with open(terminologyFileName + "-samples.txt", "w", encoding="utf-8") as termFile:
     
         with open (sys.argv[1] + "/MRCONSO.RRF", "r", encoding='utf-8') as mrconsoFile:
             mrconsoLines = mrconsoFile.readlines()

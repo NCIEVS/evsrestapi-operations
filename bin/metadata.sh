@@ -1,4 +1,6 @@
 #!/bin/bash -f
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
+ops_lock "$@"
 #
 # This script takes a reference to a terminology metadata .json file
 # and overrides the evs_metadata entry for the specified terminology/version.
@@ -34,6 +36,11 @@ terminology=${arr[0]}
 version=${arr[1]}
 indexVersion=`echo $version | perl -ne 's/[\.\-]//g; print lc($_)'`
 uri=${arr[2]}
+# These become part of OpenSearch URLs; they must not add path segments or query strings.
+if [[ ! "$terminology" =~ ^[A-Za-z0-9_-]+$ || ! "$version" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "ERROR: invalid terminology or version"
+    exit 1
+fi
 
 # Verify jq installed
 jq --help >> /dev/null 2>&1
@@ -55,16 +62,8 @@ echo "uri = $uri"
 # Setup configuration
 echo "  Setup configuration"
 if [[ $config -eq 1 ]]; then
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
+    ops_load_config 1 || exit 1
     echo "    config = $CONFIG_ENV_FILE"
-    . $CONFIG_ENV_FILE
-    if [[ $? -ne 0 ]]; then
-        echo "ERROR: $CONFIG_ENV_FILE does not exist or has a problem"
-        echo "       consider using --noconfig (if working in dev environment)"
-        exit 1
-    fi
 elif [[ -z $ES_SCHEME ]]; then
     echo "ERROR: ES_SCHEME is not set"
     exit 1
@@ -83,7 +82,7 @@ echo ""
 
 # Verify that terminology/version is valid
 echo "  Verify $terminology $indexVersion exists"
-curl -s $ES/evs_metadata/_doc/concept_${terminology}_${indexVersion} > /tmp/x.$$ 2>&1
+curl -s "$ES/evs_metadata/_doc/concept_${terminology}_${indexVersion}" > /tmp/x.$$ 2>&1
 if [[ $? -ne 0 ]]; then
     echo "ERROR: unexpected error looking up index in elasticsearch, check config"
     exit 1
@@ -96,10 +95,9 @@ if [ $ct -ne 0 ]; then
 fi
 
 echo "  Verify '$uri' exists"
-ct=`echo $uri | grep -c 'http'`
-# handle the uri case
-if [ $ct -ne 0 ]; then
-    curl -s -o /tmp/y.$$ $uri > /tmp/x.$$ 2>&1
+# handle the uri case; quoted so it is one URL, never extra curl options or output files
+if [[ "$uri" == http://* || "$uri" == https://* ]]; then
+    curl -s -o /tmp/y.$$ "$uri" > /tmp/x.$$ 2>&1
     if [ $? -ne 0 ]; then
         cat /tmp/x.$$
         echo "ERROR: Problem downloading $uri"
@@ -112,14 +110,14 @@ fi
 
 # At this point $file is set to a file that exists
 echo "  Verfiy $file is valid json"
-cat $file | $jq > /tmp/x.$$ 2>&1
+cat "$file" | $jq > /tmp/x.$$ 2>&1
 if [ $? -ne 0 ]; then
    echo "ERROR: Unable to parse $file as json"
    exit 1
 fi
 
 # All checks passed, proceed with updating
-data=`cat $file`
+data=`cat "$file"`
 curl -X POST "$ES/evs_metadata/_doc/concept_${terminology}_${indexVersion}/_update" \
   -H 'Content-type: application/json' \
   -d '{"doc": {"terminology": {"metadata": '"$data"'}}}' > /tmp/x.$$ 2>&1

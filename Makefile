@@ -1,15 +1,29 @@
-VERSION=2.5.0
+VERSION=2.6.0
 BUILD_DIR=./build
+GRADLEW ?= ./gradlew
+PYTHON ?= python3
 
-build:
-	@echo "Creating ${BUILD_DIR} directory if it does not exist"
-	@mkdir -p ${BUILD_DIR}
-	@echo "Creating zip file. Version: ${VERSION}"
-	@zip -r ${BUILD_DIR}/evsrestapi-operations-${VERSION}.zip ./bin ./config ./lib ./src ./poetry.lock ./pyproject.toml ./Makefile -x ".gitignore"
+build: java
+	$(PYTHON) bin/package_distribution.py $(VERSION)
+
+java:
+	cd web && $(GRADLEW) spotlessCheck build
+
+test:
+	cd web && $(GRADLEW) test
+	poetry run pytest
+
+# Report HIGH and CRITICAL vulnerabilities in the Java dependencies (needs Trivy), as CI does.
+# The generated lockfile is always removed.
+scan:
+	@set -e; \
+	trap 'rm -rf "$(CURDIR)/web/gradle/dependency-locks" "$(CURDIR)/web/gradle.lockfile"' EXIT; \
+	cd web && $(GRADLEW) dependencies --write-locks > /dev/null; \
+	trivy fs gradle.lockfile --scanners vuln --severity HIGH,CRITICAL --format table
 
 clean:
-	@echo "Cleaning ${BUILD_DIR} directory if it exists"
-	@if [ -d ${BUILD_DIR} ] && [ -z "$(ls -A ${BUILD_DIR})" ]; then rm -f ${BUILD_DIR}/*.zip; fi
+	cd web && $(GRADLEW) clean
+	rm -f $(BUILD_DIR)/evsrestapi-operations-*.zip
 
 tag:
 	git tag -a "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE" -m "Release `/bin/date +%Y-%m-%d`"
@@ -27,4 +41,4 @@ rmtag:
 	git tag -d "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE"
 	git push origin --delete "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE"
 
-.PHONY: build
+.PHONY: build java test scan clean

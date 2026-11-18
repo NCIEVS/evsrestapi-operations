@@ -1,0 +1,68 @@
+plugins {
+  id 'java'
+  id 'eclipse'
+  id 'org.springframework.boot' version '4.1.1'
+  id 'io.spring.dependency-management' version '1.1.7'
+  id 'com.diffplug.spotless' version '6.25.0'
+  id 'com.github.spotbugs' version '6.5.12'
+}
+group = 'gov.nih.nci.evs.operations'
+version = '2.6.0.RELEASE'
+apply from: new File(gradle.includedBuild('evsrestapi').projectDir, 'evsrestapi-core/dependency-versions.gradle')
+repositories { mavenCentral() }
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
+dependencies {
+  implementation 'gov.nih.nci.evs.api:evsrestapi-core:2.6.0.RELEASE'
+  implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+  implementation 'org.springframework.boot:spring-boot-jackson2'
+  implementation 'commons-cli:commons-cli:1.11.0'
+  compileOnly 'com.github.spotbugs:spotbugs-annotations:4.8.6'
+  testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+  testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(Test).configureEach { useJUnitPlatform() }
+tasks.named('test') { useJUnitPlatform { excludeTags 'integration' } }
+tasks.register('integrationTest', Test) {
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+  useJUnitPlatform { includeTags 'integration' }
+  systemProperty 'spring.config.name', 'loader'
+}
+bootJar {
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  archiveFileName = 'evsrestapi-operations.jar'
+  mainClass = 'gov.nih.nci.evs.operations.admin.AdminApplication'
+  exclude '**/cumulative_history_*', '**/cuis-*', '**/loader*.properties'
+  exclude '**/gov/nih/nci/evs/api/**', '**/gov/nih/nci/evs/operations/loader/**'
+}
+tasks.register('loaderJar', org.springframework.boot.gradle.tasks.bundling.BootJar) {
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+  archiveFileName = 'evsrestapi-loader.jar'
+  mainClass = 'gov.nih.nci.evs.operations.loader.LoaderMain'
+  targetJavaVersion = JavaVersion.VERSION_25
+  from(sourceSets.main.output) { into 'BOOT-INF/classes' }
+  exclude '**/application.properties', '**/gov/nih/nci/evs/operations/admin/**'
+  classpath = sourceSets.main.runtimeClasspath
+}
+// The CUIs with listed sources have hierarchies computed. Run from web/ (relative paths resolve here):
+// ./gradlew rrfSample -Pterminology=NCIMTH,MDR,ICD10CM,ICD9CM,LNC,SNOMEDCT_US,RADLEX,PDQ,ICD10,HL7V3.0 -PlistFile=src/main/resources/cuis-202508.txt -PinputPath=/path/to/NCIM/META [-PcopyMode=codesab|cui]
+tasks.register('rrfSample', JavaExec) {
+  classpath = sourceSets.main.runtimeClasspath
+  mainClass = 'gov.nih.nci.evs.api.service.SamplingApplication'
+  args 'rrfSample', providers.gradleProperty('inputPath').getOrElse('na'), providers.gradleProperty('listFile').getOrElse('na'), providers.gradleProperty('terminology').getOrElse('na'), providers.gradleProperty('copyMode').getOrElse('codesab')
+  jvmArgs '-Xmx8G'
+}
+tasks.named('assemble') { dependsOn 'loaderJar' }
+// Lets `gradlew dependencies --write-locks` record resolved versions for the Trivy scan
+// (`make scan` and the CI workflow). Locks are enforced only while a lockfile exists.
+dependencyLocking { lockAllConfigurations() }
+spotless {
+  java {
+    target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
+    googleJavaFormat('1.28.0').reflowLongStrings().formatJavadoc(true).reorderImports(true)
+    removeUnusedImports()
+  }
+}
+spotbugs { excludeFilter = file('config/spotbugs/excludeFilter.xml') }
+spotbugsMain { reports { xml.required = true; html.required = true } }
+spotbugsTest { reports { xml.required = true; html.required = true } }
