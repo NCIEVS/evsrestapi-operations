@@ -53,6 +53,9 @@ tasks.register('rrfSample', JavaExec) {
   jvmArgs '-Xmx8G'
 }
 tasks.named('assemble') { dependsOn 'loaderJar' }
+// Lets `gradlew dependencies --write-locks` record resolved versions for the Trivy scan
+// (`make scan` and the CI workflow). Locks are enforced only while a lockfile exists.
+dependencyLocking { lockAllConfigurations() }
 spotless {
   java {
     target 'src/main/java/**/*.java', 'src/test/java/**/*.java'

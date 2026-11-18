@@ -10,6 +10,7 @@ This repository contains EVSRESTAPI operations assets: shell entry points, Pytho
 - `data/` contains checked-in mapping data used by EVS mapset workflows.
 - `test/` contains pytest coverage and fixtures for active converter behavior.
 - `web/` contains the Java 25 admin service and non-web loader application; see `web/AGENTS.md`.
+- `docker/fuseki/` builds the local-development Jena/Fuseki image; see `docs/jena-fuseki.md`.
 - `legacy/` and `lib/` contain archived scripts, JARs, and vendored artifacts that are still packaged or retained for operational compatibility.
 
 # Build And Test Commands

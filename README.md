@@ -38,7 +38,7 @@ script usage, and API calls.
 
 * Download the [Unit Test Data folder](https://drive.google.com/drive/u/1/folders/11RcXLTsbOZ34_7ofKdVxLKHp_8aJGgTI),
   unpack it outside the repositories, and run its `prep.sh`
-* Start [Jena/Fuseki](https://github.com/NCIEVS/evsrestapi/blob/develop/JENA.md) and
+* Start [Jena/Fuseki](docs/jena-fuseki.md) and
   [OpenSearch](https://github.com/NCIEVS/evsrestapi/blob/develop/OPENSEARCH.md)
 * Export the settings from `config/setenv-jena.sh_orig`, edited for those local services
 * From this checkout, build the loader and run the reset:
@@ -59,6 +59,8 @@ no override is supplied. History snapshots are not bundled in the loader JAR.
 * Use ```make clean build``` to build the Java applications in `web/` and create a zip of the
   scripts, config, mapping data, and both JARs
 * This command would create a build directory if it does not exist and creates the zip file in that directory
+* `make scan` reports HIGH and CRITICAL vulnerabilities in the Java dependencies, including those
+  from `evsrestapi-core` (requires [Trivy](https://trivy.dev)). Pull requests run the same scan.
 
 ### Running tests
 

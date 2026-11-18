@@ -91,3 +91,48 @@ jobs:
       - name: Packaged applications and process lifecycle
         working-directory: evsrestapi-operations
         run: python test/distribution_smoke.py build/evsrestapi-operations-2.6.0.zip
+  trivy_scan:
+    name: Dependency vulnerability scan
+    needs: paired_source
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evsrestapi-operations
+      - uses: actions/checkout@v4
+        with:
+          repository: NCIEVS/evsrestapi
+          ref: ${{ needs.paired_source.outputs.api_ref }}
+          path: evsrestapi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      # Same scan as evsrestapi's: record resolved versions (core's included), then check them.
+      - name: Generate dependency lock for scanning
+        working-directory: evsrestapi-operations/web
+        run: bash gradlew dependencies --write-locks > /dev/null
+      - name: Install Trivy
+        run: |
+          TRIVY_LATEST_VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | jq -r .tag_name)
+          wget -q https://github.com/aquasecurity/trivy/releases/download/${TRIVY_LATEST_VERSION}/trivy_${TRIVY_LATEST_VERSION#v}_Linux-64bit.deb
+          sudo dpkg -i trivy_${TRIVY_LATEST_VERSION#v}_Linux-64bit.deb
+      - name: Run Trivy scan
+        working-directory: evsrestapi-operations/web
+        run: trivy fs gradle.lockfile --scanners vuln --severity HIGH,CRITICAL --format json --output trivy_report.json --exit-code 0
+        env:
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
+          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
+      - name: Check and output vulnerabilities
+        working-directory: evsrestapi-operations/web
+        run: |
+          vuln_count=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL")] | length' trivy_report.json)
+          echo "Vulnerability count: $vuln_count"
+          if [ "$vuln_count" -gt 0 ]; then
+            echo "High or Critical vulnerabilities found!"
+            jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL") | "\(.VulnerabilityID): \(.PkgName) - Severity: \(.Severity) - Installed Version: \(.InstalledVersion) - Fixed Version: \(.FixedVersion)"' trivy_report.json
+            exit 1
+          fi
+          echo "No high or critical vulnerabilities found."

@@ -4,6 +4,8 @@
 /build/
 /web/build/
 /web/.gradle/
+/web/gradle.lockfile
+/web/gradle/dependency-locks/
 /var/
 bin/work_*/
 .settings
