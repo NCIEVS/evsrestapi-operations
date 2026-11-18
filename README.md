@@ -44,6 +44,46 @@ To run a specific test file:
 PYTHONPATH=.:src poetry run pytest test/stardog_qa_test.py
 ```
 
+### Generating the monthly PharmSub Excel report
+
+`bin/pharmsub_report.py` queries the requested NCIT named graph in Jena and
+writes the publication workbook directly, with every populated cell stored as
+text. It replaces the browser export and Excel Power Query import steps.
+
+PharmSub requires Python 3.9 or later; Poetry is optional. Create a local
+Python environment and install the two Excel dependencies with pip:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install 'openpyxl==3.1.5' 'lxml==5.4.0'
+```
+
+For guided operation in Codex, use the
+[PharmSub Report skill](.agents/skills/pharmsub-report/SKILL.md). It handles
+setup, missing release details, connection checks, generation, and the exact
+output path. When requested, it also guides internal FTP upload and production
+promotion with public-file verification. See
+[Run with Codex](docs/pharmsub_report.md#run-with-codex) for example prompts.
+
+For monthly production runs, use the NCIT2 query endpoint on `ncidb-p335-c`:
+
+```bash
+.venv/bin/python bin/pharmsub_report.py \
+  --version 26.09d \
+  --release-date 20260928 \
+  --endpoint http://ncidb-p335-c.nci.nih.gov:3030/NCIT2/query \
+  --output-dir ./output
+```
+
+If you already use Poetry, `poetry install` and `poetry run python` work too.
+
+Use the actual release version and publication date. The date is required;
+the script does not substitute today's date. Run after that version has
+finished loading and passed monthly content QA.
+
+See [the PharmSub instructions](docs/pharmsub_report.md) for environment
+configuration, validation, offline reruns, and the publication handoff.
+
 ### Generating OWL samples for EVSRESTAPI content QA
 
 `bin/owl_sampling.py` generates TSV sample files from terminology OWL release
