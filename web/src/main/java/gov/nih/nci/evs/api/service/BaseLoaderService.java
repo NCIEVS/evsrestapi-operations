@@ -25,13 +25,12 @@ import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
-import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.util.CollectionUtils;
 
@@ -63,8 +62,9 @@ public abstract class BaseLoaderService implements OpensearchLoadService {
   /* The terminology utils */
   @Autowired private TerminologyUtils termUtils;
 
-  /** The client. */
-  @Autowired private RestHighLevelClient client;
+  /** The cache manager; clears the loader's cached index metadata after it writes metadata. */
+  @Autowired(required = false)
+  private CacheManager cacheManager;
 
   /** The dbs. */
   @Value("${nci.evs.bulkload.graphDbs}")
@@ -454,7 +454,15 @@ public abstract class BaseLoaderService implements OpensearchLoadService {
     operationsService.bulkIndexAndWait(
         Arrays.asList(iMeta), OpensearchOperationsService.METADATA_INDEX, IndexMetadata.class);
 
-    // This block is for debugging presence of the iMeta
+    // This block is for debugging presence of the iMeta.
+    // Clear cached metadata first so the log reflects the write above.
+    final Cache metadataCache =
+        cacheManager == null
+            ? null
+            : cacheManager.getCache(OpensearchQueryCacheService.INDEX_METADATA_CACHE);
+    if (metadataCache != null) {
+      metadataCache.clear();
+    }
     List<IndexMetadata> iMetas = osQueryService.getIndexMetadata(true);
     final List<String> completed =
         iMetas.stream().map(t -> t.getTerminologyVersion()).sorted().collect(Collectors.toList());
@@ -477,8 +485,7 @@ public abstract class BaseLoaderService implements OpensearchLoadService {
    * @throws InterruptedException the interrupted exception
    */
   protected void findAndDeleteTerminology(String ID) throws IOException, InterruptedException {
-    DeleteRequest request = new DeleteRequest(OpensearchOperationsService.METADATA_INDEX, ID);
-    client.delete(request, RequestOptions.DEFAULT);
+    operationsService.deleteIndexMetadata(ID);
 
     // This block is for debugging presence of the iMeta still in the index
     // Thread.sleep(2000);
