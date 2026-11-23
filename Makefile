@@ -10,7 +10,13 @@ java:
 	cd web && $(GRADLEW) spotlessCheck build
 
 test:
+	$(MAKE) test-java
+	$(MAKE) test-python
+
+test-java:
 	cd web && $(GRADLEW) test
+
+test-python:
 	poetry run pytest
 
 # Report HIGH and CRITICAL vulnerabilities in the Java dependencies (needs Trivy), as CI does.
@@ -41,4 +47,4 @@ rmtag:
 	git tag -d "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE"
 	git push origin --delete "v`/bin/date +%Y-%m-%d`-${VERSION}.RELEASE"
 
-.PHONY: build java test scan clean
+.PHONY: build java test test-java test-python scan clean

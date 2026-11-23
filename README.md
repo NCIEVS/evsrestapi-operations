@@ -74,16 +74,36 @@ no override is supplied. History snapshots are not bundled in the loader JAR.
 
 ### Running tests
 
-The project uses Poetry to manage the Python test environment. From the repository root:
+Run tests from the repository root:
 
+```bash
+make test-java    # Java tests in web/; requires Java 25, but not Poetry
+make test-python  # Python tests; requires Poetry and installed Python dependencies
+make test         # Java tests, then Python tests; stops if either step fails
 ```
-poetry install
-PYTHONPATH=.:src poetry run pytest
+
+`make test-java` runs the same `web/gradlew test` command used by the Java loader/admin
+build. It excludes the data-dependent integration tests configured in `web/build.gradle`.
+The separate targets do not change which tests are selected.
+
+The Python converter tests use [Poetry](https://python-poetry.org/docs/#installation)
+to manage their environment. Install Poetry using its installation guide, ensure the
+`poetry` command is on `PATH`, then install the project dependencies, including the test tools:
+
+```bash
+poetry --version
+poetry install --with dev
+make test-python
 ```
+
+If `poetry` reports `command not found` (or Make reports that it cannot find the file),
+Poetry is missing or its executable directory is not on `PATH`. On Windows, reopen Git Bash
+after installing Poetry or updating `PATH`. Poetry is required for `make test-python` and
+the combined `make test`, but not for `make test-java` or the Java build.
 
 To run a specific test file:
 
-```
+```bash
 PYTHONPATH=.:src poetry run pytest test/stardog_qa_test.py
 ```
 
