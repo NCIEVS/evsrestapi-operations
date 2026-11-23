@@ -1,7 +1,10 @@
 USER=****
 PASSWORD=****
 
-export JAVA_HOME=/usr/local/jdk1.8
+# This script invokes an external Stardog installation. Select a JDK supported by that
+# installation; do not override it with the EVS applications' Java 25 requirement.
+: "${STARDOG_JAVA_HOME:=${JAVA_HOME:?Set STARDOG_JAVA_HOME or JAVA_HOME for this Stardog installation}}"
+export JAVA_HOME="$STARDOG_JAVA_HOME"
 
 ./stardog data remove --all  NCIEVS -u $USER -p $PASSWORD
 ./stardog data remove --all  CTRP   -u $USER -p $PASSWORD

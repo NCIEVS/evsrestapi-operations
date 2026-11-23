@@ -23,6 +23,10 @@ Shared dependency versions come from the paired evsrestapi checkout; see its
 The documented local backends are OpenSearch 2.18.0 and Jena/Fuseki 5.3.0. Fuseki runs
 in its own Java 25 container, matching the loader/admin applications' Java version.
 
+External database tools retain their own Java requirements. OpenSearch 2.18.0 uses its bundled
+Java 21 runtime. The old `bin/NCIEVS_Monthly.sh` Stardog workflow accepts `STARDOG_JAVA_HOME`
+(or falls back to `JAVA_HOME`); select a JDK supported by that installed Stardog version.
+
 ### Steps for Deploying Locally
 
 * Choose a workspace directory, e.g. c:/workspace

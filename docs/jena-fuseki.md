@@ -9,6 +9,10 @@ The local image packages **Jena/Fuseki 5.3.0** on **Java 25**, as declared in
 The image tag below does not specify the version of a
 native Fuseki installation on a server.
 
+For native installations, `bin/jena.service` also targets Java 25. Adjust its
+`JAVA_HOME` and `PATH` entries to the installed JDK location before installing the unit.
+The container build does not update an already-installed systemd unit or native Fuseki runtime.
+
 ## Build and run a local docker image
 
 From the root of this repository, run the following command to build the Jena image:
