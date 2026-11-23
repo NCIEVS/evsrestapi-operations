@@ -6,6 +6,8 @@ This directory contains per-terminology transform wrappers invoked by `bin/stard
 
 Each transform wrapper stages work under `bin/work_$PID`, creates a local virtual environment, installs Poetry, installs this repository, runs a terminology-specific Python converter, and then runs `owl_file_converter.py` to produce OWL.
 
+Use the virtual environment's Python interpreter for pip and Poetry, selecting `Scripts/python.exe` on native Windows and `bin/python` on Unix. Stop on setup or conversion failure; a failed transform must not print a generated-file path as if it succeeded.
+
 The final line printed by a transform is expected to be the generated OWL file path. `stardog_load.sh` parses that final line, moves or renames the file, and continues the graph load workflow.
 
 # Per-Terminology Wrappers

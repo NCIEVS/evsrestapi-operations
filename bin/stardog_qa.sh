@@ -1,4 +1,5 @@
 #!/bin/bash -f
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
 #
 # This script takes a terminology and an owl file for consideration of loading into
 # stardog and checks required things about the file.
@@ -41,7 +42,7 @@ fi
 
 if [[ $file = *zip ]]; then
     echo "    Unzip file"
-    unzip -p $file "*ThesaurusInferred_forTS.owl" > /tmp/fx.$$
+    unzip -p "$file" "*ThesaurusInferred_forTS.owl" > /tmp/fx.$$
     if [[ $? -ne 0 ]]; then
         echo "ERROR: unable to unzip $file"
         exit 1
@@ -52,7 +53,7 @@ fi
 error=0
 # NCI Thesaurus checks
 if [[ $terminology == "ncit" ]]; then
-  version=$(grep '<owl:versionInfo>' $file | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
+  version=$(grep '<owl:versionInfo>' "$file" | perl -pe 's/.*<owl:versionInfo>//; s/<\/owl:versionInfo>//')
   ncit_last_char=${version: -1}
   # If the last character of the NCIT version is a, b or c and if the script is run as weekly, we want to fail
   if [[ "$ncit_last_char" =~ [^abc] && "$weekly" -eq 1 ]]; then
@@ -69,7 +70,7 @@ if [[ $terminology == "ncit" ]]; then
             if (/<owl:Class/) { $oc++;}
             if (/<NHC0>/ && $oc == 1) { $x = 1; };
             if (/<\/owl:Class/ && $oc == 1 && !$x) { print "$code"; }
-            if (/<\/owl:Class/) { $oc--; }' $file > /tmp/x.$$
+            if (/<\/owl:Class/) { $oc--; }' "$file" > /tmp/x.$$
   ct=`cat /tmp/x.$$ | wc -l`
   if [[ $ct -ne 0 ]]; then
       cat /tmp/x.$$ | sed 's/^/    /;'
@@ -82,7 +83,7 @@ if [[ $terminology == "ncit" ]]; then
             if (/<owl:Class/) { $oc++;}
             if (/<P108>/ && $oc == 1) { $x = 1; };
             if (/<\/owl:Class/ && $oc == 1 && !$x) { print "$code"; }
-            if (/<\/owl:Class/) { $oc--; }' $file > /tmp/x.$$
+            if (/<\/owl:Class/) { $oc--; }' "$file" > /tmp/x.$$
   ct=`cat /tmp/x.$$ | wc -l`
   if [[ $ct -ne 0 ]]; then
       cat /tmp/x.$$ | sed 's/^/    /;'
@@ -91,7 +92,7 @@ if [[ $terminology == "ncit" ]]; then
   fi
 
   echo "    Verify owl:Class properties are not empty"
-  python3 "$DIR/../src/terminology_converter/qa/qa_utils.py" empty-properties "$file" > /tmp/x.$$
+  "${OPS_PYTHON:-python3}" "$DIR/../src/terminology_converter/qa/qa_utils.py" empty-properties "$file" > /tmp/x.$$
   empty_property_status=$?
   if [[ $empty_property_status -ne 0 ]]; then
       cat /tmp/x.$$ | sed 's/^/    /;'
@@ -106,7 +107,7 @@ if [[ $terminology == "ncit" ]]; then
   fi
 
   echo "    Verify active owl:Class concepts do not use retired parents"
-  python3 "$DIR/../src/terminology_converter/qa/qa_utils.py" retired-parents "$file" > /tmp/x.$$
+  "${OPS_PYTHON:-python3}" "$DIR/../src/terminology_converter/qa/qa_utils.py" retired-parents "$file" > /tmp/x.$$
   retired_parent_status=$?
   if [[ $retired_parent_status -ne 0 ]]; then
       cat /tmp/x.$$ | sed 's/^/    /;'
@@ -123,7 +124,7 @@ fi
 if [[ $terminology == "medrt" ]]; then
     echo "    Checking MED-RT filename and content version alignment"
     set +f
-    xml_file=$(ls $input_directory/Core_MEDRT_*_DTS.xml 2>/dev/null)
+    xml_file=$(ls "$input_directory"/Core_MEDRT_*_DTS.xml 2>/dev/null)
     set -f
     if [[ -f "$xml_file" ]]; then
         file_version=$(echo "$xml_file" | sed -n 's/.*Core_MEDRT_\([0-9]\{8\}\)_DTS\.xml/\1/p')

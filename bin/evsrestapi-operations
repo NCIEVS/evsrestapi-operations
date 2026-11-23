@@ -1,0 +1,56 @@
+#!/bin/bash
+# Private admin-service lifecycle. Data loader JVM options remain in JAVA_OPTS.
+set -e
+umask 077
+DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+export EVS_OPS_HOME="${EVS_OPS_HOME:-$(cd "$DIR/.." && pwd)}"
+# Keep ADMIN_KEY for this JVM only; not exported, so the JVM's jobs never inherit it.
+_OPS_ADMIN_SERVICE=1
+source "$DIR/ops-common.sh"
+ops_load_config || exit 1
+export OPS_STATE_DIR="${OPS_STATE_DIR:-$EVS_OPS_HOME/var}"
+# An empty ADMIN_BIND would make the API listen on every interface.
+export ADMIN_BIND="${ADMIN_BIND:-127.0.0.1}"
+jar="$EVS_OPS_HOME/lib/evsrestapi-operations.jar"
+[[ -f "$jar" ]] || jar="$EVS_OPS_HOME/web/build/libs/evsrestapi-operations.jar"
+pidfile="$OPS_STATE_DIR/admin.pid"
+mkdir -p "$OPS_STATE_DIR/logs"
+running() {
+  [[ -f "$pidfile" ]] || return 1
+  read -r pid < "$pidfile"
+  kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o args= | grep -F 'evsrestapi-operations.jar' >/dev/null
+}
+case "${1:-foreground}" in
+  foreground)
+    if running; then echo "Operations API already running ($pid)" >&2; exit 1; fi
+    [[ -n "${ADMIN_KEY//[[:space:]]/}" && ${#ADMIN_KEY} -ge 32 ]] || { echo 'ERROR: ADMIN_KEY must be at least 32 characters (openssl rand -hex 32)' >&2; exit 1; }
+    [[ -f "$jar" ]] || { echo 'ERROR: build or install the operations JAR first' >&2; exit 1; }
+    cd "$EVS_OPS_HOME"
+    # exec keeps this PID, so status and stop also work when systemd runs foreground.
+    echo "$$" > "$pidfile"
+    exec java ${ADMIN_JAVA_OPTS:--Xmx512m} -jar "$jar"
+    ;;
+  start)
+    if running; then echo "Operations API already running ($pid)"; exit 0; fi
+    [[ -n "${ADMIN_KEY//[[:space:]]/}" && ${#ADMIN_KEY} -ge 32 ]] || { echo 'ERROR: ADMIN_KEY must be at least 32 characters (openssl rand -hex 32)' >&2; exit 1; }
+    [[ -f "$jar" ]] || { echo 'ERROR: build or install the operations JAR first' >&2; exit 1; }
+    cd "$EVS_OPS_HOME"
+    nohup java ${ADMIN_JAVA_OPTS:--Xmx512m} -jar "$jar" >> "$OPS_STATE_DIR/logs/admin.log" 2>&1 < /dev/null &
+    pid=$!
+    echo "$pid" > "$pidfile"
+    sleep 1
+    if ! running; then echo "API startup failed; inspect $OPS_STATE_DIR/logs/admin.log" >&2; exit 1; fi
+    echo "Operations API starting ($pid); inspect $OPS_STATE_DIR/logs/admin.log"
+    ;;
+  stop)
+    if running; then
+      kill "$pid"
+      for ((i=0;i<45;i++)); do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+      if kill -0 "$pid" 2>/dev/null; then echo "Service has not stopped; inspect workers before forcing termination" >&2; exit 1; fi
+    fi
+    rm -f "$pidfile"
+    ;;
+  restart) "$0" stop; exec "$0" start ;;
+  status) if running; then echo "Operations API running ($pid)"; else echo "Operations API stopped"; exit 3; fi ;;
+  *) echo "Usage: $0 {foreground|start|stop|restart|status}" >&2; exit 2 ;;
+esac

@@ -1,4 +1,6 @@
 # create a bash script that would check if a configuration index exists in elasticsearch. If the configuration index does not exist, create the index. Call GRAPHDB_URL/$/server. It will return a JSON. Read the datasets field. It is an array. Use jq to read datasets field and each array entry will have ds.name. In the configuration index store the ds.name as the "name" field and if the database name is CTRP then store the weekly field as true. Otherwise set weekly field as false. So basically there will be a document per dataset in the configuration index.
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/ops-common.sh"
+ops_lock "$@"
 config=1
 ncflag=""
 help=0
@@ -45,16 +47,8 @@ fi
 
 setup_configuration() {
   if [[ $config -eq 1 ]]; then
-    APP_HOME="${APP_HOME:-/local/content/evsrestapi}"
-    CONFIG_DIR=${APP_HOME}/config
-    CONFIG_ENV_FILE=${CONFIG_DIR}/setenv.sh
-    if [[ -e $CONFIG_ENV_FILE ]]; then
-      echo "    config = $CONFIG_ENV_FILE"
-      . $CONFIG_ENV_FILE
-    else
-      echo "    ERROR: $CONFIG_ENV_FILE does not exist, consider using --noconfig"
-      exit 1
-    fi
+    ops_load_config 1 || exit 1
+    echo "    config = $CONFIG_ENV_FILE"
   fi
 }
 

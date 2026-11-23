@@ -1,0 +1,138 @@
+name: Operations Java and scripts
+on:
+  workflow_dispatch:
+    inputs:
+      evsrestapi_ref:
+        description: Paired evsrestapi commit SHA (defaults to the matching branch)
+        required: false
+        type: string
+  pull_request:
+jobs:
+  paired_source:
+    name: Resolve paired evsrestapi revision
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      api_ref: ${{ steps.pin.outputs.sha }}
+    steps:
+      - name: Select paired source
+        id: select
+        env:
+          API_REF: ${{ inputs.evsrestapi_ref || vars.EVSRESTAPI_CORE_REF }}
+          API_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          if [[ -n "$API_REF" ]]; then
+            [[ "$API_REF" =~ ^[0-9a-f]{40}$ ]] || { echo 'evsrestapi_ref or EVSRESTAPI_CORE_REF must be a full commit SHA'; exit 1; }
+            source_ref="$API_REF"
+          else
+            [[ -n "$API_BRANCH" ]] || { echo 'No matching branch; set EVSRESTAPI_CORE_REF to the paired commit SHA'; exit 1; }
+            source_ref="refs/heads/$API_BRANCH"
+          fi
+          printf 'ref=%s\n' "$source_ref" >> "$GITHUB_OUTPUT"
+      - name: Checkout paired source
+        uses: actions/checkout@v4
+        with:
+          repository: NCIEVS/evsrestapi
+          ref: ${{ steps.select.outputs.ref }}
+      - name: Pin paired source revision
+        id: pin
+        run: |
+          [[ -f evsrestapi-core/build.gradle ]] || { echo 'The paired checkout must contain evsrestapi-core'; exit 1; }
+          api_sha=$(git rev-parse HEAD)
+          printf 'sha=%s\n' "$api_sha" >> "$GITHUB_OUTPUT"
+          printf 'Paired evsrestapi commit: `%s`\n' "$api_sha" >> "$GITHUB_STEP_SUMMARY"
+  verify:
+    needs: paired_source
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: '1'
+      PYTHONPATH: ${{ matrix.os == 'windows-latest' && '.;src' || '.:src' }}
+      OPS_BASH: ${{ matrix.os == 'windows-latest' && 'C:/Program Files/Git/bin/bash.exe' || 'bash' }}
+    permissions:
+      contents: read
+    steps:
+      - name: Preserve shell script line endings
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+        with:
+          path: evsrestapi-operations
+      - uses: actions/checkout@v4
+        with:
+          repository: NCIEVS/evsrestapi
+          ref: ${{ needs.paired_source.outputs.api_ref }}
+          path: evsrestapi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Java checks and packaged applications
+        working-directory: evsrestapi-operations/web
+        run: bash gradlew spotlessCheck test integrationTest bootJar loaderJar spotbugsMain spotbugsTest
+      - name: Python checks
+        working-directory: evsrestapi-operations
+        run: |
+          pip install poetry
+          poetry install
+          poetry run pytest
+      - name: Distribution
+        working-directory: evsrestapi-operations
+        run: python bin/package_distribution.py 2.6.0
+      - name: Packaged applications and process lifecycle
+        working-directory: evsrestapi-operations
+        run: python test/distribution_smoke.py build/evsrestapi-operations-2.6.0.zip
+  trivy_scan:
+    name: Dependency vulnerability scan
+    needs: paired_source
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: evsrestapi-operations
+      - uses: actions/checkout@v4
+        with:
+          repository: NCIEVS/evsrestapi
+          ref: ${{ needs.paired_source.outputs.api_ref }}
+          path: evsrestapi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      # Same scan as evsrestapi's: record resolved versions (core's included), then check them.
+      - name: Generate dependency lock for scanning
+        working-directory: evsrestapi-operations/web
+        run: bash gradlew dependencies --write-locks > /dev/null
+      - name: Install Trivy
+        run: |
+          TRIVY_LATEST_VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | jq -r .tag_name)
+          wget -q https://github.com/aquasecurity/trivy/releases/download/${TRIVY_LATEST_VERSION}/trivy_${TRIVY_LATEST_VERSION#v}_Linux-64bit.deb
+          sudo dpkg -i trivy_${TRIVY_LATEST_VERSION#v}_Linux-64bit.deb
+      - name: Run Trivy scan
+        working-directory: evsrestapi-operations/web
+        run: trivy fs gradle.lockfile --scanners vuln --severity HIGH,CRITICAL --format json --output trivy_report.json --exit-code 0
+        env:
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
+          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
+      - name: Check and output vulnerabilities
+        working-directory: evsrestapi-operations/web
+        run: |
+          vuln_count=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL")] | length' trivy_report.json)
+          echo "Vulnerability count: $vuln_count"
+          if [ "$vuln_count" -gt 0 ]; then
+            echo "High or Critical vulnerabilities found!"
+            jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL") | "\(.VulnerabilityID): \(.PkgName) - Severity: \(.Severity) - Installed Version: \(.InstalledVersion) - Fixed Version: \(.FixedVersion)"' trivy_report.json
+            exit 1
+          fi
+          echo "No high or critical vulnerabilities found."

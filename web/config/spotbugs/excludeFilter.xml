@@ -1,0 +1,4 @@
+<FindBugsFilter>
+  <!-- Match the existing evsrestapi analysis threshold for mechanically moved code. -->
+  <Match><Rank value="16"/></Match>
+</FindBugsFilter>

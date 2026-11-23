@@ -95,9 +95,9 @@ class Canmed:
 
     def write_files(self, hcpcs_data: CanmedData, ndconc_data: CanmedData):
         with open(
-                self.attribute_file, "w"
-        ) as af, open(self.concepts_file, "w") as cf, open(
-            self.parent_child_file, "w"
+                self.attribute_file, "w", encoding="utf-8"
+        ) as af, open(self.concepts_file, "w", encoding="utf-8") as cf, open(
+            self.parent_child_file, "w", encoding="utf-8"
         ) as pcf:
             parent_concepts = [
                 "|".join([generic_code_class.code, "", generic_code_class.name, ""]) for generic_code_class in

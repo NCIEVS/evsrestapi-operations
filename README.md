@@ -2,45 +2,108 @@
 
 Information on the operations processes for the EVSRESTAPI project
 
+This repository now also holds the data-loading scripts and Java loader that used to
+live in evsrestapi, plus an optional private admin API that runs the same scripts.
+If you used the evsrestapi scripts, start with
+[docs/switching-from-evsrestapi.md](docs/switching-from-evsrestapi.md).
+See [docs/operations-api.md](docs/operations-api.md) for installation, configuration,
+script usage, and API calls.
+
 ### Prerequisites
 
 * Curl, jq, git
+* Java 25 and Python 3
+* To build: a checkout of [evsrestapi](https://github.com/NCIEVS/evsrestapi) next to this one
+  (or set `EVSRESTAPI_SOURCE` to its path)
 * Clone the project - [https://github.com/NCIEVS/evsrestapi-operations](https://github.com/NCIEVS/evsrestapi-operations)
+
+The Java applications use Spring Boot 4.1.1 and the Gradle 9.3.0 wrapper in `web/`.
+Shared dependency versions come from the paired evsrestapi checkout; see its
+[version baseline](https://github.com/NCIEVS/evsrestapi/blob/develop/README.md#version-baseline).
+The documented local backends are OpenSearch 2.18.0 and Jena/Fuseki 5.3.0. Fuseki runs
+in its own Java 25 container, matching the loader/admin applications' Java version.
+
+External database tools retain their own Java requirements. OpenSearch 2.18.0 uses its bundled
+Java 21 runtime. The old `bin/NCIEVS_Monthly.sh` Stardog workflow accepts `STARDOG_JAVA_HOME`
+(or falls back to `JAVA_HOME`); select a JDK supported by that installed Stardog version.
 
 ### Steps for Deploying Locally
 
 * Choose a workspace directory, e.g. c:/workspace
 * cd c:/workspace
+* git clone https://github.com/NCIEVS/evsrestapi
 * git clone https://github.com/NCIEVS/evsrestapi-operations
 * cd evsrestapi-operations
-* cp setenv.sh_orig setenv.sh
-* Edit setenv.sh for local environment (and optionally for dev/qa environments)
+* Export the settings from `config/setenv-jena.sh_orig` in your shell, edited for your local graph database
+  and OpenSearch, and pass `--noconfig` to scripts that accept it
 
 ### Steps for Deploying on Servers
 
-* cd /local/content
-* git clone https://github.com/NCIEVS/evsrestapi-operations
-* cd evsrestapi-operations
-* cp setenv.sh_orig setenv.sh
-* Edit setenv.sh for local environment
+* Build the zip (see "Building scripts" below) and unzip it into `/local/content/evsrestapi-operations`
+* Add the operations settings from `config/setenv-jena.sh_orig` (or `config/setenv-stardog.sh_orig`)
+  to the existing `/local/content/evsrestapi/config/setenv.sh`
+* See [docs/operations-api.md](docs/operations-api.md) for the remaining settings and the optional API service
+
+### Loading test data locally
+
+* Download the [Unit Test Data folder](https://drive.google.com/drive/u/1/folders/11RcXLTsbOZ34_7ofKdVxLKHp_8aJGgTI),
+  unpack it outside the repositories, and run its `prep.sh`
+* Start [Jena/Fuseki](docs/jena-fuseki.md) and
+  [OpenSearch](https://github.com/NCIEVS/evsrestapi/blob/develop/OPENSEARCH.md)
+* Export the settings from `config/setenv-jena.sh_orig`, edited for those local services
+* From this checkout, build the loader and run the reset:
+
+```bash
+(cd web && ./gradlew loaderJar)
+bin/devreset.sh /path/to/UnitTestData > log 2>&1 &
+tail -f log
+```
+
+NCIt history is read from a filesystem path supplied by `NCI_EVS_HISTORY_FILE` or
+`reindex.sh --history`. `devreset.sh` and `load.sh` use the history file in the
+UnitTestData `NCIT/` directory; `reindex.sh` downloads the appropriate history when
+no override is supplied. History snapshots are not bundled in the loader JAR.
 
 ### Building scripts
 
-* Use ```make clean build``` to create a zip of all the scripts in the bin directory
+* Use ```make clean build``` to build the Java applications in `web/` and create a zip of the
+  scripts, config, mapping data, and both JARs
 * This command would create a build directory if it does not exist and creates the zip file in that directory
+* `make scan` reports HIGH and CRITICAL vulnerabilities in the Java dependencies, including those
+  from `evsrestapi-core` (requires [Trivy](https://trivy.dev)). Pull requests run the same scan.
 
 ### Running tests
 
-The project uses Poetry to manage the Python test environment. From the repository root:
+Run tests from the repository root:
 
+```bash
+make test-java    # Java tests in web/; requires Java 25, but not Poetry
+make test-python  # Python tests; requires Poetry and installed Python dependencies
+make test         # Java tests, then Python tests; stops if either step fails
 ```
-poetry install
-PYTHONPATH=.:src poetry run pytest
+
+`make test-java` runs the same `web/gradlew test` command used by the Java loader/admin
+build. It excludes the data-dependent integration tests configured in `web/build.gradle`.
+The separate targets do not change which tests are selected.
+
+The Python converter tests use [Poetry](https://python-poetry.org/docs/#installation)
+to manage their environment. Install Poetry using its installation guide, ensure the
+`poetry` command is on `PATH`, then install the project dependencies, including the test tools:
+
+```bash
+poetry --version
+poetry install --with dev
+make test-python
 ```
+
+If `poetry` reports `command not found` (or Make reports that it cannot find the file),
+Poetry is missing or its executable directory is not on `PATH`. On Windows, reopen Git Bash
+after installing Poetry or updating `PATH`. Poetry is required for `make test-python` and
+the combined `make test`, but not for `make test-java` or the Java build.
 
 To run a specific test file:
 
-```
+```bash
 PYTHONPATH=.:src poetry run pytest test/stardog_qa_test.py
 ```
 
@@ -136,12 +199,13 @@ For step-by-step details, see `docs/owl_sampling_tutorial.md`.
 ### Loading UMLS Semantic Network
 The UMLS Semantic Network is loaded using a python script. This script requires Python 3.7+. The script can be invoked as follows
 
-```python src/converter/umls_sem_net.py -d "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRDEF" -r "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRSTRE1" -o "/Users/squareroot/temp"```
+```python src/terminology_converter/converter/umls_sem_net.py -d "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRDEF" -i "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRSTRE1" -s "/Users/squareroot/Documents/wci/loading-terminologies/UmlsSemNet/SRSTR" -o "/Users/squareroot/temp"```
 
 Input for the script:
 
 -d UMLS Sematic Net definition file<br/>
--r UMLS Sematic Net relationship file<br/>
+-i UMLS Sematic Net inferred relationship file<br/>
+-s UMLS Sematic Net stated relationship file<br/>
 -o Directory where the output files will be generated
 
 ### Managing config info and mapping data
