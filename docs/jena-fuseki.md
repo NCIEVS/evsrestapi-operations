@@ -4,6 +4,11 @@ The image in `docker/fuseki` runs the Jena/Fuseki graph database that the loader
 the EVSRESTAPI server query. It is for local development and tests only: servers use the
 native Fuseki install, managed by `bin/jena.service`.
 
+The local image packages **Jena/Fuseki 5.3.0** on **Java 17**, as declared in
+`docker/fuseki/Dockerfile`. Its Java runtime is independent of the API and operations
+applications, which use Java 25. The image tag below does not specify the version of a
+native Fuseki installation on a server.
+
 ## Build and run a local docker image
 
 From the root of this repository, run the following command to build the Jena image:
