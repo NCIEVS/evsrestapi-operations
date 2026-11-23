@@ -21,7 +21,7 @@ The Java applications use Spring Boot 4.1.1 and the Gradle 9.3.0 wrapper in `web
 Shared dependency versions come from the paired evsrestapi checkout; see its
 [version baseline](https://github.com/NCIEVS/evsrestapi/blob/develop/README.md#version-baseline).
 The documented local backends are OpenSearch 2.18.0 and Jena/Fuseki 5.3.0. Fuseki runs
-in its own Java 17 container, independently of the Java 25 loader/admin applications.
+in its own Java 25 container, matching the loader/admin applications' Java version.
 
 ### Steps for Deploying Locally
 

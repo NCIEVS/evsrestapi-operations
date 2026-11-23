@@ -1,7 +1,7 @@
 # Local-development Jena/Fuseki image (see docs/jena-fuseki.md). Servers use the native
 # install managed by bin/jena.service instead.
-# The floating Java 17 tag picks up the latest Java 17 patch release at each build.
-FROM bellsoft/liberica-openjre-alpine:17
+# The floating Java 25 tag picks up the latest Java 25 patch release at each build.
+FROM bellsoft/liberica-openjre-alpine:25
 
 # Set environment variables
 ENV FUSEKI_VERSION=5.3.0
